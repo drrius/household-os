@@ -335,32 +335,6 @@ export function planOccurrenceClosure(
         };
       }
 
-      const createOccurrences: PlannedOccurrence[] = [];
-      let discardPreview = false;
-
-      if (context.preview !== null && context.active) {
-        const previewDue = nextDueAfterClosure({
-          rule: context.scheduleRule,
-          closedDueDate: command.newDueDate,
-        });
-
-        discardPreview = true;
-
-        if (previewDue !== null) {
-          createOccurrences.push({
-            role: "preview",
-            dueDate: previewDue,
-            originalDueDate: previewDue,
-            plannedAssigneeId: nextPlannedAssignee({
-              assignment: context.assignment,
-              members: context.members,
-              previousPlannedAssignee: target.plannedAssigneeId,
-            }),
-            status: "open",
-          });
-        }
-      }
-
       return {
         ok: true,
         plan: {
@@ -369,8 +343,8 @@ export function planOccurrenceClosure(
           completion: null,
           rescheduledDueDate: command.newDueDate,
           promotePreviewToCurrent: false,
-          discardPreview,
-          createOccurrences,
+          discardPreview: false,
+          createOccurrences: emptyCreates(),
           activityKind: "occurrence_rescheduled",
         },
       };

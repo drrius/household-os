@@ -173,7 +173,7 @@ describe("planOccurrenceClosure", () => {
     expect(result.plan.createOccurrences[0]?.dueDate).toBe("2026-08-11");
   });
 
-  it("reschedule keeps the occurrence open and refreshes preview", () => {
+  it("reschedule keeps the occurrence open without moving the preview cadence", () => {
     const result = planOccurrenceClosure(
       context({ scheduleRule: { kind: "daily" } }),
       {
@@ -191,16 +191,8 @@ describe("planOccurrenceClosure", () => {
 
     expect(result.plan.nextStatus).toBe("open");
     expect(result.plan.rescheduledDueDate).toBe("2026-08-12");
-    expect(result.plan.discardPreview).toBe(true);
-    expect(result.plan.createOccurrences).toEqual([
-      {
-        role: "preview",
-        dueDate: "2026-08-13",
-        originalDueDate: "2026-08-13",
-        plannedAssigneeId: memberB,
-        status: "open",
-      },
-    ]);
+    expect(result.plan.discardPreview).toBe(false);
+    expect(result.plan.createOccurrences).toEqual([]);
   });
 
   it("every closure path yields at most one successor current occurrence", () => {

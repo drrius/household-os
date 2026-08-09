@@ -241,6 +241,7 @@ create table public.activity_events (
   kind text not null check (
     kind in (
       'routine_created',
+      'routine_updated',
       'occurrence_completed',
       'occurrence_skipped',
       'occurrence_rescheduled',
@@ -630,7 +631,7 @@ begin
     else
       first_due_date := private.first_routine_due_date(
         routine.schedule_rule,
-        greatest(current_date, coalesce(routine.active_from, current_date))
+        greatest(private.household_today(), coalesce(routine.active_from, private.household_today()))
       );
     end if;
   end if;
@@ -763,6 +764,16 @@ on public.routine_reminder_preferences
 for each row
 execute function private.sync_routine_reminder_preference();
 
+
+create or replace function private.household_today()
+returns date
+language sql
+stable
+set search_path = ''
+as $$
+  select (timezone('Europe/Zurich', now()))::date;
+$$;
+
 create or replace function public.create_routine(
   p_household_id uuid,
   p_title text,
@@ -848,7 +859,7 @@ begin
 
   first_due_date := private.first_routine_due_date(
     p_schedule_rule,
-    greatest(current_date, coalesce(p_active_from, current_date))
+    greatest(private.household_today(), coalesce(p_active_from, private.household_today()))
   );
   if p_active_from is not null and first_due_date < p_active_from then
     raise exception 'first due date precedes active_from'
@@ -931,6 +942,162 @@ begin
       'preview_occurrence_id', preview_occurrence_id
     )
   );
+end;
+$$;
+
+
+create or replace function public.update_routine_definition(
+  p_routine_id uuid,
+  p_title text default null,
+  p_instructions text default null,
+  p_area_id uuid default null,
+  p_pet_id uuid default null,
+  p_assignment_policy text default null,
+  p_assigned_member_id uuid default null,
+  p_rotation_anchor_member_id uuid default null,
+  p_schedule_kind text default null,
+  p_schedule_rule jsonb default null,
+  p_priority text default null,
+  p_active_from date default null,
+  p_active_until date default null,
+  p_rebuild_window boolean default true
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_member_id uuid := auth.uid();
+  routine public.routines%rowtype;
+  next_schedule_kind text;
+  next_schedule_rule jsonb;
+  next_assignment_policy text;
+  next_assigned uuid;
+  next_rotation uuid;
+  open_row public.routine_occurrences%rowtype;
+  first_due date;
+begin
+  select * into routine from public.routines where id = p_routine_id for update;
+  if routine.id is null then
+    raise exception 'routine % does not exist', p_routine_id using errcode = 'P0002';
+  end if;
+  if actor_member_id is null or not private.is_household_member(routine.household_id) then
+    raise exception 'caller is not a member of household %', routine.household_id
+      using errcode = '42501';
+  end if;
+  if routine.archived_at is not null then
+    raise exception 'archived routines cannot be edited' using errcode = '55000';
+  end if;
+
+  next_schedule_kind := coalesce(p_schedule_kind, routine.schedule_kind);
+  next_schedule_rule := coalesce(p_schedule_rule, routine.schedule_rule);
+  if not private.is_valid_routine_schedule(next_schedule_kind, next_schedule_rule) then
+    raise exception 'invalid schedule rule for schedule kind %', next_schedule_kind
+      using errcode = '22023';
+  end if;
+
+  next_assignment_policy := coalesce(p_assignment_policy, routine.assignment_policy);
+  if p_assignment_policy is null then
+    next_assigned := coalesce(p_assigned_member_id, routine.assigned_member_id);
+    next_rotation := coalesce(p_rotation_anchor_member_id, routine.rotation_anchor_member_id);
+  else
+    next_assigned := p_assigned_member_id;
+    next_rotation := p_rotation_anchor_member_id;
+  end if;
+
+  case next_assignment_policy
+    when 'assigned' then
+      if next_assigned is null or next_rotation is not null then
+        raise exception 'assigned routines require only assigned_member_id'
+          using errcode = '22023';
+      end if;
+    when 'alternating' then
+      if next_assigned is not null or next_rotation is null then
+        raise exception 'alternating routines require only rotation_anchor_member_id'
+          using errcode = '22023';
+      end if;
+    when 'shared' then
+      if next_assigned is not null or next_rotation is not null then
+        raise exception 'shared routines cannot name an assignee'
+          using errcode = '22023';
+      end if;
+    else
+      raise exception 'unknown assignment policy %', next_assignment_policy
+        using errcode = '22023';
+  end case;
+
+  update public.routines
+  set
+    title = coalesce(nullif(trim(p_title), ''), title),
+    instructions = case when p_instructions is null then instructions else p_instructions end,
+    area_id = coalesce(p_area_id, area_id),
+    pet_id = case when p_pet_id is null and p_area_id is null then pet_id else p_pet_id end,
+    assignment_policy = next_assignment_policy,
+    assigned_member_id = next_assigned,
+    rotation_anchor_member_id = next_rotation,
+    schedule_kind = next_schedule_kind,
+    schedule_rule = next_schedule_rule,
+    priority = coalesce(p_priority, priority),
+    active_from = case when p_active_from is null and p_active_until is null then active_from else p_active_from end,
+    active_until = case when p_active_from is null and p_active_until is null then active_until else p_active_until end,
+    updated_at = now()
+  where id = p_routine_id
+  returning * into routine;
+
+  if p_rebuild_window
+    and (
+      p_schedule_kind is not null
+      or p_schedule_rule is not null
+      or p_assignment_policy is not null
+      or p_assigned_member_id is not null
+      or p_rotation_anchor_member_id is not null
+      or p_active_from is not null
+      or p_active_until is not null
+    )
+  then
+    for open_row in
+      select *
+      from public.routine_occurrences
+      where routine_id = p_routine_id
+        and status = 'open'
+      for update
+    loop
+      update public.reminder_candidates
+      set status = 'cancelled'
+      where occurrence_id = open_row.id
+        and status = 'pending';
+      delete from public.routine_occurrences where id = open_row.id;
+    end loop;
+
+    first_due := private.first_routine_due_date(
+      routine.schedule_rule,
+      greatest(private.household_today(), coalesce(routine.active_from, private.household_today()))
+    );
+    perform private.ensure_routine_window(routine.id, first_due, null);
+  end if;
+
+  insert into public.activity_events (
+    household_id,
+    actor_member_id,
+    kind,
+    entity_type,
+    entity_id,
+    payload
+  )
+  values (
+    routine.household_id,
+    actor_member_id,
+    'routine_updated',
+    'routine',
+    routine.id,
+    jsonb_build_object(
+      'schedule_kind', routine.schedule_kind,
+      'assignment_policy', routine.assignment_policy
+    )
+  );
+
+  return jsonb_build_object('routine_id', routine.id);
 end;
 $$;
 
@@ -1040,11 +1207,11 @@ begin
     and routine.paused_at is null
     and (
       routine.active_from is null
-      or coalesce(p_completed_on, occurrence.due_date) >= routine.active_from
+      or occurrence.due_date >= routine.active_from
     )
     and (
       routine.active_until is null
-      or coalesce(p_completed_on, occurrence.due_date) <= routine.active_until
+      or occurrence.due_date <= routine.active_until
     );
 
   if p_command_kind = 'reschedule' then
@@ -1058,26 +1225,11 @@ begin
         rescheduled_at = now()
     where id = occurrence.id;
 
+    update public.reminder_candidates
+    set status = 'cancelled'
+    where occurrence_id = occurrence.id
+      and status = 'pending';
     perform private.create_reminder_candidates_for_occurrence(occurrence.id);
-
-    if had_preview and routine_active then
-      delete from public.routine_occurrences where id = preview.id;
-      second_due_date := private.next_routine_due_date(
-        routine.schedule_rule,
-        p_new_due_date,
-        null
-      );
-      if second_due_date is not null
-        and (routine.active_until is null or second_due_date <= routine.active_until)
-      then
-        preview_occurrence_id := private.insert_open_routine_occurrence(
-          routine,
-          'preview',
-          second_due_date,
-          occurrence.planned_assignee_id
-        );
-      end if;
-    end if;
 
     insert into public.activity_events (
       household_id,
@@ -1634,8 +1786,12 @@ revoke all on function private.apply_routine_closure(
   uuid, text, text, date, date, text, text
 ) from public, anon, authenticated;
 
+revoke all on function private.household_today() from public, anon, authenticated;
 revoke execute on function public.create_routine(
   uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date
+) from public, anon;
+revoke execute on function public.update_routine_definition(
+  uuid, text, text, uuid, uuid, text, uuid, uuid, text, jsonb, text, date, date, boolean
 ) from public, anon;
 revoke execute on function public.complete_occurrence(uuid, text, date, text, text)
 from public, anon;
@@ -1652,6 +1808,9 @@ from public, anon;
 
 grant execute on function public.create_routine(
   uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date
+) to authenticated;
+grant execute on function public.update_routine_definition(
+  uuid, text, text, uuid, uuid, text, uuid, uuid, text, jsonb, text, date, date, boolean
 ) to authenticated;
 grant execute on function public.complete_occurrence(uuid, text, date, text, text)
 to authenticated;

@@ -169,3 +169,45 @@ export async function archiveRoutine(
 
   return asRecord(data);
 }
+
+export async function updateRoutineDefinition(input: {
+  routineId: string;
+  title?: string | null;
+  instructions?: string | null;
+  areaId?: string | null;
+  petId?: string | null;
+  assignmentPolicy?: "assigned" | "alternating" | "shared" | null;
+  assignedMemberId?: string | null;
+  rotationAnchorMemberId?: string | null;
+  scheduleKind?: "one_off" | "calendar" | "after_completion" | null;
+  scheduleRule?: Record<string, unknown> | null;
+  priority?: "pet_care" | "meal_deadline" | "cleaning" | "general" | null;
+  activeFrom?: string | null;
+  activeUntil?: string | null;
+  rebuildWindow?: boolean;
+}): Promise<Record<string, unknown>> {
+  await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("update_routine_definition", {
+    p_routine_id: input.routineId,
+    p_title: input.title ?? null,
+    p_instructions: input.instructions ?? null,
+    p_area_id: input.areaId ?? null,
+    p_pet_id: input.petId ?? null,
+    p_assignment_policy: input.assignmentPolicy ?? null,
+    p_assigned_member_id: input.assignedMemberId ?? null,
+    p_rotation_anchor_member_id: input.rotationAnchorMemberId ?? null,
+    p_schedule_kind: input.scheduleKind ?? null,
+    p_schedule_rule: input.scheduleRule ?? null,
+    p_priority: input.priority ?? null,
+    p_active_from: input.activeFrom ?? null,
+    p_active_until: input.activeUntil ?? null,
+    p_rebuild_window: input.rebuildWindow ?? true,
+  });
+
+  if (error) {
+    throw new Error(`update_routine_definition failed: ${error.message}`);
+  }
+
+  return asRecord(data);
+}
