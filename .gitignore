@@ -18,6 +18,7 @@ supabase/.branches/
 supabase/.temp/
 
 # Tooling
+.codex/
 .turbo/
 *.tsbuildinfo
 .DS_Store
