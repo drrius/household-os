@@ -4,7 +4,7 @@ Milestones are dependency-ordered integration gates, not calendar estimates. A l
 
 ## M0: Repository foundation
 
-Deliver the pnpm workspace, Next.js shell, Supabase local configuration, tenancy migration, pure domain package, baseline tests, CI, and agent ownership rules.
+Deliver the root Next.js application, Supabase local configuration, tenancy migration, pure domain modules, baseline tests, CI, and agent ownership rules.
 
 Exit criteria:
 

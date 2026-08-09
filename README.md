@@ -8,15 +8,16 @@ The version-one product contract is frozen in [docs/product-scope.md](docs/produ
 
 - Next.js App Router and TypeScript
 - Supabase Postgres, Auth, Realtime, Storage, Edge Functions, and Cron
-- pnpm workspace
+- pnpm
 - Vitest, fast-check, pgTAP, and Playwright
 - Vercel Hobby with one Supabase Free production project
 
-## Workspace
+## Repository layout
 
 ```text
-apps/web                  Next.js application
-packages/domain           Pure domain rules and property tests
+src/app                   Next.js routes and application shell
+src/domain                Pure domain rules and property tests
+src/lib                   Environment and Supabase integration
 supabase/migrations       Append-only database migrations
 supabase/tests/database   RLS and database invariant tests
 tests/e2e                 Cross-feature acceptance tests
@@ -31,14 +32,13 @@ such as Docker Desktop or Colima for local Supabase.
 ```bash
 pnpm install
 pnpm db:start
-cp apps/web/.env.example apps/web/.env.local
+cp .env.example .env.local
 pnpm dev
 ```
 
 Use the public project URL and publishable key printed by `pnpm db:start` in
-`apps/web/.env.local`. The Supabase administrator secret belongs only in the
-future local administration tooling; never place it in the web application's
-environment or commit it.
+`.env.local`. The Supabase administrator secret belongs only in future local
+administration tooling; never place it in the Next.js environment or commit it.
 
 ## Verification
 
