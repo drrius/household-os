@@ -1,0 +1,2 @@
+-- Version-one users are provisioned through the trusted enrollment command.
+-- Keep production-like personal data out of repository seeds.

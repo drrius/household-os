@@ -1,0 +1,30 @@
+{
+  "name": "household-os",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.12.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @household-os/web build",
+    "dev": "pnpm --filter @household-os/web dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm --filter @household-os/web lint",
+    "test": "pnpm --recursive --if-present test",
+    "test:e2e": "playwright test",
+    "typecheck": "pnpm --recursive --if-present typecheck",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "prettier": "3.9.6",
+    "supabase": "2.113.0",
+    "typescript": "5.9.3"
+  }
+}

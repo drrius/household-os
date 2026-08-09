@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+
+# Environment and local services
+.env
+.env.*
+!.env.example
+.supabase/
+supabase/.branches/
+supabase/.temp/
+
+# Tooling
+.turbo/
+*.tsbuildinfo
+.DS_Store
+
+# Logs
+*.log
+pnpm-debug.log*
