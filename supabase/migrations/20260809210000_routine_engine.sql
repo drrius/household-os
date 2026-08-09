@@ -607,17 +607,20 @@ begin
   end if;
 
   if first_due_date is null then
-    select occurrence.*, completion.completed_on
-    into latest_occurrence, latest_completed_on
+    select occurrence.*
+    into latest_occurrence
     from public.routine_occurrences as occurrence
-    left join public.routine_completions as completion
-      on completion.occurrence_id = occurrence.id
     where occurrence.routine_id = routine.id
       and occurrence.status in ('completed', 'skipped')
     order by occurrence.closed_at desc, occurrence.created_at desc
     limit 1;
 
     if found then
+      select completion.completed_on
+      into latest_completed_on
+      from public.routine_completions as completion
+      where completion.occurrence_id = latest_occurrence.id;
+
       previous_assignee_id := latest_occurrence.planned_assignee_id;
       first_due_date := private.next_routine_due_date(
         routine.schedule_rule,
