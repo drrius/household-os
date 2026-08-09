@@ -9,7 +9,7 @@ import {
   nextDueAfterClosure,
   validateScheduleRule,
 } from "./schedule";
-import { asIsoDate, type IsoDate, type IsoWeekday } from "./types";
+import { asIsoDate, type IsoWeekday } from "./types";
 
 const isoDateArbitrary = fc
   .integer({
@@ -44,9 +44,9 @@ describe("validateScheduleRule", () => {
 
 describe("calendar recurrence", () => {
   it("daily advances one civil day", () => {
-    expect(nextCalendarDueDate({ kind: "daily" }, asIsoDate("2026-08-09"))).toBe(
-      "2026-08-10",
-    );
+    expect(
+      nextCalendarDueDate({ kind: "daily" }, asIsoDate("2026-08-09")),
+    ).toBe("2026-08-10");
   });
 
   it("weekly lands on the requested weekday", () => {
@@ -60,7 +60,10 @@ describe("calendar recurrence", () => {
 
   it("monthly clamps to the final day of shorter months", () => {
     expect(
-      nextCalendarDueDate({ kind: "monthly", dayOfMonth: 31 }, asIsoDate("2026-01-31")),
+      nextCalendarDueDate(
+        { kind: "monthly", dayOfMonth: 31 },
+        asIsoDate("2026-01-31"),
+      ),
     ).toBe("2026-02-28");
   });
 
@@ -72,7 +75,10 @@ describe("calendar recurrence", () => {
         fc.integer({ min: 1, max: 31 }),
         (anchor, weekday, dayOfMonth) => {
           const daily = nextCalendarDueDate({ kind: "daily" }, anchor);
-          const weekly = nextCalendarDueDate({ kind: "weekly", weekday }, anchor);
+          const weekly = nextCalendarDueDate(
+            { kind: "weekly", weekday },
+            anchor,
+          );
           const monthly = nextCalendarDueDate(
             { kind: "monthly", dayOfMonth },
             anchor,
@@ -170,9 +176,9 @@ describe("one-off schedules", () => {
 
   it("first due date is the configured date", () => {
     const date = asIsoDate("2026-12-25");
-    expect(firstDueDateOnOrAfter({ kind: "one_off", date }, asIsoDate("2026-01-01"))).toBe(
-      date,
-    );
+    expect(
+      firstDueDateOnOrAfter({ kind: "one_off", date }, asIsoDate("2026-01-01")),
+    ).toBe(date);
   });
 });
 

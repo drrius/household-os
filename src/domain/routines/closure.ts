@@ -50,9 +50,7 @@ export type PlannedOccurrence = {
 };
 
 export type ClosureActivityKind =
-  | "occurrence_completed"
-  | "occurrence_skipped"
-  | "occurrence_rescheduled";
+  "occurrence_completed" | "occurrence_skipped" | "occurrence_rescheduled";
 
 export type ClosurePlan = {
   closedOccurrenceId: OccurrenceId;
@@ -81,8 +79,7 @@ export type ClosurePlanError = {
 };
 
 export type ClosurePlanResult =
-  | { ok: true; plan: ClosurePlan }
-  | { ok: false; error: ClosurePlanError };
+  { ok: true; plan: ClosurePlan } | { ok: false; error: ClosurePlanError };
 
 export type RoutineClosureContext = {
   assignment: Assignment;
@@ -145,9 +142,7 @@ function planAfterClosingCurrent(input: {
   completedOn?: IsoDate;
 }): Pick<
   ClosurePlan,
-  | "promotePreviewToCurrent"
-  | "discardPreview"
-  | "createOccurrences"
+  "promotePreviewToCurrent" | "discardPreview" | "createOccurrences"
 > {
   const { context, closed, completedOn } = input;
 
@@ -387,7 +382,6 @@ export function planOccurrenceClosure(
   }
 }
 
-/** Initial current + preview window when activating a routine. */
 export function planInitialOccurrenceWindow(input: {
   assignment: Assignment;
   members: readonly [MemberId, MemberId];

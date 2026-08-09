@@ -12,7 +12,11 @@ export function splitIsoDate(date: IsoDate): {
   };
 }
 
-export function fromUtcParts(year: number, month: number, day: number): IsoDate {
+export function fromUtcParts(
+  year: number,
+  month: number,
+  day: number,
+): IsoDate {
   const utc = Date.UTC(year, month - 1, day);
   const resolved = new Date(utc);
   const yyyy = String(resolved.getUTCFullYear()).padStart(4, "0");

@@ -28,10 +28,7 @@ export type Assignment =
   | { policy: "shared" };
 
 export type RoutinePriority =
-  | "pet_care"
-  | "meal_deadline"
-  | "cleaning"
-  | "general";
+  "pet_care" | "meal_deadline" | "cleaning" | "general";
 
 export type OccurrenceStatus = "open" | "completed" | "skipped";
 

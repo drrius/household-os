@@ -23,7 +23,8 @@ export function validateAssignment(
       ok: false,
       error: {
         code: "household_requires_two_members",
-        message: "Version one assignment requires exactly two household members",
+        message:
+          "Version one assignment requires exactly two household members",
       },
     };
   }
@@ -79,10 +80,6 @@ export function otherMember(
   throw new Error("memberId is not one of the household members");
 }
 
-/**
- * Planned assignee for an occurrence. Alternation follows the planned sequence,
- * not who actually completed prior work.
- */
 export function plannedAssigneeForIndex(input: {
   assignment: Assignment;
   members: readonly [MemberId, MemberId];

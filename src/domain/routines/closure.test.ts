@@ -36,9 +36,11 @@ function occurrence(
   };
 }
 
-function context(partial: Partial<RoutineClosureContext> & {
-  scheduleRule: ScheduleRule;
-}): RoutineClosureContext {
+function context(
+  partial: Partial<RoutineClosureContext> & {
+    scheduleRule: ScheduleRule;
+  },
+): RoutineClosureContext {
   return {
     assignment: { policy: "alternating", anchorMemberId: memberA },
     members,

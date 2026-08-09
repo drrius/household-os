@@ -256,7 +256,7 @@ select lives_ok(
       p_schedule_rule => '{"kind":"daily"}'::jsonb,
       p_rotation_anchor_member_id => '00000000-0000-4000-8000-000000000011'::uuid,
       p_priority => 'cleaning',
-      p_active_from => '2099-01-01'::date
+      p_active_from => current_date
     )
   $$,
   'create_routine accepts a valid daily alternating routine'
@@ -303,11 +303,11 @@ select results_eq(
   $$
     values
       (
-        '2099-01-01'::date,
+        current_date,
         '00000000-0000-4000-8000-000000000011'::uuid
       ),
       (
-        '2099-01-02'::date,
+        current_date + 1,
         '00000000-0000-4000-8000-000000000012'::uuid
       )
   $$,
@@ -364,7 +364,7 @@ select lives_ok(
           and role = 'current'
       ),
       'daily-complete-1',
-      '2099-01-01',
+      current_date,
       'Done',
       null
     )
@@ -410,8 +410,8 @@ select results_eq(
   $$,
   $$
     values
-      ('current'::text, '2099-01-02'::date),
-      ('preview'::text, '2099-01-03'::date)
+      ('current'::text, current_date + 1),
+      ('preview'::text, current_date + 2)
   $$,
   'daily completion promotes the preview and creates one successor preview'
 );
@@ -481,7 +481,7 @@ select is(
       limit 1
     ),
     'daily-complete-1',
-    '2099-01-01',
+    current_date,
     'Ignored retry',
     null
   ) ->> 'status',
@@ -505,6 +505,8 @@ select is(
   'same-key completion retries create one completion'
 );
 
+reset role;
+
 select is(
   (
     select count(*)::integer
@@ -515,6 +517,8 @@ select is(
   1,
   'same-key completion retries create one receipt'
 );
+
+set local role authenticated;
 
 select is(
   (
@@ -546,7 +550,7 @@ select lives_ok(
       p_schedule_rule => '{"kind":"after_completion","every":3,"unit":"days"}'::jsonb,
       p_assigned_member_id => '00000000-0000-4000-8000-000000000012'::uuid,
       p_priority => 'pet_care',
-      p_active_from => '2099-02-01'
+      p_active_from => current_date
     )
   $$,
   'create_routine accepts completion-based recurrence'
@@ -565,7 +569,7 @@ select lives_ok(
           and role = 'current'
       ),
       'after-complete-1',
-      '2099-02-10'
+      current_date + 9
     )
   $$,
   'completion closes a completion-based occurrence'
@@ -581,7 +585,7 @@ select is(
       and status = 'open'
       and role = 'current'
   ),
-  '2099-02-13'::date,
+  current_date + 12,
   'after_completion anchors the next current due date to completed_on'
 );
 
@@ -613,7 +617,7 @@ select is(
       and status = 'open'
       and role = 'current'
   ),
-  '2099-02-16'::date,
+  current_date + 15,
   'skip preserves completion-based cadence from the skipped due date'
 );
 
@@ -645,7 +649,7 @@ select lives_ok(
       p_assignment_policy => 'shared',
       p_schedule_kind => 'calendar',
       p_schedule_rule => '{"kind":"daily"}'::jsonb,
-      p_active_from => '2099-03-01'
+      p_active_from => current_date
     )
   $$,
   'create_routine accepts a shared routine'
@@ -663,7 +667,7 @@ select lives_ok(
           and status = 'open'
           and role = 'current'
       ),
-      '2099-03-05',
+      current_date + 4,
       'reschedule-1'
     )
   $$,
@@ -682,8 +686,8 @@ select results_eq(
   $$,
   $$
     values
-      ('current'::text, '2099-03-05'::date, '2099-03-01'::date),
-      ('preview'::text, '2099-03-06'::date, '2099-03-06'::date)
+      ('current'::text, current_date + 4, current_date),
+      ('preview'::text, current_date + 5, current_date + 5)
   $$,
   'reschedule keeps current open, preserves its origin, and refreshes preview'
 );

@@ -68,7 +68,10 @@ export function validateScheduleRule(
   switch (rule.kind) {
     case "one_off":
       try {
-        return { ok: true, rule: { kind: "one_off", date: asIsoDate(rule.date) } };
+        return {
+          ok: true,
+          rule: { kind: "one_off", date: asIsoDate(rule.date) },
+        };
       } catch {
         return {
           ok: false,
@@ -81,7 +84,10 @@ export function validateScheduleRule(
       if (rule.days.length === 0) {
         return {
           ok: false,
-          error: { code: "empty_weekdays", message: "weekdays requires at least one day" },
+          error: {
+            code: "empty_weekdays",
+            message: "weekdays requires at least one day",
+          },
         };
       }
 
@@ -201,7 +207,7 @@ function nextMonthlyOnOrAfter(
   fromInclusive: IsoDate,
   dayOfMonth: number,
 ): IsoDate {
-  const { year, month, day } = splitIsoDate(fromInclusive);
+  const { year, month } = splitIsoDate(fromInclusive);
   const clampedThisMonth = clampDayOfMonth(year, month, dayOfMonth);
   const thisMonthDate = fromUtcParts(year, month, clampedThisMonth);
 
@@ -220,10 +226,6 @@ function nextMonthlyOnOrAfter(
   );
 }
 
-/**
- * Next calendar due date strictly after `afterDate`.
- * Calendar recurrence follows the calendar anchor, not completion time.
- */
 export function nextCalendarDueDate(
   rule: Extract<
     ScheduleRule,
@@ -247,7 +249,6 @@ export function nextCalendarDueDate(
   }
 }
 
-/** First due date on or after `fromInclusive` for calendar and one-off rules. */
 export function firstDueDateOnOrAfter(
   rule: ScheduleRule,
   fromInclusive: IsoDate,

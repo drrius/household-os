@@ -15,8 +15,10 @@ const members = [memberA, memberB] as const;
 describe("validateAssignment", () => {
   it("requires household members for assigned and alternating policies", () => {
     expect(
-      validateAssignment({ policy: "assigned", memberId: asMemberId("outsider") }, members)
-        .ok,
+      validateAssignment(
+        { policy: "assigned", memberId: asMemberId("outsider") },
+        members,
+      ).ok,
     ).toBe(false);
 
     expect(

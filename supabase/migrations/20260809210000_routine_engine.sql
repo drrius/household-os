@@ -776,7 +776,8 @@ create or replace function public.create_routine(
   p_pet_id uuid default null,
   p_priority text default 'general',
   p_active_from date default null,
-  p_active_until date default null
+  p_active_until date default null,
+  p_first_due_on date default null
 )
 returns jsonb
 language plpgsql
@@ -785,7 +786,7 @@ set search_path = ''
 as $$
 declare
   actor_member_id uuid := auth.uid();
-  routine_id uuid;
+  new_routine_id uuid;
   first_due_date date;
   current_occurrence_id uuid;
   preview_occurrence_id uuid;
@@ -846,9 +847,12 @@ begin
       using errcode = '22023';
   end if;
 
-  first_due_date := private.first_routine_due_date(
-    p_schedule_rule,
-    greatest(current_date, coalesce(p_active_from, current_date))
+  first_due_date := coalesce(
+    p_first_due_on,
+    private.first_routine_due_date(
+      p_schedule_rule,
+      greatest(current_date, coalesce(p_active_from, current_date))
+    )
   );
   if p_active_from is not null and first_due_date < p_active_from then
     raise exception 'first due date precedes active_from'
@@ -889,9 +893,9 @@ begin
     p_active_from,
     p_active_until
   )
-  returning id into routine_id;
+  returning id into new_routine_id;
 
-  perform private.ensure_routine_window(routine_id, first_due_date, null);
+  perform private.ensure_routine_window(new_routine_id, first_due_date, null);
 
   insert into public.activity_events (
     household_id,
@@ -906,27 +910,27 @@ begin
     actor_member_id,
     'routine_created',
     'routine',
-    routine_id,
+    new_routine_id,
     jsonb_build_object('title', trim(p_title))
   );
 
   select occurrence.id
   into current_occurrence_id
   from public.routine_occurrences as occurrence
-  where occurrence.routine_id = routine_id
+  where occurrence.routine_id = new_routine_id
     and occurrence.status = 'open'
     and occurrence.role = 'current';
 
   select occurrence.id
   into preview_occurrence_id
   from public.routine_occurrences as occurrence
-  where occurrence.routine_id = routine_id
+  where occurrence.routine_id = new_routine_id
     and occurrence.status = 'open'
     and occurrence.role = 'preview';
 
   return jsonb_strip_nulls(
     jsonb_build_object(
-      'routine_id', routine_id,
+      'routine_id', new_routine_id,
       'current_occurrence_id', current_occurrence_id,
       'preview_occurrence_id', preview_occurrence_id
     )
@@ -1038,8 +1042,14 @@ begin
 
   routine_active := routine.archived_at is null
     and routine.paused_at is null
-    and (routine.active_from is null or current_date >= routine.active_from)
-    and (routine.active_until is null or current_date <= routine.active_until);
+    and (
+      routine.active_from is null
+      or coalesce(p_completed_on, occurrence.due_date) >= routine.active_from
+    )
+    and (
+      routine.active_until is null
+      or coalesce(p_completed_on, occurrence.due_date) <= routine.active_until
+    );
 
   if p_command_kind = 'reschedule' then
     if p_new_due_date is null or p_new_due_date = occurrence.due_date then
@@ -1554,6 +1564,10 @@ using (
   and (select private.is_household_member(household_id))
 );
 
+create policy "members can read command receipts"
+on public.routine_command_receipts for select to authenticated
+using ((select private.is_household_member(household_id)));
+
 revoke all on table public.areas from anon, authenticated;
 revoke all on table public.pets from anon, authenticated;
 revoke all on table public.routines from anon, authenticated;
@@ -1573,6 +1587,7 @@ grant update (title, instructions, area_id, pet_id, priority)
   on table public.routines to authenticated;
 grant select on table public.routine_occurrences to authenticated;
 grant select on table public.routine_completions to authenticated;
+grant select on table public.routine_command_receipts to authenticated;
 grant select on table public.activity_events to authenticated;
 grant select, insert on table public.routine_reminder_preferences to authenticated;
 grant update (enabled, due_day_local_time)
@@ -1624,7 +1639,7 @@ revoke all on function private.apply_routine_closure(
 ) from public, anon, authenticated;
 
 revoke execute on function public.create_routine(
-  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date
+  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date, date
 ) from public, anon;
 revoke execute on function public.complete_occurrence(uuid, text, date, text, text)
 from public, anon;
@@ -1640,7 +1655,7 @@ revoke execute on function public.archive_routine(uuid)
 from public, anon;
 
 grant execute on function public.create_routine(
-  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date
+  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date, date
 ) to authenticated;
 grant execute on function public.complete_occurrence(uuid, text, date, text, text)
 to authenticated;
