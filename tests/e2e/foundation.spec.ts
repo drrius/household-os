@@ -1,14 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-test("serves the intentionally neutral application foundation", async ({
+test("anonymous visitors are sent to the neutral sign-in surface", async ({
   page,
 }) => {
   await page.goto("/");
 
+  await expect(page).toHaveURL(/\/sign-in$/);
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Household OS" }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("Visual design is intentionally pending."),
+    page.getByRole("button", { name: "Sign in with passkey" }),
   ).toBeVisible();
 });

@@ -1,7 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { classifyPath, SIGN_IN_PATH } from "@/lib/auth/paths";
 import { getPublicEnv } from "@/lib/env";
+
+function applyCookies(from: NextResponse, to: NextResponse) {
+  for (const cookie of from.cookies.getAll()) {
+    to.cookies.set(cookie);
+  }
+}
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -31,7 +38,18 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const isAuthenticated = data?.claims?.sub !== undefined;
+  const pathClass = classifyPath(request.nextUrl.pathname);
+
+  if (pathClass === "member" && !isAuthenticated) {
+    const signInUrl = request.nextUrl.clone();
+    signInUrl.pathname = SIGN_IN_PATH;
+    signInUrl.search = "";
+    const redirectResponse = NextResponse.redirect(signInUrl);
+    applyCookies(response, redirectResponse);
+    return redirectResponse;
+  }
 
   return response;
 }

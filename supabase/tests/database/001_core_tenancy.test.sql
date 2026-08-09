@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(34);
+select plan(35);
 
 select has_table('public', 'households', 'households table exists');
 select has_table('public', 'household_members', 'household_members table exists');
@@ -239,6 +239,20 @@ select is_empty(
 );
 
 reset role;
+
+select throws_ok(
+  $$
+    insert into public.household_members (household_id, user_id, display_name)
+    values (
+      '10000000-0000-4000-8000-000000000001',
+      '00000000-0000-4000-8000-000000000005',
+      'Third Member'
+    )
+  $$,
+  '23514',
+  'household 10000000-0000-4000-8000-000000000001 already has the version-one member cap of 2',
+  'a third household member insert is rejected'
+);
 
 select * from finish();
 rollback;
