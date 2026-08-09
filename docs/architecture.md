@@ -12,10 +12,11 @@ Simple descriptive edits may use RLS-protected table operations. Commands that c
 
 The browser must treat financial command responses as authoritative. It may optimistically update routine, meal, and grocery interactions, but must roll them back visibly if the server rejects the operation.
 
-## Package boundary
+## Source boundaries
 
-- `apps/web` owns routing, rendering, Supabase session integration, browser state, and application composition.
-- `packages/domain` owns pure recurrence and money rules that require no React, network, clock, or database.
+- `src/app` owns routing, rendering, and application composition.
+- `src/lib` owns Supabase session integration, browser state, and server/client service boundaries.
+- `src/domain` owns pure recurrence and money rules that require no React, network, clock, or database.
 - `supabase` owns durable schema, authorization, transactional commands, scheduled generation, and database tests.
 - `tests/e2e` owns only cross-boundary user workflows; it does not replace domain or RLS tests.
 

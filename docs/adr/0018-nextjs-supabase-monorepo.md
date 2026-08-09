@@ -1,6 +1,6 @@
 # ADR 0018: Use Next.js, Supabase, and one pnpm workspace
 
-- Status: Accepted
+- Status: Accepted; repository-layout decision superseded by ADR 0024
 - Date: 2026-08-09
 
 ## Context

@@ -44,7 +44,7 @@ It replaces fragmented informal coordination and the need to open Splitwise for 
 ## Technical boundary
 
 - Next.js App Router and TypeScript.
-- One pnpm workspace.
+- One root Next.js application managed with pnpm.
 - Vercel Hobby for the personal, non-commercial web application.
 - One Supabase Free project in Frankfurt for Postgres, Auth, Realtime, Storage, Edge Functions, and Cron.
 - One hosted environment plus local development.
