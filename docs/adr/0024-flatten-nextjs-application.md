@@ -10,7 +10,7 @@ Version one has one deployable web application and no second consumer for a shar
 
 ## Decision
 
-The repository uses one Next.js application rooted at the repository root and managed with pnpm. Routes and rendering live in `src/app`, application integrations live in `src/lib`, and pure recurrence and money rules live in `src/domain` with lint rules that prevent UI, persistence, and browser dependencies.
+The repository uses one Next.js application rooted at the repository root and managed with pnpm. Routes and rendering live in `src/app`, application integrations live in `src/lib`, and pure recurrence and money rules live in `src/domain` with lint rules plus a DOM-free TypeScript check that prevent UI, persistence, and browser dependencies.
 
 Supabase migrations, functions, and database tests remain under `supabase`, while cross-boundary browser tests remain under `tests/e2e`. The repository will add separate applications or internal packages only when a second deployable runtime or genuine code consumer exists.
 
