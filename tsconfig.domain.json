@@ -7,6 +7,6 @@
     "plugins": [],
     "types": []
   },
-  "include": ["src/domain/**/*.ts", "src/domain/**/*.tsx"],
+  "include": ["src/domain/**/*.ts"],
   "exclude": ["node_modules"]
 }
