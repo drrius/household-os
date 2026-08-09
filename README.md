@@ -25,16 +25,20 @@ docs                      Product, architecture, ADRs, and agent contracts
 
 ## Local development
 
-Requirements: Node.js 22+, pnpm 11+, Docker Desktop for local Supabase.
+Requirements: Node.js 22+, pnpm 11+, and a Docker-compatible container runtime
+such as Docker Desktop or Colima for local Supabase.
 
 ```bash
 pnpm install
-cp .env.example .env.local
 pnpm db:start
+cp apps/web/.env.example apps/web/.env.local
 pnpm dev
 ```
 
-Use the keys printed by `pnpm db:start` in `.env.local`. Never commit Supabase secrets.
+Use the public project URL and publishable key printed by `pnpm db:start` in
+`apps/web/.env.local`. The Supabase administrator secret belongs only in the
+future local administration tooling; never place it in the web application's
+environment or commit it.
 
 ## Verification
 
