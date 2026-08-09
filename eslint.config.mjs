@@ -6,6 +6,24 @@ export default defineConfig([
   ...nextCoreWebVitals,
   ...nextTypeScript,
   {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/domain/**/*"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/scripts/**", "scripts/**"],
+              message:
+                "Application code cannot import local administrator scripts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["src/domain/**/*.ts", "src/domain/**/*.tsx"],
     rules: {
       "@typescript-eslint/triple-slash-reference": [
