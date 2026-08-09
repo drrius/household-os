@@ -776,8 +776,7 @@ create or replace function public.create_routine(
   p_pet_id uuid default null,
   p_priority text default 'general',
   p_active_from date default null,
-  p_active_until date default null,
-  p_first_due_on date default null
+  p_active_until date default null
 )
 returns jsonb
 language plpgsql
@@ -847,12 +846,9 @@ begin
       using errcode = '22023';
   end if;
 
-  first_due_date := coalesce(
-    p_first_due_on,
-    private.first_routine_due_date(
-      p_schedule_rule,
-      greatest(current_date, coalesce(p_active_from, current_date))
-    )
+  first_due_date := private.first_routine_due_date(
+    p_schedule_rule,
+    greatest(current_date, coalesce(p_active_from, current_date))
   );
   if p_active_from is not null and first_due_date < p_active_from then
     raise exception 'first due date precedes active_from'
@@ -1639,7 +1635,7 @@ revoke all on function private.apply_routine_closure(
 ) from public, anon, authenticated;
 
 revoke execute on function public.create_routine(
-  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date, date
+  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date
 ) from public, anon;
 revoke execute on function public.complete_occurrence(uuid, text, date, text, text)
 from public, anon;
@@ -1655,7 +1651,7 @@ revoke execute on function public.archive_routine(uuid)
 from public, anon;
 
 grant execute on function public.create_routine(
-  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date, date
+  uuid, text, uuid, text, text, jsonb, uuid, uuid, text, uuid, text, date, date
 ) to authenticated;
 grant execute on function public.complete_occurrence(uuid, text, date, text, text)
 to authenticated;
