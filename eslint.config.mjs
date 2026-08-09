@@ -6,8 +6,12 @@ export default defineConfig([
   ...nextCoreWebVitals,
   ...nextTypeScript,
   {
-    files: ["src/domain/**/*.ts"],
+    files: ["src/domain/**/*.ts", "src/domain/**/*.tsx"],
     rules: {
+      "@typescript-eslint/triple-slash-reference": [
+        "error",
+        { lib: "never", path: "never", types: "never" },
+      ],
       "no-restricted-globals": [
         "error",
         "window",
@@ -47,11 +51,28 @@ export default defineConfig([
                 "Domain rules must remain independent of UI and persistence libraries.",
             },
             {
-              regex: "^(?:@/(?:app|lib)(?:/|$)|(?:\\.\\./)+(?:app|lib)(?:/|$))",
+              regex: "^@/(?!domain(?:/|$))",
               message:
-                "Domain rules cannot import application or integration modules.",
+                "Domain rules may use the @/ alias only for @/domain modules.",
+            },
+            {
+              regex: "(?:^|/)\\.\\.(?:/|$)",
+              message:
+                "Domain rules cannot use parent path segments; use @/domain for cross-directory imports.",
             },
           ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportExpression",
+          message: "Domain rules cannot use dynamic imports.",
+        },
+        {
+          selector: "TSImportType",
+          message:
+            "Domain rules cannot use import type expressions; use a static import type declaration.",
         },
       ],
     },
