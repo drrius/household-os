@@ -37,8 +37,44 @@ pnpm dev
 ```
 
 Use the public project URL and publishable key printed by `pnpm db:start` in
-`.env.local`. The Supabase administrator secret belongs only in future local
-administration tooling; never place it in the Next.js environment or commit it.
+`.env.local`.
+
+## Identity administration
+
+The local admin command reads the Supabase administrator secret only from
+standard input. Pipe it directly from a password manager:
+
+```bash
+op read "op://Private/Household OS/Supabase secret key" | pnpm admin bootstrap \
+  --project-url https://project-ref.supabase.co \
+  --app-origin https://household.example \
+  --household "Our home" \
+  --member "alice@example.com:Alice" \
+  --member "bob@example.com:Bob" \
+  --secret-stdin
+```
+
+The command prints one enrollment URL per member. Transfer each URL privately
+to the matching member.
+
+Generate another one-time link for an existing member with `enroll-link` or
+`recover-link`:
+
+```bash
+op read "op://Private/Household OS/Supabase secret key" | pnpm admin recover-link \
+  --project-url https://project-ref.supabase.co \
+  --app-origin https://household.example \
+  --member-email alice@example.com \
+  --secret-stdin
+```
+
+Never put the administrator secret in `.env.local`, another Next.js environment
+file, a command argument, or a file in this repository.
+
+Production passkeys bind to one stable Vercel hostname chosen before enrollment.
+Set `HOUSEHOLD_OS_WEBAUTHN_RP_ID` to that bare hostname when running
+`pnpm check:webauthn`. Local Supabase keeps `rp_id = "localhost"`. Renaming the
+production hostname after enrollment invalidates every registered passkey.
 
 ## Verification
 
