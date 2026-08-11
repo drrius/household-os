@@ -789,5 +789,144 @@ select is(
   'finishing shopping writes one activity event'
 );
 
+reset role;
+
+insert into public.grocery_items (
+  household_id,
+  name,
+  sort_order
+)
+values (
+  '10000000-0000-4000-8000-000000000021',
+  'Retry remove item',
+  40
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000021',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.remove_grocery_item(
+      (
+        select id
+        from public.grocery_items
+        where name = 'Retry remove item'
+      )
+    )
+  $$,
+  'a member can remove an active grocery item'
+);
+
+select lives_ok(
+  $$
+    select public.remove_grocery_item(
+      (
+        select id
+        from public.grocery_items
+        where name = 'Retry remove item'
+      )
+    )
+  $$,
+  'removing an already removed grocery item is idempotent'
+);
+
+select is(
+  (
+    select (public.remove_grocery_item(id) ->> 'changed')::boolean
+    from public.grocery_items
+    where name = 'Retry remove item'
+  ),
+  false,
+  'a removal retry reports unchanged success'
+);
+
+select lives_ok(
+  $$
+    select public.create_meal_preparation(
+      p_meal_plan_entry_id => (
+        select id
+        from public.meal_plan_entries
+        where date = '2030-08-06' and slot = 'dinner'
+      ),
+      p_title => 'Defrost pasta sauce',
+      p_instructions => null,
+      p_due_on => '2030-08-05'::date,
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000021'
+          and name = 'Meals'
+      ),
+      p_assignment_policy => 'shared',
+      p_assigned_member_id => null,
+      p_rotation_anchor_member_id => null,
+      p_idempotency_key => 'prep-lock-1'
+    )
+  $$,
+  'a member can create preparation work for an active meal'
+);
+
+select lives_ok(
+  $$
+    select public.remove_meal_plan_entry(
+      p_entry_id => (
+        select id
+        from public.meal_plan_entries
+        where date = '2030-08-06' and slot = 'dinner'
+      ),
+      p_idempotency_key => 'remove-meal-with-prep'
+    )
+  $$,
+  'removing a meal skips its linked preparation occurrence'
+);
+
+select throws_ok(
+  $$
+    select public.create_meal_preparation(
+      p_meal_plan_entry_id => (
+        select id
+        from public.meal_plan_entries
+        where date = '2030-08-06' and slot = 'dinner'
+      ),
+      p_title => 'Too late',
+      p_instructions => null,
+      p_due_on => '2030-08-05'::date,
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000021'
+          and name = 'Meals'
+      ),
+      p_assignment_policy => 'shared',
+      p_assigned_member_id => null,
+      p_rotation_anchor_member_id => null,
+      p_idempotency_key => 'prep-after-remove'
+    )
+  $$,
+  '55000',
+  'removed meal-plan entries cannot receive preparation work',
+  'preparation cannot attach to a removed meal-plan entry'
+);
+
+select is(
+  (
+    select occurrence.status
+    from public.routine_occurrences as occurrence
+    where occurrence.meal_plan_entry_id = (
+      select id
+      from public.meal_plan_entries
+      where date = '2030-08-06' and slot = 'dinner'
+    )
+  ),
+  'skipped',
+  'meal removal skips the locked preparation occurrence'
+);
+
 select * from finish();
 rollback;

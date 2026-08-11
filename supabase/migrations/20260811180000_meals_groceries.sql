@@ -1029,10 +1029,6 @@ begin
     raise exception 'caller is not a member of household %', entry.household_id
       using errcode = '42501';
   end if;
-  if entry.removed_at is not null then
-    raise exception 'removed meal-plan entries cannot receive preparation work'
-      using errcode = '55000';
-  end if;
 
   request_payload := jsonb_build_object(
     'meal_plan_entry_id', p_meal_plan_entry_id,
@@ -1052,6 +1048,17 @@ begin
   );
   if prior_result is not null then
     return prior_result;
+  end if;
+
+  select stored_entry.*
+  into entry
+  from public.meal_plan_entries as stored_entry
+  where stored_entry.id = p_meal_plan_entry_id
+  for update;
+
+  if entry.removed_at is not null then
+    raise exception 'removed meal-plan entries cannot receive preparation work'
+      using errcode = '55000';
   end if;
   if exists (
     select 1
@@ -1367,6 +1374,13 @@ begin
     raise exception 'caller is not a member of household %', item.household_id
       using errcode = '42501';
   end if;
+  if item.state = 'removed' then
+    return jsonb_build_object(
+      'grocery_item_id', item.id,
+      'state', 'removed',
+      'changed', false
+    );
+  end if;
   if item.state <> 'active' then
     raise exception 'only active grocery items can be removed'
       using errcode = '55000';
@@ -1379,7 +1393,8 @@ begin
 
   return jsonb_build_object(
     'grocery_item_id', item.id,
-    'state', 'removed'
+    'state', 'removed',
+    'changed', true
   );
 end;
 $$;
