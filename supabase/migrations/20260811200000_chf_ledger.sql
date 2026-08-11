@@ -384,11 +384,17 @@ declare
   other_member_id uuid;
   member_count integer;
 begin
-  select count(*)::integer,
-         min(member.user_id) filter (where member.user_id <> p_member_id)
-  into member_count, other_member_id
+  select count(*)::integer
+  into member_count
   from public.household_members as member
   where member.household_id = p_household_id;
+
+  select member.user_id
+  into other_member_id
+  from public.household_members as member
+  where member.household_id = p_household_id
+    and member.user_id <> p_member_id
+  limit 1;
 
   if member_count <> 2 or other_member_id is null then
     raise exception 'money commands require exactly two household members'
