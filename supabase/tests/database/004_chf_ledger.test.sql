@@ -606,15 +606,6 @@ select lives_ok(
   'a member can create a weekly recurring expense rule'
 );
 
-select is(
-  (select count(*)::integer from public.financial_events),
-  (
-    select count(*)::integer
-    from public.financial_events
-  ),
-  'financial event baseline is available before draft generation'
-);
-
 create temporary table money_event_baseline as
 select count(*)::integer as event_count
 from public.financial_events;
