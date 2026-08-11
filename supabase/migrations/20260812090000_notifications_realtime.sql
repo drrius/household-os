@@ -172,7 +172,8 @@ create or replace function private.insert_partner_inbox_and_outbox(
   p_activity_kind text,
   p_entity_type text,
   p_entity_id uuid,
-  p_payload jsonb
+  p_payload jsonb,
+  p_activity_event_id uuid
 )
 returns void
 language plpgsql
@@ -191,8 +192,19 @@ begin
   if not private.member_belongs_to_household(p_household_id, p_recipient_member_id) then
     return;
   end if;
+  if p_activity_event_id is null then
+    raise exception 'activity_event_id is required for partner notice dedupe'
+      using errcode = '22023';
+  end if;
 
-  dedupe := 'partner:' || p_activity_kind || ':' || p_entity_id::text;
+  -- Per mutation: same entity can emit many routine_updated / reschedule events.
+  dedupe :=
+    'partner:'
+    || p_activity_kind
+    || ':'
+    || p_entity_id::text
+    || ':'
+    || p_activity_event_id::text;
 
   insert into public.inbox_notifications (
     household_id,
@@ -261,6 +273,7 @@ create or replace function private.deliver_partner_notice(
   p_entity_type text,
   p_entity_id uuid,
   p_payload jsonb,
+  p_activity_event_id uuid,
   p_affect_member_ids uuid[] default array[]::uuid[]
 )
 returns void
@@ -327,7 +340,8 @@ begin
       p_activity_kind,
       p_entity_type,
       p_entity_id,
-      p_payload
+      p_payload,
+      p_activity_event_id
     );
     return;
   end if;
@@ -342,7 +356,8 @@ begin
         p_activity_kind,
         p_entity_type,
         p_entity_id,
-        p_payload
+        p_payload,
+        p_activity_event_id
       );
     end if;
   end loop;
@@ -528,6 +543,7 @@ declare
   payer_allocation bigint;
   other_allocation bigint;
   activity_payload jsonb;
+  activity_event_id uuid;
 begin
   if p_amount_cents is null
     or p_amount_cents not between 0 and 9007199254740991
@@ -706,14 +722,16 @@ begin
       'financial_event',
       event_id,
       activity_payload
-    );
+    )
+    returning id into activity_event_id;
     perform private.deliver_partner_notice(
       p_household_id,
       p_actor_member_id,
       p_activity_kind,
       'financial_event',
       event_id,
-      activity_payload
+      activity_payload,
+      activity_event_id
     );
   end if;
   return event_id;
@@ -744,6 +762,7 @@ declare
   result jsonb;
   event_id uuid;
   activity_payload jsonb;
+  activity_event_id uuid;
 begin
   select stored_draft.*
   into draft
@@ -802,14 +821,16 @@ begin
   values (
     draft.household_id, actor_member_id, 'expense_draft_confirmed',
     'expense_draft', draft.id, activity_payload
-  );
+  )
+  returning id into activity_event_id;
   perform private.deliver_partner_notice(
     draft.household_id,
     actor_member_id,
     'expense_draft_confirmed',
     'expense_draft',
     draft.id,
-    activity_payload
+    activity_payload,
+    activity_event_id
   );
   result := jsonb_build_object(
     'expense_draft_id', draft.id,
@@ -842,6 +863,7 @@ declare
   reversal_event_id uuid;
   replacement_event_id uuid;
   activity_payload jsonb;
+  activity_event_id uuid;
 begin
   select stored_event.*
   into target
@@ -930,14 +952,16 @@ begin
   values (
     target.household_id, actor_member_id, 'financial_event_corrected',
     'financial_event', target.id, activity_payload
-  );
+  )
+  returning id into activity_event_id;
   perform private.deliver_partner_notice(
     target.household_id,
     actor_member_id,
     'financial_event_corrected',
     'financial_event',
     target.id,
-    activity_payload
+    activity_payload,
+    activity_event_id
   );
   result := jsonb_strip_nulls(
     jsonb_build_object(
@@ -982,6 +1006,7 @@ declare
   purchased_count integer;
   expense_description text;
   activity_payload jsonb;
+  activity_event_id uuid;
 begin
   select stored_session.*
   into session
@@ -1147,14 +1172,16 @@ begin
     'shopping_session',
     session.id,
     activity_payload
-  );
+  )
+  returning id into activity_event_id;
   perform private.deliver_partner_notice(
     session.household_id,
     actor_member_id,
     'shopping_session_finished',
     'shopping_session',
     session.id,
-    activity_payload
+    activity_payload,
+    activity_event_id
   );
 
   result := jsonb_strip_nulls(
@@ -1219,6 +1246,7 @@ declare
   affect_member_ids uuid[] := array[]::uuid[];
   schedule_or_assignment_changed boolean := false;
   activity_payload jsonb;
+  activity_event_id uuid;
 begin
   select * into routine from public.routines where id = p_routine_id for update;
   previous_routine := routine;
@@ -1306,6 +1334,7 @@ begin
         and status = 'open'
       for update
     loop
+      perform private.cancel_inbox_reminder_for_occurrence(open_row.id);
       update public.reminder_candidates
       set status = 'cancelled'
       where occurrence_id = open_row.id
@@ -1359,7 +1388,8 @@ begin
     'routine',
     routine.id,
     activity_payload
-  );
+  )
+  returning id into activity_event_id;
 
   if schedule_or_assignment_changed then
     perform private.deliver_partner_notice(
@@ -1369,6 +1399,7 @@ begin
       'routine',
       routine.id,
       activity_payload,
+      activity_event_id,
       affect_member_ids
     );
   end if;
@@ -1407,6 +1438,8 @@ declare
   preview_occurrence_id uuid;
   new_current public.routine_occurrences%rowtype;
   activity_payload jsonb;
+  activity_event_id uuid;
+  notice_member_ids uuid[] := array[]::uuid[];
 begin
   if p_idempotency_key is null
     or length(trim(p_idempotency_key)) not between 1 and 200
@@ -1506,6 +1539,7 @@ begin
     set status = 'cancelled'
     where occurrence_id = occurrence.id
       and status = 'pending';
+    perform private.cancel_inbox_reminder_for_occurrence(occurrence.id);
     perform private.create_reminder_candidates_for_occurrence(occurrence.id);
 
     activity_payload := jsonb_build_object(
@@ -1528,7 +1562,21 @@ begin
       'routine_occurrence',
       occurrence.id,
       activity_payload
-    );
+    )
+    returning id into activity_event_id;
+
+    if occurrence.planned_assignee_id is null then
+      select coalesce(
+        array_agg(member.user_id order by member.user_id),
+        '{}'::uuid[]
+      )
+      into notice_member_ids
+      from public.household_members as member
+      where member.household_id = routine.household_id;
+    else
+      notice_member_ids := array[occurrence.planned_assignee_id];
+    end if;
+
     perform private.deliver_partner_notice(
       routine.household_id,
       actor_member_id,
@@ -1536,7 +1584,8 @@ begin
       'routine_occurrence',
       occurrence.id,
       activity_payload,
-      array_remove(array[occurrence.planned_assignee_id], null)
+      activity_event_id,
+      notice_member_ids
     );
   else
     if p_command_kind = 'complete' and p_completed_on is null then
@@ -2510,6 +2559,77 @@ begin
 end;
 $$;
 
+create or replace function public.run_drain_push_outbox(
+  p_schedule_key text,
+  p_limit integer default 50
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  claim jsonb;
+  outbox_row record;
+  skipped integer := 0;
+  awaiting_edge integer := 0;
+  has_subscription boolean;
+begin
+  claim := private.claim_job(p_schedule_key, 'drain_push_outbox');
+  if claim ->> 'decision' in ('already_succeeded', 'in_progress') then
+    return claim;
+  end if;
+
+  begin
+    -- Reconcile pending rows whose subscription disappeared. Rows that still
+    -- have an active subscription stay pending for Edge push-dispatch (VAPID).
+    for outbox_row in
+      select *
+      from public.push_outbox as outbox
+      where outbox.status = 'pending'
+      order by outbox.created_at
+      limit least(greatest(coalesce(p_limit, 50), 1), 100)
+      for update skip locked
+    loop
+      select exists (
+        select 1
+        from public.push_subscriptions as subscription
+        where subscription.household_id = outbox_row.household_id
+          and subscription.member_id = outbox_row.recipient_member_id
+          and subscription.disabled_at is null
+      )
+      into has_subscription;
+
+      if not has_subscription then
+        update public.push_outbox
+        set status = 'skipped_no_subscription',
+            last_error = null,
+            processed_at = now()
+        where id = outbox_row.id;
+        skipped := skipped + 1;
+      else
+        awaiting_edge := awaiting_edge + 1;
+      end if;
+    end loop;
+
+    perform private.complete_job_claim(
+      p_schedule_key,
+      jsonb_build_object(
+        'skipped', skipped,
+        'awaiting_edge', awaiting_edge
+      )
+    );
+    return jsonb_build_object(
+      'decision', 'run',
+      'skipped', skipped,
+      'awaiting_edge', awaiting_edge
+    );
+  exception when others then
+    perform private.fail_job_claim(p_schedule_key, SQLERRM);
+    return jsonb_build_object('decision', 'failed', 'error', SQLERRM);
+  end;
+end;
+$$;
 
 alter table public.inbox_notifications enable row level security;
 alter table public.notification_digest_preferences enable row level security;
@@ -2603,10 +2723,10 @@ revoke all on function private.affected_members_for_routine_change(
   uuid, text, uuid, text, uuid
 ) from public, anon, authenticated;
 revoke all on function private.insert_partner_inbox_and_outbox(
-  uuid, uuid, uuid, text, text, uuid, jsonb
+  uuid, uuid, uuid, text, text, uuid, jsonb, uuid
 ) from public, anon, authenticated;
 revoke all on function private.deliver_partner_notice(
-  uuid, uuid, text, text, uuid, jsonb, uuid[]
+  uuid, uuid, text, text, uuid, jsonb, uuid, uuid[]
 ) from public, anon, authenticated;
 revoke all on function private.cancel_inbox_reminder_for_occurrence(uuid)
 from public, anon, authenticated;
@@ -2639,12 +2759,14 @@ revoke all on function public.run_retain_activity_events(text, integer) from pub
 revoke all on function public.run_retain_purchased_groceries(text, integer) from public, anon, authenticated;
 revoke all on function public.run_ensure_due_occurrences(text, integer) from public, anon, authenticated;
 revoke all on function public.run_generate_recurring_drafts_cron(text, date, integer) from public, anon, authenticated;
+revoke all on function public.run_drain_push_outbox(text, integer) from public, anon, authenticated;
 grant execute on function public.run_deliver_due_reminders(text, integer) to service_role;
 grant execute on function public.run_deliver_member_digests(text, time, integer) to service_role;
 grant execute on function public.run_retain_activity_events(text, integer) to service_role;
 grant execute on function public.run_retain_purchased_groceries(text, integer) to service_role;
 grant execute on function public.run_ensure_due_occurrences(text, integer) to service_role;
 grant execute on function public.run_generate_recurring_drafts_cron(text, date, integer) to service_role;
+grant execute on function public.run_drain_push_outbox(text, integer) to service_role;
 
 do $pub$
 begin
@@ -2807,6 +2929,24 @@ begin
         'YYYY-MM-DD'
       ),
       (timezone('Europe/Zurich', now()))::date,
+      50
+    );$$
+  );
+exception when others then
+  null;
+end;
+$cron$;
+
+do $cron$
+begin
+  perform cron.schedule(
+    'household-os-drain-push-outbox',
+    '* * * * *',
+    $$select public.run_drain_push_outbox(
+      'drain_push_outbox:global:' || to_char(
+        date_trunc('minute', timezone('Europe/Zurich', now())),
+        'YYYY-MM-DD"T"HH24-MI'
+      ),
       50
     );$$
   );

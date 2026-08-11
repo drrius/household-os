@@ -49,7 +49,8 @@ select ok(
         'run_retain_activity_events',
         'run_retain_purchased_groceries',
         'run_ensure_due_occurrences',
-        'run_generate_recurring_drafts_cron'
+        'run_generate_recurring_drafts_cron',
+        'run_drain_push_outbox'
       )
       and has_function_privilege('anon', pg_proc.oid, 'execute')
   ),
@@ -86,7 +87,8 @@ select ok(
         'run_retain_activity_events',
         'run_retain_purchased_groceries',
         'run_ensure_due_occurrences',
-        'run_generate_recurring_drafts_cron'
+        'run_generate_recurring_drafts_cron',
+        'run_drain_push_outbox'
       )
       and has_function_privilege('authenticated', pg_proc.oid, 'execute')
   ),
@@ -105,11 +107,12 @@ select is(
         'run_retain_activity_events',
         'run_retain_purchased_groceries',
         'run_ensure_due_occurrences',
-        'run_generate_recurring_drafts_cron'
+        'run_generate_recurring_drafts_cron',
+        'run_drain_push_outbox'
       )
       and has_function_privilege('service_role', pg_proc.oid, 'execute')
   ),
-  6,
+  7,
   'service_role can execute every Cron RPC'
 );
 
@@ -297,7 +300,8 @@ select throws_ok(
       'missing_catalog_kind',
       'financial_event',
       '30000000-0000-4000-8000-000000000051',
-      '{}'::jsonb
+      '{}'::jsonb,
+      '40000000-0000-4000-8000-000000000051'
     )
   $$,
   '22023',
@@ -577,6 +581,319 @@ select is(
   0,
   'completing an occurrence deletes its unread inbox reminder'
 );
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000051',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000051',
+      p_title => 'Shared reschedule routine',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000051'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'shared',
+      p_schedule_kind => 'one_off',
+      p_schedule_rule => jsonb_build_object(
+        'kind',
+        'one_off',
+        'date',
+        (timezone('Europe/Zurich', now()))::date
+      ),
+      p_active_from => (timezone('Europe/Zurich', now()))::date,
+      p_active_until => (timezone('Europe/Zurich', now()))::date + 14
+    )
+  $$,
+  'a member can create a shared routine for reschedule notices'
+);
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select occurrence.id
+        from public.routine_occurrences as occurrence
+        join public.routines as routine on routine.id = occurrence.routine_id
+        where routine.title = 'Shared reschedule routine'
+          and occurrence.status = 'open'
+          and occurrence.role = 'current'
+      ),
+      (timezone('Europe/Zurich', now()))::date + 1,
+      'notify-shared-reschedule-1'
+    )
+  $$,
+  'rescheduling a shared occurrence succeeds'
+);
+
+reset role;
+
+select is(
+  (
+    select count(*)::integer
+    from public.inbox_notifications
+    where household_id = '10000000-0000-4000-8000-000000000051'
+      and recipient_member_id = '00000000-0000-4000-8000-000000000052'
+      and activity_kind = 'occurrence_rescheduled'
+  ),
+  1,
+  'rescheduling a shared occurrence notifies the other member'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000051',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000051',
+      p_title => 'Repeated update routine',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000051'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'assigned',
+      p_schedule_kind => 'one_off',
+      p_schedule_rule => jsonb_build_object(
+        'kind',
+        'one_off',
+        'date',
+        (timezone('Europe/Zurich', now()))::date + 2
+      ),
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000052',
+      p_active_from => (timezone('Europe/Zurich', now()))::date,
+      p_active_until => (timezone('Europe/Zurich', now()))::date + 30
+    )
+  $$,
+  'a member can create a routine for repeated update notices'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id
+        from public.routines
+        where title = 'Repeated update routine'
+      ),
+      p_schedule_rule => jsonb_build_object(
+        'kind',
+        'one_off',
+        'date',
+        (timezone('Europe/Zurich', now()))::date + 3
+      )
+    )
+  $$,
+  'first schedule update succeeds'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id
+        from public.routines
+        where title = 'Repeated update routine'
+      ),
+      p_schedule_rule => jsonb_build_object(
+        'kind',
+        'one_off',
+        'date',
+        (timezone('Europe/Zurich', now()))::date + 4
+      )
+    )
+  $$,
+  'second schedule update succeeds'
+);
+
+reset role;
+
+select is(
+  (
+    select count(*)::integer
+    from public.inbox_notifications
+    where household_id = '10000000-0000-4000-8000-000000000051'
+      and recipient_member_id = '00000000-0000-4000-8000-000000000052'
+      and activity_kind = 'routine_updated'
+      and entity_id = (
+        select id
+        from public.routines
+        where title = 'Repeated update routine'
+      )
+  ),
+  2,
+  'later routine updates keep creating partner notices'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000051',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000051',
+      p_title => 'Reschedule clears reminder',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000051'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'assigned',
+      p_schedule_kind => 'one_off',
+      p_schedule_rule => jsonb_build_object(
+        'kind',
+        'one_off',
+        'date',
+        (timezone('Europe/Zurich', now()))::date
+      ),
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000052',
+      p_active_from => (timezone('Europe/Zurich', now()))::date,
+      p_active_until => (timezone('Europe/Zurich', now()))::date + 14
+    )
+  $$,
+  'a member can create a routine whose reminder is cleared by reschedule'
+);
+
+reset role;
+
+insert into public.routine_reminder_preferences (
+  routine_id,
+  member_id,
+  household_id,
+  enabled,
+  due_day_local_time
+)
+select
+  routine.id,
+  '00000000-0000-4000-8000-000000000052',
+  routine.household_id,
+  true,
+  '00:00'::time
+from public.routines as routine
+where routine.title = 'Reschedule clears reminder';
+
+set local role service_role;
+
+select is(
+  public.run_deliver_due_reminders(
+    'deliver_due_reminders:global:test-slot-reschedule-clear',
+    100
+  ) ->> 'decision',
+  'run',
+  'the reminder runner delivers a candidate before reschedule'
+);
+
+reset role;
+
+select is(
+  (
+    select count(*)::integer
+    from public.inbox_notifications
+    where kind = 'routine_reminder'
+      and recipient_member_id = '00000000-0000-4000-8000-000000000052'
+      and entity_id = (
+        select occurrence.id
+        from public.routine_occurrences as occurrence
+        join public.routines as routine on routine.id = occurrence.routine_id
+        where routine.title = 'Reschedule clears reminder'
+          and occurrence.status = 'open'
+          and occurrence.role = 'current'
+      )
+  ),
+  1,
+  'reschedule target has a delivered inbox reminder'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000051',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select occurrence.id
+        from public.routine_occurrences as occurrence
+        join public.routines as routine on routine.id = occurrence.routine_id
+        where routine.title = 'Reschedule clears reminder'
+          and occurrence.status = 'open'
+          and occurrence.role = 'current'
+      ),
+      (timezone('Europe/Zurich', now()))::date + 2,
+      'notify-reschedule-clear-reminder'
+    )
+  $$,
+  'rescheduling after reminder delivery succeeds'
+);
+
+reset role;
+
+select is(
+  (
+    select count(*)::integer
+    from public.inbox_notifications
+    where kind = 'routine_reminder'
+      and dedupe_key = (
+        'reminder:' || (
+          select occurrence.id::text
+          from public.routine_occurrences as occurrence
+          join public.routines as routine on routine.id = occurrence.routine_id
+          where routine.title = 'Reschedule clears reminder'
+            and occurrence.status = 'open'
+            and occurrence.role = 'current'
+        )
+      )
+  ),
+  0,
+  'rescheduling deletes the unread inbox reminder for the occurrence'
+);
+
+set local role service_role;
+
+select is(
+  public.run_drain_push_outbox(
+    'drain_push_outbox:global:test-slot-1',
+    50
+  ) ->> 'decision',
+  'run',
+  'the push outbox drain runner claims its schedule key'
+);
+
+select is(
+  public.run_drain_push_outbox(
+    'drain_push_outbox:global:test-slot-1',
+    50
+  ) ->> 'decision',
+  'already_succeeded',
+  'replaying the push outbox drain schedule key returns the completed claim'
+);
+
+reset role;
 
 select set_config(
   'request.jwt.claim.sub',
