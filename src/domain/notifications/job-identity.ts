@@ -96,7 +96,7 @@ export function decideJobClaimReplay(
 
   switch (existing.status) {
     case "started":
-      return { kind: "in_progress", claim: existing };
+      return { kind: "run", claim: existing };
     case "succeeded":
       return { kind: "already_succeeded", claim: existing };
     case "failed":

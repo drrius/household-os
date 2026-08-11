@@ -185,10 +185,6 @@ export type JobClaimDecision =
       claim: JobClaim;
     }
   | {
-      kind: "in_progress";
-      claim: JobClaim;
-    }
-  | {
       kind: "retry_failed";
       claim: JobClaim;
     };

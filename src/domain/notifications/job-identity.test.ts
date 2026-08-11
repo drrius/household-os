@@ -85,7 +85,7 @@ describe("decideJobClaimReplay", () => {
   });
 
   it.each([
-    ["started", "in_progress"],
+    ["started", "run"],
     ["succeeded", "already_succeeded"],
   ] as const)("maps %s claims to %s", (status, expectedDecision) => {
     const existing = claim(status);
