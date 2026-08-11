@@ -2459,14 +2459,14 @@ declare
   generated integer := 0;
   batch_count integer := 0;
 begin
-  if p_as_of is null then
-    raise exception 'as_of date is required' using errcode = '22023';
-  end if;
   claim := private.claim_job(p_schedule_key, 'generate_recurring_drafts_cron');
   if claim ->> 'decision' in ('already_succeeded', 'in_progress') then
     return claim;
   end if;
   begin
+    if p_as_of is null then
+      raise exception 'as_of date is required' using errcode = '22023';
+    end if;
     for household in
       select distinct rule.household_id
       from public.recurring_expense_rules as rule
