@@ -35,6 +35,15 @@ Read `docs/agent-work-protocol.md` before parallel implementation.
 
 Run the smallest relevant checks during development and `pnpm verify` before integration. Database changes additionally require `pnpm db:test`. Financial changes require both example tests and property tests.
 
+## Cursor Cloud specific instructions
+
+Cloud VM setup lives in `.cursor/environment.json`, which runs `.cursor/scripts/install.sh` and `.cursor/scripts/start.sh`.
+
+- `start.sh` regenerates the root `.env.local` on every VM start. Manual edits do not survive the next start.
+- If Docker or the local Supabase stack looks down mid-session, run `bash .cursor/scripts/start.sh` again. The script is idempotent. Do not start `dockerd` by hand.
+- Only `pnpm test:e2e` needs Playwright browsers. After the Playwright version changes, run `pnpm exec playwright install chromium webkit`.
+- `pnpm verify` needs neither Docker nor browsers. `pnpm db:test` needs the running Supabase stack.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
