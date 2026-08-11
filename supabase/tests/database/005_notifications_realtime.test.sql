@@ -10,7 +10,11 @@ select has_table(
   'notification_digest_preferences',
   'digest preferences table exists'
 );
-select has_table('public', 'push_subscriptions', 'push subscriptions table exists');
+select has_table(
+  'public',
+  'push_subscriptions',
+  'push subscriptions table exists'
+);
 select has_table('public', 'push_outbox', 'push outbox table exists');
 select has_table('public', 'job_claims', 'job claims table exists');
 
@@ -26,7 +30,7 @@ select ok(
       'public.job_claims'::regclass
     )
   ),
-  'RLS is enabled on every notification table'
+  'RLS is enabled on every notification and job table'
 );
 
 select ok(
@@ -49,40 +53,132 @@ select ok(
       )
       and has_function_privilege('anon', pg_proc.oid, 'execute')
   ),
-  'anonymous clients cannot execute notification RPCs'
+  'anonymous clients cannot execute member or Cron RPCs'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from pg_proc
+    join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+    where pg_namespace.nspname = 'public'
+      and pg_proc.proname in (
+        'upsert_digest_preference',
+        'mark_inbox_notifications_read',
+        'register_push_subscription',
+        'unregister_push_subscription'
+      )
+      and has_function_privilege('authenticated', pg_proc.oid, 'execute')
+  ),
+  4,
+  'authenticated clients can execute every member notification RPC'
 );
 
 select ok(
-  has_function_privilege(
-    'authenticated',
-    'public.upsert_digest_preference(boolean, time)',
-    'execute'
-  )
-  and has_function_privilege(
-    'authenticated',
-    'public.mark_inbox_notifications_read(uuid[])',
-    'execute'
-  )
-  and not has_function_privilege(
-    'authenticated',
-    'public.run_deliver_due_reminders(text, integer)',
-    'execute'
+  not exists (
+    select 1
+    from pg_proc
+    join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+    where pg_namespace.nspname = 'public'
+      and pg_proc.proname in (
+        'run_deliver_due_reminders',
+        'run_deliver_member_digests',
+        'run_retain_activity_events',
+        'run_retain_purchased_groceries',
+        'run_ensure_due_occurrences',
+        'run_generate_recurring_drafts_cron'
+      )
+      and has_function_privilege('authenticated', pg_proc.oid, 'execute')
   ),
-  'authenticated members get prefs/inbox RPCs but not Cron runners'
+  'authenticated clients cannot execute Cron RPCs'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from pg_proc
+    join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+    where pg_namespace.nspname = 'public'
+      and pg_proc.proname in (
+        'run_deliver_due_reminders',
+        'run_deliver_member_digests',
+        'run_retain_activity_events',
+        'run_retain_purchased_groceries',
+        'run_ensure_due_occurrences',
+        'run_generate_recurring_drafts_cron'
+      )
+      and has_function_privilege('service_role', pg_proc.oid, 'execute')
+  ),
+  6,
+  'service_role can execute every Cron RPC'
 );
 
 select ok(
-  has_function_privilege(
-    'service_role',
-    'public.run_deliver_due_reminders(text, integer)',
-    'execute'
+  not has_table_privilege(
+    'authenticated',
+    'public.inbox_notifications',
+    'insert'
   )
-  and has_function_privilege(
-    'service_role',
-    'public.run_deliver_member_digests(text, time, integer)',
-    'execute'
+    and not has_table_privilege(
+      'authenticated',
+      'public.inbox_notifications',
+      'update'
+    )
+    and not has_table_privilege(
+      'authenticated',
+      'public.inbox_notifications',
+      'delete'
+    )
+    and not has_table_privilege(
+      'authenticated',
+      'public.push_outbox',
+      'select'
+    ),
+  'authenticated clients cannot write inbox rows or read push outbox'
+);
+
+select set_eq(
+  $$
+    select tablename::text
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename in (
+        'inbox_notifications',
+        'routine_occurrences',
+        'routines',
+        'meal_plan_entries',
+        'grocery_items',
+        'shopping_sessions',
+        'expense_drafts',
+        'financial_events',
+        'activity_events'
+      )
+  $$,
+  $$
+    values
+      ('inbox_notifications'::text),
+      ('routine_occurrences'::text),
+      ('routines'::text),
+      ('meal_plan_entries'::text),
+      ('grocery_items'::text),
+      ('shopping_sessions'::text),
+      ('expense_drafts'::text),
+      ('financial_events'::text),
+      ('activity_events'::text)
+  $$,
+  'Realtime publishes every browser-observable invalidation table'
+);
+
+select ok(
+  not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename in ('push_outbox', 'job_claims')
   ),
-  'service_role can execute Cron notification runners'
+  'Realtime does not publish push outbox or job claims'
 );
 
 insert into auth.users (id, email)
@@ -130,18 +226,32 @@ set local role authenticated;
 
 select lives_ok(
   $$
-    select public.establish_opening_balance(
-      '10000000-0000-4000-8000-000000000051',
-      '00000000-0000-4000-8000-000000000051',
-      1000,
-      current_date,
-      'Opening',
-      'notify-opening-1',
-      null
+    select public.post_manual_expense(
+      p_household_id => '10000000-0000-4000-8000-000000000051',
+      p_description => 'Notification expense',
+      p_amount_cents => 1000,
+      p_payer_member_id => '00000000-0000-4000-8000-000000000051',
+      p_allocations => '[
+        {"memberId":"00000000-0000-4000-8000-000000000051","allocatedCents":500},
+        {"memberId":"00000000-0000-4000-8000-000000000052","allocatedCents":500}
+      ]',
+      p_occurred_on => (timezone('Europe/Zurich', now()))::date,
+      p_idempotency_key => 'notify-expense-1'
     )
   $$,
-  'member one can establish an opening balance'
+  'member one can post an expense'
 );
+
+select is(
+  (
+    select count(*)::integer
+    from public.inbox_notifications
+  ),
+  0,
+  'the actor cannot read the partner-only notice'
+);
+
+reset role;
 
 select is(
   (
@@ -149,11 +259,10 @@ select is(
     from public.inbox_notifications
     where household_id = '10000000-0000-4000-8000-000000000051'
       and recipient_member_id = '00000000-0000-4000-8000-000000000052'
-      and kind = 'partner_notice'
-      and activity_kind = 'opening_balance_established'
+      and activity_kind = 'expense_posted'
   ),
   1,
-  'partner receives an inbox notice for the opening balance'
+  'posting an expense creates one inbox notice for the other member'
 );
 
 select is(
@@ -165,22 +274,36 @@ select is(
       and kind = 'partner_notice'
   ),
   0,
-  'actor is not notified of their own financial mutation'
+  'posting an expense never creates a notice for its actor'
 );
 
 select is(
   (
-    select status
-    from public.push_outbox
-    where household_id = '10000000-0000-4000-8000-000000000051'
-    order by created_at
-    limit 1
+    select outbox.status
+    from public.push_outbox as outbox
+    join public.inbox_notifications as inbox
+      on inbox.id = outbox.inbox_notification_id
+    where inbox.activity_kind = 'expense_posted'
   ),
   'skipped_no_subscription',
-  'declined push leaves inbox durable and marks outbox skipped'
+  'missing push permission skips push without dropping the inbox notice'
 );
 
-reset role;
+select throws_ok(
+  $$
+    select private.deliver_partner_notice(
+      '10000000-0000-4000-8000-000000000051',
+      '00000000-0000-4000-8000-000000000051',
+      'missing_catalog_kind',
+      'financial_event',
+      '30000000-0000-4000-8000-000000000051',
+      '{}'::jsonb
+    )
+  $$,
+  '22023',
+  'unknown activity kind for partner notify: missing_catalog_kind',
+  'unknown partner notification kinds fail loudly'
+);
 
 select set_config(
   'request.jwt.claim.sub',
@@ -191,12 +314,9 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
 select is(
-  (
-    select count(*)::integer
-    from public.inbox_notifications
-  ),
+  (select count(*)::integer from public.inbox_notifications),
   0,
-  'cross-household members cannot read another household inbox'
+  'a member cannot read another household inbox'
 );
 
 reset role;
@@ -210,15 +330,42 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
 select is(
-  (
-    select (public.upsert_digest_preference(true, '08:00'::time) ->> 'enabled')::boolean
-  ),
+  (public.upsert_digest_preference(true, '08:00'::time) ->> 'enabled')::boolean,
   true,
-  'member two can upsert digest preferences'
+  'a member can upsert their digest preference'
+);
+
+select lives_ok(
+  $$
+    select public.register_push_subscription(
+      'https://push.example.invalid/member-two',
+      'p256dh-key',
+      'auth-key',
+      'pgTAP'
+    )
+  $$,
+  'a member can register a push subscription'
+);
+
+select lives_ok(
+  $$
+    select public.unregister_push_subscription(
+      'https://push.example.invalid/member-two'
+    )
+  $$,
+  'a member can unregister a push subscription'
 );
 
 reset role;
-set local role service_role;
+
+select ok(
+  (
+    select disabled_at is not null
+    from public.push_subscriptions
+    where endpoint = 'https://push.example.invalid/member-two'
+  ),
+  'unregistering disables the member push subscription'
+);
 
 insert into public.expense_drafts (
   id,
@@ -235,78 +382,225 @@ values (
   '20000000-0000-4000-8000-000000000051',
   '10000000-0000-4000-8000-000000000051',
   'recurring',
-  'Pending draft',
+  'Pending digest draft',
   500,
   '00000000-0000-4000-8000-000000000051',
   '[]'::jsonb,
-  current_date,
+  (timezone('Europe/Zurich', now()))::date,
   'pending'
 );
 
-select ok(
-  (
-    select public.run_deliver_member_digests(
-      'deliver_member_digests:global:test-slot-1',
-      '08:00'::time,
-      50
-    ) ->> 'decision' = 'run'
-  ),
-  'digest job runs for the configured slot'
+set local role service_role;
+
+select is(
+  public.run_deliver_member_digests(
+    'deliver_member_digests:global:test-slot-1',
+    '08:00'::time,
+    50
+  ) ->> 'decision',
+  'run',
+  'the digest runner materializes the configured slot'
 );
 
 select ok(
   (
-    select payload
+    select payload ? 'pendingFinancialDrafts'
+      and payload::text !~* '"[^"]*(balance|owed|debt|ledger)[^"]*"'
     from public.inbox_notifications
     where kind = 'household_digest'
       and recipient_member_id = '00000000-0000-4000-8000-000000000052'
-    limit 1
-  )
-  ? 'pendingFinancialDrafts'
-  and not (
-    (
-      select payload
-      from public.inbox_notifications
-      where kind = 'household_digest'
-        and recipient_member_id = '00000000-0000-4000-8000-000000000052'
-      limit 1
-    )
-    ? 'owedBalanceCents'
-  )
-  and not (
-    (
-      select payload::text
-      from public.inbox_notifications
-      where kind = 'household_digest'
-        and recipient_member_id = '00000000-0000-4000-8000-000000000052'
-      limit 1
-    )
-    ilike '%owed%'
   ),
-  'digest payload includes drafts and omits owed balances'
+  'a materialized digest has live drafts and no balance or owed keys'
+);
+
+select ok(
+  pg_get_functiondef(
+    'public.run_deliver_member_digests(text,time,integer)'::regprocedure
+  ) !~* '(ledger_entries|receivable_delta|owed_balance)',
+  'the digest SQL never reads the ledger or a derived balance'
 );
 
 select is(
-  (
-    select public.run_deliver_member_digests(
-      'deliver_member_digests:global:test-slot-1',
-      '08:00'::time,
-      50
-    ) ->> 'decision'
-  ),
+  public.run_deliver_member_digests(
+    'deliver_member_digests:global:test-slot-1',
+    '08:00'::time,
+    50
+  ) ->> 'decision',
   'already_succeeded',
-  'digest job claim is idempotent for the same schedule key'
+  'replaying a digest schedule key returns the completed claim'
+);
+
+reset role;
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000051',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000051',
+      p_title => 'Reminder cancellation routine',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000051'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'assigned',
+      p_schedule_kind => 'one_off',
+      p_schedule_rule => jsonb_build_object(
+        'kind',
+        'one_off',
+        'date',
+        (timezone('Europe/Zurich', now()))::date
+      ),
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000052',
+      p_active_from => (timezone('Europe/Zurich', now()))::date,
+      p_active_until => (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'a member can create a due routine for reminder delivery'
+);
+
+reset role;
+
+insert into public.routine_reminder_preferences (
+  routine_id,
+  member_id,
+  household_id,
+  enabled,
+  due_day_local_time
+)
+select
+  routine.id,
+  '00000000-0000-4000-8000-000000000052',
+  routine.household_id,
+  true,
+  '00:00'::time
+from public.routines as routine
+where routine.title = 'Reminder cancellation routine';
+
+set local role service_role;
+
+select is(
+  public.run_deliver_due_reminders(
+    'deliver_due_reminders:global:test-slot-1',
+    100
+  ) ->> 'decision',
+  'run',
+  'the reminder runner delivers a due candidate'
 );
 
 select is(
   (
     select count(*)::integer
     from public.inbox_notifications
-    where kind = 'household_digest'
+    where kind = 'routine_reminder'
       and recipient_member_id = '00000000-0000-4000-8000-000000000052'
   ),
   1,
-  'retrying the digest job does not duplicate inbox rows'
+  'a due reminder creates one inbox row'
+);
+
+select is(
+  public.run_deliver_due_reminders(
+    'deliver_due_reminders:global:test-slot-1',
+    100
+  ) ->> 'decision',
+  'already_succeeded',
+  'replaying a reminder schedule key returns the completed claim'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.inbox_notifications
+    where kind = 'routine_reminder'
+      and recipient_member_id = '00000000-0000-4000-8000-000000000052'
+  ),
+  1,
+  'replaying a reminder schedule key does not double-deliver'
+);
+
+select is(
+  (
+    select attempt_count
+    from public.job_claims
+    where schedule_key = 'deliver_due_reminders:global:test-slot-1'
+  ),
+  1,
+  'a successful job claim is not retried'
+);
+
+reset role;
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000051',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.complete_occurrence(
+      (
+        select occurrence.id
+        from public.routine_occurrences as occurrence
+        join public.routines as routine on routine.id = occurrence.routine_id
+        where routine.title = 'Reminder cancellation routine'
+          and occurrence.status = 'open'
+          and occurrence.role = 'current'
+      ),
+      'notify-complete-reminder',
+      (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'completing an occurrence with a delivered reminder succeeds'
+);
+
+reset role;
+
+select is(
+  (
+    select count(*)::integer
+    from public.inbox_notifications
+    where kind = 'routine_reminder'
+      and dedupe_key like 'reminder:%'
+  ),
+  0,
+  'completing an occurrence deletes its unread inbox reminder'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000052',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+select is(
+  (
+    public.mark_inbox_notifications_read(
+      array[
+        (
+          select id
+          from public.inbox_notifications
+          where activity_kind = 'expense_posted'
+          limit 1
+        )
+      ]
+    ) ->> 'marked'
+  )::integer,
+  1,
+  'the recipient can mark their inbox notification read'
 );
 
 reset role;
