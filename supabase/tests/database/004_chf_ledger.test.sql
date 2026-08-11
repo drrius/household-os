@@ -586,6 +586,28 @@ select ok(
   'refund, settlement, reversal, replacement, and all other events are zero-sum'
 );
 
+select throws_ok(
+  $$
+    select public.create_recurring_expense_rule(
+      p_household_id => '10000000-0000-4000-8000-000000000041',
+      p_description => 'Misaligned weekly rule',
+      p_amount_cents => 1000,
+      p_payer_member_id => '00000000-0000-4000-8000-000000000041',
+      p_allocations => '[
+        {"memberId":"00000000-0000-4000-8000-000000000041","allocatedCents":500},
+        {"memberId":"00000000-0000-4000-8000-000000000042","allocatedCents":500}
+      ]',
+      p_schedule_kind => 'weekly',
+      p_next_occurrence_on => '2030-08-13',
+      p_idempotency_key => 'money-rule-bad-weekday',
+      p_iso_weekday => 1
+    )
+  $$,
+  '22023',
+  'next_occurrence_on must fall on the weekly weekday',
+  'weekly rules reject a first occurrence on the wrong weekday'
+);
+
 select lives_ok(
   $$
     select public.create_recurring_expense_rule(
@@ -600,7 +622,13 @@ select lives_ok(
       p_schedule_kind => 'weekly',
       p_next_occurrence_on => '2030-08-12',
       p_idempotency_key => 'money-rule-1',
-      p_iso_weekday => 1
+      p_iso_weekday => 1,
+      p_category_id => (
+        select id
+        from public.expense_categories
+        where household_id = '10000000-0000-4000-8000-000000000041'
+          and name = 'Rent'
+      )
     )
   $$,
   'a member can create a weekly recurring expense rule'
@@ -629,6 +657,32 @@ select is(
   ),
   3,
   'recurring generation creates one draft for each due weekly occurrence'
+);
+
+select ok(
+  (
+    select count(*) = 3
+      and bool_and(category_id is not null)
+    from public.expense_drafts
+    where recurring_expense_rule_id is not null
+  ),
+  'generated recurring drafts carry the rule category'
+);
+
+select results_eq(
+  $$
+    select occurred_on::text
+    from public.expense_drafts
+    where description = 'Weekly rent contribution'
+    order by occurred_on
+  $$,
+  $$
+    values
+      ('2030-08-12'::text),
+      ('2030-08-19'::text),
+      ('2030-08-26'::text)
+  $$,
+  'weekly generation stays on the scheduled ISO weekday'
 );
 
 select is(

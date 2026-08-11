@@ -93,6 +93,19 @@ export function planCorrection(input: {
   if (input.replacement === undefined) {
     return { ok: true, reversal };
   }
+  if (
+    input.targetEvent.type !== "expense" &&
+    input.targetEvent.type !== "replacement"
+  ) {
+    return {
+      ok: false,
+      error: {
+        code: "invalid_replacement",
+        message:
+          "Replacement corrections are only supported for expense events",
+      },
+    };
+  }
   const replacement = planReplacement(input.replacement);
   if ("code" in replacement) {
     return { ok: false, error: replacement };

@@ -4,7 +4,12 @@ import { allocateEqualExpense } from "./allocations";
 import { deriveMemberBalances } from "./balances";
 import { planCorrection } from "./corrections";
 import { projectFinancialEvent } from "./projection";
-import type { ExpenseEvent, ReplacementEvent, ReversalEvent } from "./types";
+import type {
+  ExpenseEvent,
+  RefundEvent,
+  ReplacementEvent,
+  ReversalEvent,
+} from "./types";
 import { asCentimeAmount, asFinancialEventId, asMemberId } from "./values";
 
 const payerId = asMemberId("payer");
@@ -15,6 +20,18 @@ function expense(): ExpenseEvent {
   return {
     id: asFinancialEventId("target"),
     type: "expense",
+    amountCents,
+    payerMemberId: payerId,
+    otherMemberId: otherId,
+    allocations: allocateEqualExpense(amountCents, payerId, otherId),
+  };
+}
+
+function refund(): RefundEvent {
+  const amountCents = asCentimeAmount(400);
+  return {
+    id: asFinancialEventId("refund"),
+    type: "refund",
     amountCents,
     payerMemberId: payerId,
     otherMemberId: otherId,
@@ -115,5 +132,30 @@ describe("planCorrection", () => {
       },
     });
     expect(result.ok).toBe(false);
+  });
+
+  it("rejects replacement corrections for refund targets", () => {
+    const targetEvent = refund();
+    const result = planCorrection({
+      targetEvent,
+      targetLedger: projectFinancialEvent(targetEvent),
+      replacement: {
+        amountCents: 200,
+        payerMemberId: payerId,
+        otherMemberId: otherId,
+        allocations: [
+          { memberId: payerId, allocatedCents: 100 },
+          { memberId: otherId, allocatedCents: 100 },
+        ],
+      },
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "invalid_replacement",
+        message:
+          "Replacement corrections are only supported for expense events",
+      },
+    });
   });
 });

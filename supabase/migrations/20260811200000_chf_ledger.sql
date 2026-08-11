@@ -147,8 +147,15 @@ alter table public.expense_drafts
   add column recurring_expense_rule_id uuid;
 
 alter table public.expense_drafts
+  add column category_id uuid;
+
+alter table public.expense_drafts
   add foreign key (household_id, recurring_expense_rule_id)
   references public.recurring_expense_rules(household_id, id);
+
+alter table public.expense_drafts
+  add foreign key (household_id, category_id)
+  references public.expense_categories(household_id, id);
 
 create unique index expense_drafts_rule_occurrence_idx
   on public.expense_drafts (recurring_expense_rule_id, occurred_on)
@@ -759,15 +766,48 @@ immutable
 set search_path = ''
 as $$
 declare
+  first_candidate date;
+  weekday_offset integer;
+  candidate_year integer;
+  candidate_month integer;
+  this_month date;
   next_month date;
   final_day integer;
 begin
   if p_schedule_kind = 'weekly' then
-    return p_current_date + 7;
+    if p_iso_weekday is null or p_iso_weekday not between 1 and 7 then
+      raise exception 'weekly schedules require an ISO weekday from 1 to 7'
+        using errcode = '22023';
+    end if;
+    first_candidate := p_current_date + 1;
+    weekday_offset := (
+      p_iso_weekday - extract(isodow from first_candidate)::integer + 7
+    ) % 7;
+    return first_candidate + weekday_offset;
   end if;
   if p_schedule_kind <> 'monthly' then
     raise exception 'unknown recurring schedule kind %', p_schedule_kind
       using errcode = '22023';
+  end if;
+  if p_day_of_month is null or p_day_of_month not between 1 and 31 then
+    raise exception 'monthly schedules require a day of month from 1 to 31'
+      using errcode = '22023';
+  end if;
+
+  candidate_year := extract(year from p_current_date)::integer;
+  candidate_month := extract(month from p_current_date)::integer;
+  final_day := extract(
+    day from (
+      make_date(candidate_year, candidate_month, 1) + interval '1 month - 1 day'
+    )::date
+  )::integer;
+  this_month := make_date(
+    candidate_year,
+    candidate_month,
+    least(p_day_of_month, final_day)
+  );
+  if this_month > p_current_date then
+    return this_month;
   end if;
 
   next_month := (date_trunc('month', p_current_date) + interval '1 month')::date;
@@ -961,7 +1001,8 @@ begin
     coalesce(p_payer_member_id, draft.payer_member_id),
     draft.description, coalesce(p_amount_cents, draft.amount_cents),
     coalesce(p_allocations, draft.proposed_allocations),
-    coalesce(p_occurred_on, draft.occurred_on), null, p_category_id,
+    coalesce(p_occurred_on, draft.occurred_on), null,
+    coalesce(p_category_id, draft.category_id),
     p_note, p_receipt_path, draft.shopping_session_id, draft.id, null
   );
   update public.expense_drafts
@@ -1232,6 +1273,13 @@ begin
     raise exception 'replacement must be a JSON object'
       using errcode = '22023';
   end if;
+  if p_replacement is not null
+    and target.type not in ('expense', 'replacement')
+  then
+    raise exception
+      'replacement corrections are only supported for expense events'
+      using errcode = '22023';
+  end if;
 
   reversal_event_id := private.post_financial_event(
     target.household_id, actor_member_id, 'reversal', null,
@@ -1325,6 +1373,27 @@ begin
   perform private.validate_money_allocations(
     p_household_id, p_amount_cents, p_allocations
   );
+  if p_next_occurrence_on is null then
+    raise exception 'next_occurrence_on is required' using errcode = '22023';
+  end if;
+  if p_schedule_kind = 'weekly' then
+    if p_iso_weekday is null or p_iso_weekday not between 1 and 7 then
+      raise exception 'weekly schedules require an ISO weekday from 1 to 7'
+        using errcode = '22023';
+    end if;
+    if extract(isodow from p_next_occurrence_on)::integer <> p_iso_weekday then
+      raise exception 'next_occurrence_on must fall on the weekly weekday'
+        using errcode = '22023';
+    end if;
+  elsif p_schedule_kind = 'monthly' then
+    if p_day_of_month is null or p_day_of_month not between 1 and 31 then
+      raise exception 'monthly schedules require a day of month from 1 to 31'
+        using errcode = '22023';
+    end if;
+  else
+    raise exception 'unknown recurring schedule kind %', p_schedule_kind
+      using errcode = '22023';
+  end if;
 
   request_payload := jsonb_build_object(
     'household_id', p_household_id,
@@ -1486,11 +1555,12 @@ begin
       insert into public.expense_drafts (
         household_id, source_kind, description, amount_cents,
         payer_member_id, proposed_allocations, occurred_on,
-        recurring_expense_rule_id
+        recurring_expense_rule_id, category_id
       )
       values (
         rule.household_id, 'recurring', rule.description, rule.amount_cents,
-        rule.payer_member_id, rule.proposed_allocations, due_on, rule.id
+        rule.payer_member_id, rule.proposed_allocations, due_on, rule.id,
+        rule.category_id
       )
       on conflict (recurring_expense_rule_id, occurred_on)
         where recurring_expense_rule_id is not null
