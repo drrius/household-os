@@ -94,12 +94,12 @@ export async function mergeGroceryItems(input: {
   const { data, error } = await supabase.rpc("merge_grocery_items", {
     p_keep_item_id: input.keepItemId,
     p_remove_item_id: input.removeItemId,
-    p_resolved_name: input.resolvedName,
-    p_resolved_quantity: input.resolvedQuantity ?? null,
-    p_resolved_unit: input.resolvedUnit ?? null,
-    p_resolved_category_id: input.resolvedCategoryId ?? null,
-    p_resolved_note: input.resolvedNote ?? null,
-    p_resolved_sort_order: input.resolvedSortOrder,
+    p_name: input.resolvedName,
+    p_quantity: input.resolvedQuantity ?? null,
+    p_unit: input.resolvedUnit ?? null,
+    p_category_id: input.resolvedCategoryId ?? null,
+    p_note: input.resolvedNote ?? null,
+    p_sort_order: input.resolvedSortOrder,
     p_idempotency_key: input.idempotencyKey,
   });
 
