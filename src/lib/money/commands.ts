@@ -2,10 +2,7 @@ import "server-only";
 
 import { callMoneyRpc } from "./rpc";
 
-export {
-  confirmExpenseDraft,
-  dismissExpenseDraft,
-} from "./draft-commands";
+export { confirmExpenseDraft, dismissExpenseDraft } from "./draft-commands";
 export {
   createRecurringExpenseRule,
   generateDueRecurringDrafts,

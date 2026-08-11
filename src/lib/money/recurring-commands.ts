@@ -24,9 +24,10 @@ export type CreateRecurringExpenseRuleInput = {
   categoryId?: string | null;
 };
 
-function scheduleArguments(
-  schedule: WeeklySchedule | MonthlySchedule,
-): { p_iso_weekday: number | null; p_day_of_month: number | null } {
+function scheduleArguments(schedule: WeeklySchedule | MonthlySchedule): {
+  p_iso_weekday: number | null;
+  p_day_of_month: number | null;
+} {
   switch (schedule.kind) {
     case "weekly":
       return {
