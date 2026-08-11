@@ -74,18 +74,18 @@ export function validateExactAllocations(
       "Allocations must contain exactly the two household members",
     );
   }
+  if (allocations[0]?.memberId === allocations[1]?.memberId) {
+    return allocationError(
+      "duplicate_member",
+      "Each household member must have one allocation",
+    );
+  }
   const payer = allocations.find(({ memberId }) => memberId === payerId);
   const other = allocations.find(({ memberId }) => memberId === otherId);
   if (payer === undefined || other === undefined) {
     return allocationError(
       "exact_members_required",
       "Allocations must contain exactly the payer and other member",
-    );
-  }
-  if (payer.memberId === other.memberId) {
-    return allocationError(
-      "duplicate_member",
-      "Each household member must have one allocation",
     );
   }
   if (

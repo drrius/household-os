@@ -71,8 +71,11 @@ describe("validateExactAllocations", () => {
       validateExactAllocations(1_000, payerId, otherId, [
         { memberId: payerId, allocatedCents: 500 },
         { memberId: payerId, allocatedCents: 500 },
-      ]).ok,
-    ).toBe(false);
+      ]),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "duplicate_member" },
+    });
     expect(
       validateExactAllocations(1_000, payerId, otherId, [
         { memberId: payerId, allocatedCents: 499 },
