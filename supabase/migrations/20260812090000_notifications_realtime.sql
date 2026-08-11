@@ -2207,7 +2207,6 @@ as $$
 declare
   claim jsonb;
   deleted integer := 0;
-  doomed_item_ids uuid[];
 begin
   claim := private.claim_job(p_schedule_key, 'retain_activity_events');
   if claim ->> 'decision' in ('already_succeeded', 'in_progress') then
@@ -2249,6 +2248,7 @@ as $$
 declare
   claim jsonb;
   deleted integer := 0;
+  doomed_item_ids uuid[];
 begin
   claim := private.claim_job(p_schedule_key, 'retain_purchased_groceries');
   if claim ->> 'decision' in ('already_succeeded', 'in_progress') then
@@ -2715,7 +2715,10 @@ begin
     'household-os-deliver-due-reminders',
     '* * * * *',
     $$select public.run_deliver_due_reminders(
-      'deliver_due_reminders:global:' || to_char(timezone('Europe/Zurich', now()), 'YYYY-MM-DD"T"HH24-MI')
+      'deliver_due_reminders:global:' || to_char(
+        date_trunc('minute', timezone('Europe/Zurich', now())),
+        'YYYY-MM-DD"T"HH24-MI'
+      )
     );$$
   );
 exception when others then
@@ -2729,7 +2732,10 @@ begin
     'household-os-retain-activity',
     '15 3 * * *',
     $$select public.run_retain_activity_events(
-      'retain_activity_events:global:' || to_char(timezone('Europe/Zurich', now()), 'YYYY-MM-DD')
+      'retain_activity_events:global:' || to_char(
+        date_trunc('day', timezone('Europe/Zurich', now())),
+        'YYYY-MM-DD'
+      )
     );$$
   );
 exception when others then
@@ -2743,7 +2749,10 @@ begin
     'household-os-retain-purchased-groceries',
     '20 3 * * *',
     $$select public.run_retain_purchased_groceries(
-      'retain_purchased_groceries:global:' || to_char(timezone('Europe/Zurich', now()), 'YYYY-MM-DD')
+      'retain_purchased_groceries:global:' || to_char(
+        date_trunc('day', timezone('Europe/Zurich', now())),
+        'YYYY-MM-DD'
+      )
     );$$
   );
 exception when others then
@@ -2757,7 +2766,10 @@ begin
     'household-os-ensure-due-occurrences',
     '5 * * * *',
     $$select public.run_ensure_due_occurrences(
-      'ensure_due_occurrences:global:' || to_char(timezone('Europe/Zurich', now()), 'YYYY-MM-DD"T"HH24')
+      'ensure_due_occurrences:global:' || to_char(
+        date_trunc('hour', timezone('Europe/Zurich', now())),
+        'YYYY-MM-DD"T"HH24'
+      )
     );$$
   );
 exception when others then
@@ -2771,7 +2783,10 @@ begin
     'household-os-deliver-member-digests',
     '* * * * *',
     $$select public.run_deliver_member_digests(
-      'deliver_member_digests:global:' || to_char(timezone('Europe/Zurich', now()), 'YYYY-MM-DD"T"HH24-MI'),
+      'deliver_member_digests:global:' || to_char(
+        date_trunc('minute', timezone('Europe/Zurich', now())),
+        'YYYY-MM-DD"T"HH24-MI'
+      ),
       date_trunc('minute', timezone('Europe/Zurich', now()))::time,
       50
     );$$
@@ -2787,7 +2802,10 @@ begin
     'household-os-generate-recurring-drafts',
     '10 4 * * *',
     $$select public.run_generate_recurring_drafts_cron(
-      'generate_recurring_drafts_cron:global:' || to_char(timezone('Europe/Zurich', now()), 'YYYY-MM-DD'),
+      'generate_recurring_drafts_cron:global:' || to_char(
+        date_trunc('day', timezone('Europe/Zurich', now())),
+        'YYYY-MM-DD'
+      ),
       (timezone('Europe/Zurich', now()))::date,
       50
     );$$
