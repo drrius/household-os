@@ -1390,6 +1390,20 @@ begin
       raise exception 'monthly schedules require a day of month from 1 to 31'
         using errcode = '22023';
     end if;
+    if extract(day from p_next_occurrence_on)::integer
+      <> least(
+        p_day_of_month,
+        extract(
+          day from (
+            date_trunc('month', p_next_occurrence_on) + interval '1 month - 1 day'
+          )::date
+        )::integer
+      )
+    then
+      raise exception
+        'next_occurrence_on must match the monthly day of month'
+        using errcode = '22023';
+    end if;
   else
     raise exception 'unknown recurring schedule kind %', p_schedule_kind
       using errcode = '22023';

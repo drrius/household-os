@@ -608,6 +608,28 @@ select throws_ok(
   'weekly rules reject a first occurrence on the wrong weekday'
 );
 
+select throws_ok(
+  $$
+    select public.create_recurring_expense_rule(
+      p_household_id => '10000000-0000-4000-8000-000000000041',
+      p_description => 'Misaligned monthly rule',
+      p_amount_cents => 1000,
+      p_payer_member_id => '00000000-0000-4000-8000-000000000041',
+      p_allocations => '[
+        {"memberId":"00000000-0000-4000-8000-000000000041","allocatedCents":500},
+        {"memberId":"00000000-0000-4000-8000-000000000042","allocatedCents":500}
+      ]',
+      p_schedule_kind => 'monthly',
+      p_next_occurrence_on => '2030-08-01',
+      p_idempotency_key => 'money-rule-bad-monthday',
+      p_day_of_month => 15
+    )
+  $$,
+  '22023',
+  'next_occurrence_on must match the monthly day of month',
+  'monthly rules reject a first occurrence on the wrong day'
+);
+
 select lives_ok(
   $$
     select public.create_recurring_expense_rule(
