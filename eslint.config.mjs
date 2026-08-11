@@ -2,9 +2,47 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypeScript from "eslint-config-next/typescript";
 
+const codeLineBudget = Object.freeze({
+  perFile: 300,
+  perFunction: 80,
+});
+const countOnlyCodeLines = Object.freeze({
+  skipBlankLines: true,
+  skipComments: true,
+});
+
 export default defineConfig([
   ...nextCoreWebVitals,
   ...nextTypeScript,
+  {
+    rules: {
+      "max-lines": [
+        "error",
+        { max: codeLineBudget.perFile, ...countOnlyCodeLines },
+      ],
+      "max-lines-per-function": [
+        "error",
+        {
+          max: codeLineBudget.perFunction,
+          ...countOnlyCodeLines,
+          IIFEs: true,
+        },
+      ],
+    },
+  },
+  {
+    files: ["**/*.{test,spec}.{ts,tsx,mts}", "tests/**"],
+    rules: {
+      "max-lines-per-function": "off",
+    },
+  },
+  {
+    files: ["**/database.types.ts", "**/*.gen.ts", "scripts/**"],
+    rules: {
+      "max-lines": "off",
+      "max-lines-per-function": "off",
+    },
+  },
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["src/domain/**/*"],
