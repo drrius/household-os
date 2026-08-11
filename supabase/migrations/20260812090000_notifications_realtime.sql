@@ -1775,15 +1775,15 @@ security definer
 set search_path = ''
 as $$
 declare
-  actor_member_id uuid := auth.uid();
+  v_actor_member_id uuid := auth.uid();
   marked integer := 0;
 begin
-  if actor_member_id is null then
+  if v_actor_member_id is null then
     raise exception 'authentication required' using errcode = '42501';
   end if;
   update public.inbox_notifications as inbox
   set read_at = coalesce(inbox.read_at, now())
-  where inbox.recipient_member_id = actor_member_id
+  where inbox.recipient_member_id = v_actor_member_id
     and inbox.id = any(coalesce(p_notification_ids, '{}'::uuid[]))
     and private.is_household_member(inbox.household_id);
   get diagnostics marked = row_count;
