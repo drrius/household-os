@@ -27,6 +27,12 @@ function allocationError(
   return { ok: false, error: { code, message } };
 }
 
+function asExactAllocations(
+  allocations: readonly [ExactAllocations[0], ExactAllocations[1]],
+): ExactAllocations {
+  return allocations as unknown as ExactAllocations;
+}
+
 export function allocateEqualExpense(
   amountCents: number,
   payerId: MemberId,
@@ -38,10 +44,10 @@ export function allocateEqualExpense(
   }
   const otherShare = asCentimeAmount(Math.floor(amount / 2));
   const payerShare = asCentimeAmount(amount - otherShare);
-  return [
+  return asExactAllocations([
     { memberId: payerId, allocatedCents: payerShare },
     { memberId: otherId, allocatedCents: otherShare },
-  ] as ExactAllocations;
+  ]);
 }
 
 export function validateExactAllocations(
@@ -102,7 +108,7 @@ export function validateExactAllocations(
   }
   return {
     ok: true,
-    allocations: [
+    allocations: asExactAllocations([
       {
         memberId: payerId,
         allocatedCents: asCentimeAmount(payer.allocatedCents),
@@ -111,6 +117,6 @@ export function validateExactAllocations(
         memberId: otherId,
         allocatedCents: asCentimeAmount(other.allocatedCents),
       },
-    ] as ExactAllocations,
+    ]),
   };
 }
