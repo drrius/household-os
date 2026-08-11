@@ -1,8 +1,6 @@
 import type { AppSurface, WatchedTable } from "./types";
 
-export const SURFACE_INVALIDATION_MAP: {
-  readonly [T in WatchedTable]: readonly AppSurface[];
-} = {
+export const SURFACE_INVALIDATION_MAP = {
   inbox_notifications: ["inbox", "today"],
   routine_occurrences: ["today", "home"],
   routines: ["today", "home"],
@@ -12,7 +10,7 @@ export const SURFACE_INVALIDATION_MAP: {
   expense_drafts: ["money", "today"],
   financial_events: ["money"],
   activity_events: ["home"],
-};
+} as const satisfies Readonly<Record<WatchedTable, readonly AppSurface[]>>;
 
 export function surfacesForTableChange(
   table: WatchedTable,

@@ -3,12 +3,8 @@ import type { DigestBody, DigestSourceSnapshot } from "./types";
 export const FORBIDDEN_DIGEST_KEYS = [
   "balance",
   "owed",
-  "owedBalance",
-  "owedBalanceCents",
   "debt",
   "ledger",
-  "netBalance",
-  "amountOwed",
 ] as const;
 
 export function buildDigestBody(source: DigestSourceSnapshot): DigestBody {
@@ -22,13 +18,23 @@ export function buildDigestBody(source: DigestSourceSnapshot): DigestBody {
   };
 }
 
-export function digestBodyContainsForbiddenKey(
-  body: DigestBody,
-  forbiddenKeys: readonly string[] = FORBIDDEN_DIGEST_KEYS,
-): boolean {
-  const serialized = JSON.stringify(body);
-  return forbiddenKeys.some((key) =>
-    serialized.includes(`"${key}"`) ||
-    Object.prototype.hasOwnProperty.call(body, key),
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function isDigestBodyBalanceFree(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.every(isDigestBodyBalanceFree);
+  }
+
+  if (!isRecord(value)) {
+    return true;
+  }
+
+  return Object.entries(value).every(
+    ([key, nestedValue]) =>
+      FORBIDDEN_DIGEST_KEYS.every(
+        (forbiddenKey) => !key.toLowerCase().includes(forbiddenKey),
+      ) && isDigestBodyBalanceFree(nestedValue),
   );
 }

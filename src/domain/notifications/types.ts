@@ -1,8 +1,34 @@
-export type HouseholdId = string & { readonly __brand: "HouseholdId" };
-export type MemberId = string & { readonly __brand: "MemberId" };
-export type PartnerRecipientId = MemberId & {
-  readonly __partnerRecipient: unique symbol;
+declare const householdIdBrand: unique symbol;
+declare const memberIdBrand: unique symbol;
+declare const partnerRecipientIdBrand: unique symbol;
+
+export type HouseholdId = string & {
+  readonly [householdIdBrand]: "HouseholdId";
 };
+
+export type MemberId = string & {
+  readonly [memberIdBrand]: "MemberId";
+};
+
+export type PartnerRecipientId = MemberId & {
+  readonly [partnerRecipientIdBrand]: "PartnerRecipientId";
+};
+
+export function asHouseholdId(value: string): HouseholdId {
+  if (value.length === 0) {
+    throw new Error("HouseholdId must be a non-empty string");
+  }
+
+  return value as HouseholdId;
+}
+
+export function asMemberId(value: string): MemberId {
+  if (value.length === 0) {
+    throw new Error("MemberId must be a non-empty string");
+  }
+
+  return value as MemberId;
+}
 
 export type ActivityKind =
   | "routine_created"
@@ -29,10 +55,46 @@ export type ActivityKind =
   | "recurring_drafts_generated"
   | "direct_swap_completed";
 
+export type NotifyRule =
+  | {
+      outcome: "activity_only";
+      reason: "completion_or_skip" | "ordinary_meal_edit" | "non_partner_noise";
+    }
+  | {
+      outcome: "notify_other_member";
+      hook?: "direct_swap";
+    }
+  | {
+      outcome: "notify_affected_members";
+      requiresAffectMemberIds: true;
+    };
+
+export type PartnerNotifyCatalog = Readonly<Record<ActivityKind, NotifyRule>>;
+
+export type PartnerNotifyContext = {
+  householdId: HouseholdId;
+  actorMemberId: MemberId;
+  memberIds: readonly [MemberId, MemberId];
+  activityKind: ActivityKind;
+  affectMemberIds: readonly MemberId[];
+};
+
 export type InboxKind =
-  | "partner_notice"
-  | "routine_reminder"
-  | "household_digest";
+  "partner_notice" | "routine_reminder" | "household_digest";
+
+export type InboxNotification = {
+  id: string;
+  householdId: HouseholdId;
+  recipientMemberId: MemberId;
+  actorMemberId: MemberId | null;
+  kind: InboxKind;
+  activityKind: ActivityKind | null;
+  entityType: string | null;
+  entityId: string | null;
+  payload: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+};
 
 export type DigestBody = {
   overdueRoutines: readonly {
@@ -50,7 +112,10 @@ export type DigestBody = {
     slot: "breakfast" | "lunch" | "dinner";
     title: string;
   }[];
-  preparationTasks: readonly { id: string; title: string }[];
+  preparationTasks: readonly {
+    id: string;
+    title: string;
+  }[];
   groceriesActive: boolean;
   pendingFinancialDrafts: readonly {
     draftId: string;
@@ -85,7 +150,11 @@ export type JobKind =
   | "retain_purchased_groceries"
   | "drain_push_outbox";
 
-export type JobScheduleKey = string & { readonly __brand: "JobScheduleKey" };
+declare const jobScheduleKeyBrand: unique symbol;
+
+export type JobScheduleKey = string & {
+  readonly [jobScheduleKeyBrand]: "JobScheduleKey";
+};
 
 export type ParsedScheduleKey = {
   jobKind: JobKind;
@@ -107,18 +176,21 @@ export type JobClaim = {
 };
 
 export type JobClaimDecision =
-  | { kind: "run"; claim: JobClaim }
-  | { kind: "already_succeeded"; claim: JobClaim }
-  | { kind: "in_progress"; claim: JobClaim }
-  | { kind: "retry_failed"; claim: JobClaim };
+  | {
+      kind: "run";
+      claim: JobClaim;
+    }
+  | {
+      kind: "already_succeeded";
+      claim: JobClaim;
+    }
+  | {
+      kind: "retry_failed";
+      claim: JobClaim;
+    };
 
 export type AppSurface =
-  | "today"
-  | "plan"
-  | "groceries"
-  | "money"
-  | "home"
-  | "inbox";
+  "today" | "plan" | "groceries" | "money" | "home" | "inbox";
 
 export type WatchedTable =
   | "inbox_notifications"
@@ -130,21 +202,3 @@ export type WatchedTable =
   | "expense_drafts"
   | "financial_events"
   | "activity_events";
-
-export function asHouseholdId(value: string): HouseholdId {
-  if (value.length === 0) {
-    throw new Error("HouseholdId must be a non-empty string");
-  }
-  return value as HouseholdId;
-}
-
-export function asMemberId(value: string): MemberId {
-  if (value.length === 0) {
-    throw new Error("MemberId must be a non-empty string");
-  }
-  return value as MemberId;
-}
-
-export function asPartnerRecipientId(value: MemberId): PartnerRecipientId {
-  return value as PartnerRecipientId;
-}

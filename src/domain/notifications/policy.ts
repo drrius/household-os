@@ -1,27 +1,20 @@
-import {
-  asPartnerRecipientId,
-  type ActivityKind,
-  type MemberId,
-  type PartnerRecipientId,
+import type {
+  MemberId,
+  NotifyRule,
+  PartnerNotifyCatalog,
+  PartnerNotifyContext,
+  PartnerRecipientId,
 } from "./types";
 
-export type NotifyRule =
-  | {
-      outcome: "activity_only";
-      reason: "completion_or_skip" | "ordinary_meal_edit" | "non_partner_noise";
-    }
-  | {
-      outcome: "notify_other_member";
-      hook?: "direct_swap";
-    }
-  | {
-      outcome: "notify_affected_members";
-      requiresAffectMemberIds: true;
-    };
-
-export const PARTNER_NOTIFY_CATALOG: {
-  readonly [K in ActivityKind]: NotifyRule;
-} = {
+export const PARTNER_NOTIFY_CATALOG = {
+  routine_created: {
+    outcome: "activity_only",
+    reason: "non_partner_noise",
+  },
+  routine_updated: {
+    outcome: "notify_affected_members",
+    requiresAffectMemberIds: true,
+  },
   occurrence_completed: {
     outcome: "activity_only",
     reason: "completion_or_skip",
@@ -30,21 +23,9 @@ export const PARTNER_NOTIFY_CATALOG: {
     outcome: "activity_only",
     reason: "completion_or_skip",
   },
-  meal_plan_entry_created: {
-    outcome: "activity_only",
-    reason: "ordinary_meal_edit",
-  },
-  meal_plan_entry_updated: {
-    outcome: "activity_only",
-    reason: "ordinary_meal_edit",
-  },
-  meal_plan_entry_removed: {
-    outcome: "activity_only",
-    reason: "ordinary_meal_edit",
-  },
-  routine_created: {
-    outcome: "activity_only",
-    reason: "non_partner_noise",
+  occurrence_rescheduled: {
+    outcome: "notify_affected_members",
+    requiresAffectMemberIds: true,
   },
   routine_paused: {
     outcome: "activity_only",
@@ -58,9 +39,42 @@ export const PARTNER_NOTIFY_CATALOG: {
     outcome: "activity_only",
     reason: "non_partner_noise",
   },
+  meal_plan_entry_created: {
+    outcome: "activity_only",
+    reason: "ordinary_meal_edit",
+  },
+  meal_plan_entry_updated: {
+    outcome: "activity_only",
+    reason: "ordinary_meal_edit",
+  },
+  meal_plan_entry_removed: {
+    outcome: "activity_only",
+    reason: "ordinary_meal_edit",
+  },
+  shopping_session_finished: {
+    outcome: "notify_other_member",
+  },
+  opening_balance_established: {
+    outcome: "notify_other_member",
+  },
+  expense_posted: {
+    outcome: "notify_other_member",
+  },
+  expense_draft_confirmed: {
+    outcome: "notify_other_member",
+  },
   expense_draft_dismissed: {
     outcome: "activity_only",
     reason: "non_partner_noise",
+  },
+  refund_posted: {
+    outcome: "notify_other_member",
+  },
+  settlement_recorded: {
+    outcome: "notify_other_member",
+  },
+  financial_event_corrected: {
+    outcome: "notify_other_member",
   },
   recurring_expense_rule_created: {
     outcome: "activity_only",
@@ -74,73 +88,90 @@ export const PARTNER_NOTIFY_CATALOG: {
     outcome: "activity_only",
     reason: "non_partner_noise",
   },
-  routine_updated: {
-    outcome: "notify_affected_members",
-    requiresAffectMemberIds: true,
-  },
-  occurrence_rescheduled: {
-    outcome: "notify_affected_members",
-    requiresAffectMemberIds: true,
-  },
-  shopping_session_finished: { outcome: "notify_other_member" },
-  opening_balance_established: { outcome: "notify_other_member" },
-  expense_posted: { outcome: "notify_other_member" },
-  expense_draft_confirmed: { outcome: "notify_other_member" },
-  refund_posted: { outcome: "notify_other_member" },
-  settlement_recorded: { outcome: "notify_other_member" },
-  financial_event_corrected: { outcome: "notify_other_member" },
   direct_swap_completed: {
     outcome: "notify_other_member",
     hook: "direct_swap",
   },
-};
+} satisfies PartnerNotifyCatalog;
 
-export type PartnerNotifyContext = {
-  actorMemberId: MemberId;
-  memberIds: readonly [MemberId, MemberId];
-  activityKind: ActivityKind;
-  affectMemberIds: readonly MemberId[];
-};
+function toPartnerRecipientId(
+  memberId: MemberId,
+  actorMemberId: MemberId,
+): PartnerRecipientId {
+  if (memberId === actorMemberId) {
+    throw new Error("The actor cannot be a partner notification recipient");
+  }
 
-function otherMember(
+  return memberId as PartnerRecipientId;
+}
+
+function otherPartnerRecipient(
   memberIds: readonly [MemberId, MemberId],
   actorMemberId: MemberId,
 ): PartnerRecipientId {
-  const [first, second] = memberIds;
-  if (first === actorMemberId) {
-    return asPartnerRecipientId(second);
+  const [firstMemberId, secondMemberId] = memberIds;
+
+  if (firstMemberId === secondMemberId) {
+    throw new Error("Partner notifications require two distinct members");
   }
-  if (second === actorMemberId) {
-    return asPartnerRecipientId(first);
+
+  if (actorMemberId === firstMemberId) {
+    return toPartnerRecipientId(secondMemberId, actorMemberId);
   }
-  throw new Error("actor is not one of the household members");
+
+  if (actorMemberId === secondMemberId) {
+    return toPartnerRecipientId(firstMemberId, actorMemberId);
+  }
+
+  throw new Error("The actor must be one of the household members");
+}
+
+function affectedPartnerRecipients(
+  affectMemberIds: readonly MemberId[],
+  memberIds: readonly [MemberId, MemberId],
+  actorMemberId: MemberId,
+): PartnerRecipientId[] {
+  const householdMemberIds = new Set<MemberId>(memberIds);
+  const recipientIds = new Set<MemberId>();
+
+  for (const memberId of affectMemberIds) {
+    if (
+      memberId !== actorMemberId &&
+      householdMemberIds.has(memberId) &&
+      !recipientIds.has(memberId)
+    ) {
+      recipientIds.add(memberId);
+    }
+  }
+
+  return Array.from(recipientIds, (memberId) =>
+    toPartnerRecipientId(memberId, actorMemberId),
+  );
 }
 
 export function resolvePartnerRecipients(
-  catalog: typeof PARTNER_NOTIFY_CATALOG,
-  ctx: PartnerNotifyContext,
-): readonly PartnerRecipientId[] {
-  const rule = catalog[ctx.activityKind];
+  catalog: PartnerNotifyCatalog,
+  context: PartnerNotifyContext,
+): PartnerRecipientId[] {
+  const rule: NotifyRule | undefined = catalog[context.activityKind];
+
+  if (rule === undefined) {
+    throw new Error(
+      `Missing partner notification policy for ${context.activityKind}`,
+    );
+  }
+
   switch (rule.outcome) {
     case "activity_only":
       return [];
     case "notify_other_member":
-      return [otherMember(ctx.memberIds, ctx.actorMemberId)];
-    case "notify_affected_members": {
-      const recipients: PartnerRecipientId[] = [];
-      const seen = new Set<MemberId>();
-      for (const memberId of ctx.affectMemberIds) {
-        if (memberId === ctx.actorMemberId || seen.has(memberId)) {
-          continue;
-        }
-        if (memberId !== ctx.memberIds[0] && memberId !== ctx.memberIds[1]) {
-          continue;
-        }
-        seen.add(memberId);
-        recipients.push(asPartnerRecipientId(memberId));
-      }
-      return recipients;
-    }
+      return [otherPartnerRecipient(context.memberIds, context.actorMemberId)];
+    case "notify_affected_members":
+      return affectedPartnerRecipients(
+        context.affectMemberIds,
+        context.memberIds,
+        context.actorMemberId,
+      );
     default: {
       const _exhaustive: never = rule;
       return _exhaustive;
