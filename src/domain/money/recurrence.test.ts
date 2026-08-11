@@ -33,7 +33,7 @@ describe("recurring expense draft dates", () => {
     ).toEqual(["2026-08-10", "2026-08-17", "2026-08-24"]);
   });
 
-  it("lists monthly draft dates without posting ledger entries", () => {
+  it("lists monthly draft dates in an inclusive due window", () => {
     expect(
       dueDraftDates(
         { kind: "monthly", dayOfMonth: asMonthlyDay(31) },

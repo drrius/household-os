@@ -9,10 +9,6 @@ import { asCentimeAmount, asFinancialEventId, asMemberId } from "./values";
 const payerId = asMemberId("payer");
 const otherId = asMemberId("other");
 
-function eventId(value: string) {
-  return asFinancialEventId(value);
-}
-
 function eventFor(
   type: FinancialEventType,
   rawAmountCents: number,
@@ -22,7 +18,7 @@ function eventFor(
   switch (type) {
     case "opening_balance":
       return {
-        id: eventId(type),
+        id: asFinancialEventId(type),
         type,
         amountCents,
         payerMemberId: payerId,
@@ -32,7 +28,7 @@ function eventFor(
     case "refund":
     case "replacement":
       return {
-        id: eventId(type),
+        id: asFinancialEventId(type),
         type,
         amountCents,
         payerMemberId: payerId,
@@ -41,7 +37,7 @@ function eventFor(
       };
     case "settlement":
       return {
-        id: eventId(type),
+        id: asFinancialEventId(type),
         type,
         amountCents,
         payerMemberId: payerId,
@@ -50,7 +46,7 @@ function eventFor(
     case "reversal": {
       const target = eventFor("expense", amountCents);
       return {
-        id: eventId(type),
+        id: asFinancialEventId(type),
         type,
         amountCents,
         relatedEventId: target.id,
@@ -68,12 +64,12 @@ describe("projectFinancialEvent", () => {
   it("projects an opening balance toward the creditor", () => {
     expect(projectFinancialEvent(eventFor("opening_balance", 1_200))).toEqual([
       {
-        financialEventId: eventId("opening_balance"),
+        financialEventId: asFinancialEventId("opening_balance"),
         memberId: payerId,
         receivableDeltaCents: 1_200,
       },
       {
-        financialEventId: eventId("opening_balance"),
+        financialEventId: asFinancialEventId("opening_balance"),
         memberId: otherId,
         receivableDeltaCents: -1_200,
       },
@@ -111,7 +107,7 @@ describe("projectFinancialEvent", () => {
     const target = eventFor("expense", 1_001);
     const targetLedger = projectFinancialEvent(target);
     const reversal: FinancialEvent = {
-      id: eventId("reversal-example"),
+      id: asFinancialEventId("reversal-example"),
       type: "reversal",
       amountCents: target.amountCents,
       relatedEventId: target.id,
