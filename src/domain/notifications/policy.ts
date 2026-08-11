@@ -92,7 +92,7 @@ export const PARTNER_NOTIFY_CATALOG = {
     outcome: "notify_other_member",
     hook: "direct_swap",
   },
-} satisfies PartnerNotifyCatalog;
+} as const satisfies PartnerNotifyCatalog;
 
 function toPartnerRecipientId(
   memberId: MemberId,

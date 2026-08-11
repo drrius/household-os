@@ -100,7 +100,17 @@ export function decideJobClaimReplay(
     case "succeeded":
       return { kind: "already_succeeded", claim: existing };
     case "failed":
-      return { kind: "retry_failed", claim: existing };
+      return {
+        kind: "retry_failed",
+        claim: {
+          ...existing,
+          status: "started",
+          attemptCount: existing.attemptCount + 1,
+          result: null,
+          lastError: null,
+          finishedAt: null,
+        },
+      };
     default: {
       const _exhaustive: never = existing.status;
       return _exhaustive;
