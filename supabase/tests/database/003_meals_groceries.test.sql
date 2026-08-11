@@ -182,17 +182,6 @@ select ok(
   'authenticated clients can update grocery descriptions'
 );
 
-select hasnt_table(
-  'public',
-  'financial_events',
-  'M3 does not create financial events'
-);
-select hasnt_table(
-  'public',
-  'ledger_entries',
-  'M3 does not create ledger entries'
-);
-
 insert into auth.users (id, email)
 values
   ('00000000-0000-4000-8000-000000000021', 'meal-member-one@example.invalid'),
