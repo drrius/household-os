@@ -13,6 +13,7 @@ import { ProgressMeter } from "@/ui/layout/progress-meter";
 type LiveSession = NonNullable<GroceriesViewModel["liveSession"]>;
 
 type ShoppingSessionRailProps = {
+  finishAction: () => Promise<void>;
   joinAction: () => Promise<void>;
   session: LiveSession;
 };
@@ -22,6 +23,7 @@ function claimedCountLabel(session: LiveSession): string {
 }
 
 export function ShoppingSessionRail({
+  finishAction,
   joinAction,
   session,
 }: ShoppingSessionRailProps) {
@@ -47,7 +49,9 @@ export function ShoppingSessionRail({
               <p className="text-xs text-muted-foreground">{progressLabel}</p>
             </div>
             {session.isMine ? (
-              <Badge variant="success">Your session</Badge>
+              <form action={finishAction}>
+                <Button type="submit">Finish shopping</Button>
+              </form>
             ) : (
               <form action={joinAction}>
                 <Button type="submit">Join session</Button>

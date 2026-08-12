@@ -10,6 +10,7 @@ import { ShoppingSessionRail } from "./shopping-session-rail";
 
 type GroceriesScreenProps = {
   claimAction: (formData: FormData) => Promise<void>;
+  finishAction: () => Promise<void>;
   joinAction: () => Promise<void>;
   mergeAction: (formData: FormData) => Promise<void>;
   model: GroceriesViewModel;
@@ -21,6 +22,7 @@ function activeItemLabel(itemCount: number): string {
 
 export function GroceriesScreen({
   claimAction,
+  finishAction,
   joinAction,
   mergeAction,
   model,
@@ -34,6 +36,7 @@ export function GroceriesScreen({
       />
       {model.liveSession === null ? null : (
         <ShoppingSessionRail
+          finishAction={finishAction}
           joinAction={joinAction}
           session={model.liveSession}
         />

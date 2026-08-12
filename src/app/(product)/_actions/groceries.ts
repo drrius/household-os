@@ -6,11 +6,13 @@ import { z } from "zod";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import {
   claimGroceryItem,
+  finishShoppingSession,
   mergeGroceryItems,
   releaseGroceryItem,
   startShoppingSession,
 } from "@/lib/groceries/commands";
 import { createClient } from "@/lib/supabase/server";
+import { zurichCivilDate } from "@/lib/ui/zurich-date";
 
 const groceryItemIdSchema = z.string().uuid();
 const claimIntentSchema = z.enum(["claim", "release"]);
@@ -100,6 +102,35 @@ async function applyGroceryClaimIntent(input: {
 export async function joinShoppingSessionAction(): Promise<void> {
   await startShoppingSession();
   revalidateGroceryViews();
+}
+
+export async function finishShoppingSessionAction(): Promise<void> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shopping_sessions")
+    .select("id")
+    .eq("household_id", member.householdId)
+    .eq("member_id", member.userId)
+    .is("finished_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Shopping session lookup failed: ${error.message}`);
+  }
+  if (data === null) {
+    return;
+  }
+
+  const session = activeSessionRowSchema.parse(data);
+  await finishShoppingSession({
+    shoppingSessionId: session.id,
+    idempotencyKey: `finish-shopping:${session.id}`,
+    occurredOn: zurichCivilDate(),
+    createExpenseDraft: false,
+  });
+  revalidateGroceryViews();
+  revalidatePath("/money");
 }
 
 export async function claimGroceryItemAction(

@@ -253,7 +253,11 @@ function PasskeyItem({
   onRevoke: () => void;
 }) {
   return (
-    <Item className="flex-col items-stretch gap-4" variant="outline">
+    <Item
+      className="flex-col items-stretch gap-4"
+      render={<li />}
+      variant="outline"
+    >
       <ItemContent className="gap-1">
         <ItemTitle>
           {passkey.friendlyName?.trim() || "Unnamed passkey"}
