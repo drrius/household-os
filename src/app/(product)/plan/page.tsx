@@ -1,17 +1,13 @@
-import { requireMemberContext } from "@/lib/auth/member-context";
-import { AppPage } from "@/ui/primitives/app-page";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageHeader } from "@/ui/primitives/page-header";
+import { loadPlanViewModel } from "@/lib/read-models/plan";
+import { PlanScreen } from "@/ui/plan/plan-screen";
 
-export default async function PlanPage() {
-  await requireMemberContext();
+type PlanPageProps = {
+  searchParams: Promise<{ week?: string | string[] }>;
+};
 
-  return (
-    <AppPage labelledBy="plan-title">
-      <PageHeader titleId="plan-title" title="Plan" />
-      <EmptyState title="Monday-to-Sunday meal board">
-        <p>The week board and meal library will land here next.</p>
-      </EmptyState>
-    </AppPage>
-  );
+export default async function PlanPage({ searchParams }: PlanPageProps) {
+  const { week } = await searchParams;
+  const plan = await loadPlanViewModel(typeof week === "string" ? week : null);
+
+  return <PlanScreen plan={plan} />;
 }
