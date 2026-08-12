@@ -16,7 +16,6 @@ function homeInput(
 ): BuildHomeViewModelInput {
   return {
     viewerId,
-    now: new Date("2026-08-12T10:00:00.000Z"),
     households: [{ id: "household-1", name: "Sam & Leah" }],
     members: [
       {
@@ -118,17 +117,17 @@ describe("buildHomeViewModel", () => {
         {
           id: "activity-today",
           title: "Sam completed Walk Milo",
-          whenLabel: "Today · 09:30",
+          whenLabel: "12 Aug 2026, 09:30",
         },
         {
           id: "activity-yesterday",
           title: "Leah posted an expense",
-          whenLabel: "Yesterday · 19:15",
+          whenLabel: "11 Aug 2026, 19:15",
         },
         {
           id: "activity-old",
           title: "Leah archived Old flea check",
-          whenLabel: "10 Aug · 10:00",
+          whenLabel: "10 Aug 2026, 10:00",
         },
       ],
       storageUsedLabel: "24 MB",
