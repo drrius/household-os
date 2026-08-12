@@ -212,7 +212,6 @@ export async function loadPlanViewModel(
     .eq("household_id", member.householdId)
     .is("archived_at", null)
     .order("name")
-    .limit(20)
     .overrideTypes<MealDefinitionRow[], { merge: false }>();
   const [entriesResult, libraryResult] = await Promise.all([
     entriesQuery,
