@@ -255,7 +255,7 @@ function PasskeyItem({
   return (
     <Item
       className="flex-col items-stretch gap-4"
-      render={<li />}
+      role="listitem"
       variant="outline"
     >
       <ItemContent className="gap-1">
