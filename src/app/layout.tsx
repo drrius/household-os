@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ThemeProvider } from "next-themes";
 import { Nunito, Work_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
@@ -34,8 +35,18 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn(uiFont.variable, headingFont.variable, "font-sans")}
+      suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

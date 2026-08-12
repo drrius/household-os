@@ -75,6 +75,7 @@ export type HomeViewModel = {
   members: Array<{ userId: string; displayName: string; isSelf: boolean }>;
   pets: Array<{ id: string; name: string; meta: string }>;
   areas: Array<{ id: string; name: string; routineCount: number }>;
+  routines: Array<{ id: string; title: string; areaName: string }>;
   activity: Array<{ id: string; title: string; whenLabel: string }>;
   storageUsedLabel: string | null;
 };
@@ -140,6 +141,26 @@ function routineIdForActivity(row: ActivityRow): string | null {
 
 function formatActivityWhen(timestamp: string): string {
   return activityWhenFormatter.format(new Date(timestamp));
+}
+
+function mapRoutines(
+  routines: readonly RoutineRow[],
+  areas: readonly AreaRow[],
+): HomeViewModel["routines"] {
+  const areaNameById = new Map(areas.map((area) => [area.id, area.name]));
+  return routines
+    .filter((routine) => routine.archived_at === null)
+    .map((routine) => ({
+      id: routine.id,
+      title: routine.title,
+      areaName: areaNameById.get(routine.area_id) ?? "Household",
+    }))
+    .sort(
+      (left, right) =>
+        left.areaName.localeCompare(right.areaName) ||
+        left.title.localeCompare(right.title) ||
+        left.id.localeCompare(right.id),
+    );
 }
 
 function requireHousehold(input: BuildHomeViewModelInput): HouseholdRow {
@@ -262,12 +283,14 @@ export function buildHomeViewModel(
     routineById,
   });
   const storageUsedLabel = input.storageUsedLabel?.trim() || null;
+  const routines = mapRoutines(activeRoutines, input.areas);
 
   return {
     householdLabel: household.name,
     members,
     pets,
     areas,
+    routines,
     activity,
     storageUsedLabel,
   };

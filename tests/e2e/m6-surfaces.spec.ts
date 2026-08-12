@@ -158,32 +158,50 @@ test("core light-theme token pairs meet WCAG AA text contrast", async ({
   await page.goto("/m6-fixture/today");
 
   const contrasts = await page.evaluate(() => {
-    function luminance(value: string): number {
-      const match = value.match(
-        /oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*[\d.]+%?)?\s*\)/,
-      );
-      if (match === null)
-        throw new Error(`Expected OKLCH token, received ${value}`);
-      const lightness = Number(match[1]);
-      const chroma = Number(match[2]);
-      const hue = (Number(match[3]) * Math.PI) / 180;
-      const a = chroma * Math.cos(hue);
-      const b = chroma * Math.sin(hue);
-      const lPrime = lightness + 0.3963377774 * a + 0.2158037573 * b;
-      const mPrime = lightness - 0.1055613458 * a - 0.0638541728 * b;
-      const sPrime = lightness - 0.0894841775 * a - 1.291485548 * b;
-      const l = lPrime ** 3;
-      const m = mPrime ** 3;
-      const s = sPrime ** 3;
-      const red = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-      const green = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-      const blue = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
+    // Resolve tokens through a canvas rather than parsing one colour syntax:
+    // the CSS pipeline emits oklch() under webpack but downlevels it to hex
+    // plus a lab() @supports block under Turbopack, and both must measure the
+    // same. The canvas resolves whatever syntax the browser reports to sRGB.
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (context === null) throw new Error("Expected a 2D canvas context");
+
+    const toLinear = (channel: number) => {
+      const value = channel / 255;
+      return value <= 0.04045
+        ? value / 12.92
+        : ((value + 0.055) / 1.055) ** 2.4;
+    };
+
+    const luminance = (value: string): number => {
+      // An unparseable colour leaves fillStyle untouched, so probe from two
+      // different sentinels and require them to agree.
+      context.fillStyle = "#000000";
+      context.fillStyle = value;
+      const fromBlack = context.fillStyle;
+      context.fillStyle = "#ffffff";
+      context.fillStyle = value;
+      if (context.fillStyle !== fromBlack)
+        throw new Error(`Expected a resolvable colour, received ${value}`);
+
+      context.clearRect(0, 0, 1, 1);
+      context.fillRect(0, 0, 1, 1);
+      // A 1x1 read always yields four channels; the defaults only satisfy
+      // noUncheckedIndexedAccess.
+      const [red = 0, green = 0, blue = 0] = context.getImageData(
+        0,
+        0,
+        1,
+        1,
+      ).data;
       return (
-        0.2126 * Math.min(1, Math.max(0, red)) +
-        0.7152 * Math.min(1, Math.max(0, green)) +
-        0.0722 * Math.min(1, Math.max(0, blue))
+        0.2126 * toLinear(red) +
+        0.7152 * toLinear(green) +
+        0.0722 * toLinear(blue)
       );
-    }
+    };
 
     const root = getComputedStyle(document.documentElement);
     const ratio = (foreground: string, background: string) => {

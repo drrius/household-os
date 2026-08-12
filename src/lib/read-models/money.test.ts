@@ -186,6 +186,7 @@ describe("mapMoneyViewModel", () => {
 
   it("shows a settled state without ledger entries", () => {
     expect(mapMoneyViewModel(moneyInput())).toEqual({
+      hasOpeningBalance: false,
       hero: { kind: "settled" },
       explanation: [],
       drafts: [],

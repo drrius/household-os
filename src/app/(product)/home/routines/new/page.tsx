@@ -1,14 +1,42 @@
-import { AppPage } from "@/ui/layout/app-page";
-import { EmptyState } from "@/ui/layout/empty-state";
-import { PageHeader } from "@/ui/layout/page-header";
+import Link from "next/link";
 
-export default function NewRoutinePage() {
+import { createRoutineAction } from "@/app/(product)/_actions/m7-routines";
+import { loadRoutineFormOptions } from "@/lib/forms/options";
+import { zurichCivilDate } from "@/lib/ui/zurich-date";
+import { FormPage } from "@/ui/forms/form-page";
+import { RoutineForm } from "@/ui/forms/routine-form";
+
+export default async function NewRoutinePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const [options, query] = await Promise.all([
+    loadRoutineFormOptions(),
+    searchParams,
+  ]);
   return (
-    <AppPage labelledBy="new-routine-title">
-      <PageHeader titleId="new-routine-title" title="New routine" />
-      <EmptyState title="Routine form coming soon">
-        <p>Create one-off or recurring routines from this screen.</p>
-      </EmptyState>
-    </AppPage>
+    <FormPage
+      backHref="/home"
+      description="Create one-off or recurring household work with an explicit responsibility policy."
+      error={query.error}
+      title="New routine"
+    >
+      {options.areas.length === 0 ? (
+        <p>
+          Create a routine area in <Link href="/home/setup">Home setup</Link>{" "}
+          first.
+        </p>
+      ) : (
+        <RoutineForm
+          action={createRoutineAction}
+          areas={options.areas}
+          defaultDate={zurichCivilDate()}
+          members={options.members}
+          pets={options.pets}
+          submitLabel="Create routine"
+        />
+      )}
+    </FormPage>
   );
 }

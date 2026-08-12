@@ -286,7 +286,8 @@ select is(
     from public.push_outbox as outbox
     join public.inbox_notifications as inbox
       on inbox.id = outbox.inbox_notification_id
-    where inbox.activity_kind = 'expense_posted'
+    where inbox.household_id = '10000000-0000-4000-8000-000000000051'
+      and inbox.activity_kind = 'expense_posted'
   ),
   'skipped_no_subscription',
   'missing push permission skips push without dropping the inbox notice'

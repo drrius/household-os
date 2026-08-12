@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useOptimistic } from "react";
 
 import { completeRoutineOccurrence } from "@/app/(product)/_actions/routines";
@@ -25,12 +26,14 @@ export function RoutineCompleteControl({ row }: RoutineCompleteControlProps) {
 
   return (
     <div className="flex min-w-0 items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-start gap-2">
         <span
-          className="w-5 shrink-0 text-xl font-extrabold text-success"
+          className="flex h-lh w-4 shrink-0 items-center justify-center"
           aria-hidden="true"
         >
-          {isCompleted ? "✓" : ""}
+          {isCompleted ? (
+            <Check className="size-4 shrink-0 stroke-success" />
+          ) : null}
         </span>
         <span className="grid min-w-0">
           <strong
@@ -47,7 +50,7 @@ export function RoutineCompleteControl({ row }: RoutineCompleteControlProps) {
       {row.canComplete && !isCompleted ? (
         <form action={completeAction}>
           <Button type="submit" variant="outline">
-            Done
+            Mark done
           </Button>
         </form>
       ) : (

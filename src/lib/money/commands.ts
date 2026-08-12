@@ -150,6 +150,7 @@ export async function recordSettlement(input: {
   description: string;
   idempotencyKey: string;
   note?: string | null;
+  mode: "full" | "partial";
 }): Promise<Record<string, unknown>> {
   const member = await requireMemberContext();
   const supabase = await createClient();
@@ -161,6 +162,7 @@ export async function recordSettlement(input: {
     p_description: input.description,
     p_idempotency_key: input.idempotencyKey,
     p_note: input.note ?? null,
+    p_mode: input.mode,
   });
 
   if (error) {

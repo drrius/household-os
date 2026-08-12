@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
+
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,8 +17,12 @@ type BalanceExplanationProps = {
 export function BalanceExplanation({ explanation }: BalanceExplanationProps) {
   return (
     <Collapsible className="border-t pt-4">
-      <CollapsibleTrigger className="min-h-11 w-full cursor-pointer text-left font-heading font-bold">
+      <CollapsibleTrigger className="group/disclosure flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-xl text-left font-heading font-bold">
         How is this derived?
+        <ChevronDown
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground transition-transform group-hover/disclosure:text-foreground group-data-[panel-open]/disclosure:rotate-180 motion-reduce:transition-none"
+        />
       </CollapsibleTrigger>
       <CollapsibleContent>
         {explanation.length === 0 ? (

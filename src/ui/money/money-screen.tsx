@@ -1,4 +1,6 @@
 import type { MoneyViewModel } from "@/lib/read-models/money";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
 
@@ -14,8 +16,26 @@ type MoneyScreenProps = {
 export function MoneyScreen({ confirmDraftAction, model }: MoneyScreenProps) {
   return (
     <AppPage labelledBy="money-title">
-      <PageHeader titleId="money-title" title="Money" />
-      <MoneyHero hero={model.hero} explanation={model.explanation} />
+      <PageHeader
+        titleId="money-title"
+        title="Money"
+        trailing={
+          <Link
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "outline",
+            })}
+            href="/money/expenses/new"
+          >
+            Add expense
+          </Link>
+        }
+      />
+      <MoneyHero
+        hero={model.hero}
+        explanation={model.explanation}
+        hasOpeningBalance={model.hasOpeningBalance}
+      />
       <DraftList
         confirmDraftAction={confirmDraftAction}
         drafts={model.drafts}

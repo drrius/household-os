@@ -198,6 +198,9 @@ export function mapMoneyViewModel(input: MoneyReadInput): MoneyViewModel {
       type: eventTypeLabels[event.type],
     }));
   return {
+    hasOpeningBalance: input.events.some(
+      (event) => event.type === "opening_balance",
+    ),
     hero: toHero(balanceCents, partner.display_name),
     explanation,
     drafts: input.drafts.map((draft) => ({

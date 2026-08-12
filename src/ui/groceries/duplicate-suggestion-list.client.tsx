@@ -76,7 +76,9 @@ export function DuplicateSuggestionList({
                         type="hidden"
                         value={duplicate.rightId}
                       />
-                      <Button type="submit">Merge</Button>
+                      <Button type="submit" variant="outline">
+                        Merge
+                      </Button>
                     </form>
                     <Button
                       onClick={() => {
@@ -87,7 +89,7 @@ export function DuplicateSuggestionList({
                         });
                       }}
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                     >
                       Keep both
                     </Button>

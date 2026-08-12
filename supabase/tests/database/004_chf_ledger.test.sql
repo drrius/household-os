@@ -344,6 +344,34 @@ select lives_ok(
   'an exact odd-cent expense posts'
 );
 
+select lives_ok(
+  $$
+    select public.post_manual_expense(
+      p_household_id => '10000000-0000-4000-8000-000000000041',
+      p_description => 'Odd-cent groceries',
+      p_amount_cents => 1001,
+      p_payer_member_id => '00000000-0000-4000-8000-000000000041',
+      p_allocations => '[
+        {"memberId":"00000000-0000-4000-8000-000000000041","allocatedCents":501},
+        {"memberId":"00000000-0000-4000-8000-000000000042","allocatedCents":500}
+      ]',
+      p_occurred_on => '2030-08-03',
+      p_idempotency_key => 'money-expense-odd'
+    )
+  $$,
+  'a same-key manual expense retry returns the stored result'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.financial_events
+    where description = 'Odd-cent groceries'
+  ),
+  1,
+  'a same-key manual expense retry posts one immutable event'
+);
+
 select results_eq(
   $$
     select member_id, receivable_delta_cents

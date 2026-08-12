@@ -15,7 +15,9 @@ export async function proxy(request: NextRequest) {
 
   if (
     process.env.HOUSEHOLD_OS_E2E_FIXTURES === "1" &&
-    request.nextUrl.pathname.startsWith("/m6-fixture/")
+    ["/m6-fixture/", "/m7-fixture/"].some((prefix) =>
+      request.nextUrl.pathname.startsWith(prefix),
+    )
   ) {
     return response;
   }

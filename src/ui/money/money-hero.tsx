@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { BalanceHero, MoneyViewModel } from "@/lib/read-models/money";
 import { Amount } from "@/ui/layout/amount";
@@ -37,8 +38,11 @@ function balanceSummary(hero: BalanceHero): ReactNode {
 
 export function MoneyHero({
   explanation,
+  hasOpeningBalance,
   hero,
-}: Pick<MoneyViewModel, "explanation" | "hero">) {
+}: Pick<MoneyViewModel, "explanation" | "hasOpeningBalance" | "hero">) {
+  const showsSettleUp = hero.kind !== "settled";
+
   return (
     <section aria-labelledby="money-balance-title">
       <Card>
@@ -51,12 +55,36 @@ export function MoneyHero({
               {balanceSummary(hero)}
             </div>
           </div>
-          {hero.kind !== "settled" ? (
+          {!hasOpeningBalance ? (
+            <div>
+              <Link
+                className={buttonVariants({
+                  className: "no-underline",
+                  variant: showsSettleUp ? "outline" : "default",
+                })}
+                href="/money/opening-balance"
+              >
+                Set opening balance
+              </Link>
+            </div>
+          ) : null}
+          {showsSettleUp ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button disabled>Settle up</Button>
-              <Button disabled variant="outline">
+              <Link
+                className={buttonVariants({ className: "no-underline" })}
+                href="/money/settlements/new?mode=full"
+              >
+                Settle up
+              </Link>
+              <Link
+                className={buttonVariants({
+                  className: "no-underline",
+                  variant: "outline",
+                })}
+                href="/money/settlements/new?mode=partial"
+              >
                 Partial…
-              </Button>
+              </Link>
             </div>
           ) : null}
           <BalanceExplanation explanation={explanation} />

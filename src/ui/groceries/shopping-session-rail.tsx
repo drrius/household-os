@@ -50,13 +50,19 @@ export function ShoppingSessionRail({
             </div>
             {session.isMine ? (
               <form action={finishAction}>
-                <Button disabled={session.claimedCount === 0} type="submit">
+                <Button
+                  disabled={session.claimedCount === 0}
+                  type="submit"
+                  variant="outline"
+                >
                   Finish shopping
                 </Button>
               </form>
             ) : (
               <form action={joinAction}>
-                <Button type="submit">Join session</Button>
+                <Button type="submit" variant="outline">
+                  Join session
+                </Button>
               </form>
             )}
           </div>

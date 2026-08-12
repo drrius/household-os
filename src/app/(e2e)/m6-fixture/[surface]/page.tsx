@@ -133,6 +133,7 @@ const groceriesFixture: GroceriesViewModel = {
 };
 
 const moneyFixture: MoneyViewModel = {
+  hasOpeningBalance: true,
   hero: {
     kind: "partner_owes_you",
     partnerName: "Leah",
@@ -183,6 +184,10 @@ const homeFixture: HomeViewModel = {
     { id: "kitchen", name: "Kitchen", routineCount: 3 },
     { id: "laundry", name: "Laundry", routineCount: 2 },
     { id: "dog", name: "Dog", routineCount: 2 },
+  ],
+  routines: [
+    { id: "walk-fixture", title: "Walk Jodie", areaName: "Dog" },
+    { id: "laundry-fixture", title: "Run laundry", areaName: "Laundry" },
   ],
   activity: [
     { id: "activity-1", title: "Leah fed Jodie", whenLabel: "08:10" },

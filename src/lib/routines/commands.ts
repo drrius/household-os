@@ -16,7 +16,6 @@ export type CreateRoutineInput = {
   rotationAnchorMemberId?: string | null;
   activeFrom?: string | null;
   activeUntil?: string | null;
-  firstDueOn?: string | null;
 };
 
 export type CompleteOccurrenceInput = {
@@ -54,7 +53,6 @@ export async function createRoutine(
     p_priority: input.priority ?? "general",
     p_active_from: input.activeFrom ?? null,
     p_active_until: input.activeUntil ?? null,
-    p_first_due_on: input.firstDueOn ?? null,
   });
 
   if (error) {
@@ -186,7 +184,7 @@ export async function updateRoutineDefinition(input: {
   activeUntil?: string | null;
   rebuildWindow?: boolean;
 }): Promise<Record<string, unknown>> {
-  await requireMemberContext();
+  const member = await requireMemberContext();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("update_routine_definition", {
     p_routine_id: input.routineId,
@@ -207,6 +205,21 @@ export async function updateRoutineDefinition(input: {
 
   if (error) {
     throw new Error(`update_routine_definition failed: ${error.message}`);
+  }
+
+  const { error: optionalFieldsError } = await supabase
+    .from("routines")
+    .update({
+      instructions: input.instructions ?? null,
+      pet_id: input.petId ?? null,
+    })
+    .eq("household_id", member.householdId)
+    .eq("id", input.routineId);
+
+  if (optionalFieldsError) {
+    throw new Error(
+      `update_routine_optional_fields failed: ${optionalFieldsError.message}`,
+    );
   }
 
   return asRecord(data);
