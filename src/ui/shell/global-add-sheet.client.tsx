@@ -8,6 +8,7 @@ import { PlusIcon } from "@/ui/icons/app-icons";
 
 export function GlobalAddSheet() {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const descriptionId = useId();
   const [open, setOpen] = useState(false);
@@ -35,9 +36,11 @@ export function GlobalAddSheet() {
       <button
         type="button"
         className="app-shell__add"
+        aria-label="Add something"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
+        ref={triggerRef}
       >
         <PlusIcon />
         <span className="app-shell__add-label">Add something</span>
@@ -48,7 +51,10 @@ export function GlobalAddSheet() {
         className="sheet"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setOpen(false);
+          triggerRef.current?.focus();
+        }}
         onCancel={(event) => {
           event.preventDefault();
           setOpen(false);

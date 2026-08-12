@@ -6,25 +6,32 @@ import { PrimaryNav } from "@/ui/shell/primary-nav.client";
 
 export type AppShellProps = {
   children: ReactNode;
+  unreadCount?: number;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, unreadCount }: AppShellProps) {
   return (
     <div className="app-shell">
-      <a className="u-visually-hidden" href="#main-content">
+      <a className="skip-link" href="#main-content">
         Skip to content
       </a>
 
-      <div className="app-shell__brand">
+      <header className="app-shell__brand">
         <span className="app-shell__brand-mark" aria-hidden="true">
           <HouseIcon />
         </span>
         <span>Our Home</span>
-      </div>
+        {unreadCount !== undefined && unreadCount > 0 ? (
+          <span className="u-visually-hidden">
+            {unreadCount} unread{" "}
+            {unreadCount === 1 ? "notification" : "notifications"}
+          </span>
+        ) : null}
+      </header>
 
       <PrimaryNav />
 
-      <main id="main-content" className="app-shell__main">
+      <main id="main-content" className="app-shell__main" tabIndex={-1}>
         {children}
       </main>
 

@@ -1,8 +1,11 @@
+import { requireMemberContext } from "@/lib/auth/member-context";
 import { AppPage } from "@/ui/primitives/app-page";
 import { EmptyState } from "@/ui/primitives/empty-state";
 import { PageHeader } from "@/ui/primitives/page-header";
 
-export default function GroceriesPage() {
+export default async function GroceriesPage() {
+  await requireMemberContext();
+
   return (
     <AppPage labelledBy="groceries-title">
       <PageHeader

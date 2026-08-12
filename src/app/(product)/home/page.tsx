@@ -1,14 +1,17 @@
 import Link from "next/link";
 
+import { requireMemberContext } from "@/lib/auth/member-context";
 import { SECURITY_PATH } from "@/lib/auth/paths";
 import { AppPage } from "@/ui/primitives/app-page";
 import { EmptyState } from "@/ui/primitives/empty-state";
 import { PageHeader } from "@/ui/primitives/page-header";
 
-export default function HomePage() {
+export default async function HomePage() {
+  await requireMemberContext();
+
   return (
     <AppPage labelledBy="home-title">
-      <PageHeader titleId="home-title" title="Our home" eyebrow="Home" />
+      <PageHeader titleId="home-title" title="Home" />
       <EmptyState title="Household, routines, and settings">
         <p>
           Pets, areas, activity, members, and notification settings land here
