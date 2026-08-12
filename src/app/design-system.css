@@ -664,3 +664,130 @@ dialog.sheet::backdrop {
     transition-duration: 0.01ms !important;
   }
 }
+
+.money-hero {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+
+.money-hero__balance {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.money-hero__eyebrow {
+  color: var(--color-ink-muted);
+  font-family: var(--font-chrome), sans-serif;
+  font-size: var(--text-meta);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.money-hero h2 {
+  font-size: var(--text-title);
+  line-height: 1.2;
+}
+
+.money-hero__amount {
+  font-size: var(--text-display);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.money-explanation {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.money-explanation summary {
+  min-height: var(--tap-min);
+  font-family: var(--font-chrome), sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.money-explanation > p {
+  color: var(--color-ink-muted);
+}
+
+.money-explanation__list,
+.money-list,
+.money-ledger {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.money-explanation__list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.money-explanation__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.money-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.money-row {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.money-row__main {
+  min-width: 0;
+}
+
+.money-row__main h3 {
+  font-size: var(--text-body);
+  line-height: 1.3;
+}
+
+.money-row__meta {
+  margin-top: var(--space-1);
+  color: var(--color-ink-muted);
+  font-size: var(--text-meta);
+}
+
+.money-row__amount {
+  font-size: var(--text-title);
+  font-weight: 800;
+}
+
+.money-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.money-ledger__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.money-ledger__row:last-child {
+  border-bottom: 0;
+}
+
+@media (min-width: 42rem) {
+  .money-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .money-row__actions {
+    grid-column: 1 / -1;
+  }
+}
