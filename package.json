@@ -8,7 +8,7 @@
   },
   "scripts": {
     "admin": "node --experimental-strip-types scripts/identity-admin.mts",
-    "build": "next build",
+    "build": "next build --webpack",
     "check:webauthn": "node --experimental-strip-types scripts/check-webauthn-rp.mts",
     "dev": "next dev",
     "format": "prettier --write .",
