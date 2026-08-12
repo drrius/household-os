@@ -22,7 +22,7 @@ export function PrimaryNav() {
 
   return (
     <nav
-      className="sticky bottom-0 z-10 grid grid-cols-5 bg-card shadow-[0_-4px_16px_rgba(90,70,50,0.08)] lg:static lg:col-start-1 lg:row-start-2 lg:flex lg:self-stretch lg:flex-col lg:justify-start lg:border-r lg:bg-sidebar lg:p-2 lg:shadow-none"
+      className="sticky bottom-0 z-10 row-start-2 grid grid-cols-5 bg-card shadow-[0_-4px_16px_rgba(90,70,50,0.08)] lg:static lg:col-start-1 lg:row-start-2 lg:flex lg:self-stretch lg:flex-col lg:justify-start lg:border-r lg:bg-sidebar lg:p-2 lg:shadow-none"
       aria-label="Primary navigation"
     >
       {PRODUCT_DESTINATIONS.map((destination) => {
