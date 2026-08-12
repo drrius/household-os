@@ -15,18 +15,18 @@ export function AppShell({ children, unreadCount }: AppShellProps) {
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
+      {unreadCount !== undefined && unreadCount > 0 ? (
+        <span className="u-visually-hidden">
+          {unreadCount} unread{" "}
+          {unreadCount === 1 ? "notification" : "notifications"}
+        </span>
+      ) : null}
 
       <header className="app-shell__brand">
         <span className="app-shell__brand-mark" aria-hidden="true">
           <HouseIcon />
         </span>
         <span>Our Home</span>
-        {unreadCount !== undefined && unreadCount > 0 ? (
-          <span className="u-visually-hidden">
-            {unreadCount} unread{" "}
-            {unreadCount === 1 ? "notification" : "notifications"}
-          </span>
-        ) : null}
       </header>
 
       <main id="main-content" className="app-shell__main" tabIndex={-1}>
