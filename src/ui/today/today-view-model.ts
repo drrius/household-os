@@ -58,7 +58,9 @@ export type MealGlance =
       kind: "prep";
       occurrenceId: string;
       title: string;
-      day: "today" | "tomorrow";
+      day: "today" | "tomorrow" | "overdue";
+      tone: "open" | "completed" | "overdue";
+      canComplete: boolean;
     };
 
 export type ShoppingGlance =

@@ -193,18 +193,10 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
       day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
       slot: meal.slot,
     }));
-  const prepMeals = openPrep.map((row): MealGlance => ({
-    kind: "prep",
-    occurrenceId: row.id,
-    title: row.routine.title,
-    day: "today",
-  }));
-  const openPrepToday = openPrep.filter(
-    (row) => row.due_date === snapshot.civilDate,
-  );
-  const completedPrepToday = snapshot.completionsToday.filter((completion) =>
-    isMealPrepOccurrence(completion.occurrence),
-  );
+  const prepMeals = mapPrepMeals(snapshot, openPrep);
+  const completedPrepCount = prepMeals.filter(
+    (meal) => meal.kind === "prep" && meal.tone === "completed",
+  ).length;
   const shopperNames = snapshot.shoppingSessions.map(
     (session) => memberNames.get(session.member_id) ?? "Someone",
   );
@@ -215,12 +207,12 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
     civilDate: snapshot.civilDate,
     dateLabel: formatZurichDayLabel(snapshot.civilDate),
     progress: {
-      completedCount: completed.length + completedPrepToday.length,
+      completedCount: completed.length + completedPrepCount,
       totalCount:
         completed.length +
-        completedPrepToday.length +
+        completedPrepCount +
         openToday.length +
-        openPrepToday.length,
+        openPrep.length,
     },
     balancePill: deriveBalancePill(snapshot, partner),
     overdue,
@@ -229,4 +221,32 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
     shopping: mapShopping(snapshot.activeGroceryCount, shopperNames),
     pendingDrafts: snapshot.drafts.map(mapDraft),
   };
+}
+
+function mapPrepMeals(
+  snapshot: TodayReadSnapshot,
+  openPrep: readonly RoutineSource[],
+): MealGlance[] {
+  const openPrepMeals = openPrep.map((row): MealGlance => {
+    const overdue = row.due_date < snapshot.civilDate;
+    return {
+      kind: "prep",
+      occurrenceId: row.id,
+      title: row.routine.title,
+      day: overdue ? "overdue" : "today",
+      tone: overdue ? "overdue" : "open",
+      canComplete: true,
+    };
+  });
+  const completedPrepMeals = snapshot.completionsToday
+    .filter((completion) => isMealPrepOccurrence(completion.occurrence))
+    .map((completion): MealGlance => ({
+      kind: "prep",
+      occurrenceId: completion.occurrence.id,
+      title: completion.occurrence.routine.title,
+      day: "today",
+      tone: "completed",
+      canComplete: false,
+    }));
+  return [...openPrepMeals, ...completedPrepMeals];
 }

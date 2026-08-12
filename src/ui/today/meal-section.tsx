@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageSection } from "@/ui/layout/page-section";
+import { RoutineCompleteControl } from "@/ui/today/routine-complete-control.client";
 import type { MealGlance, MealSlot } from "@/ui/today/today-view-model";
 
 function mealSlotLabel(slot: MealSlot): string {
@@ -53,26 +54,73 @@ function mealGlanceLabel(meal: MealGlance): string {
   }
 }
 
+function mealDayBadge(day: MealGlance["day"]): string {
+  switch (day) {
+    case "today":
+      return "Today";
+    case "tomorrow":
+      return "Tomorrow";
+    case "overdue":
+      return "Overdue";
+    default: {
+      const exhaustiveDay: never = day;
+      return exhaustiveDay;
+    }
+  }
+}
+
+function PrepCard({ meal }: { meal: Extract<MealGlance, { kind: "prep" }> }) {
+  return (
+    <Card className="bg-secondary" size="sm">
+      <CardHeader>
+        <CardTitle>Prep</CardTitle>
+        <CardAction>
+          <Badge variant={meal.day === "overdue" ? "warning" : "accent"}>
+            {mealDayBadge(meal.day)}
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <RoutineCompleteControl
+          row={{
+            occurrenceId: meal.occurrenceId,
+            title: meal.title,
+            meta: meal.day === "overdue" ? "Overdue prep" : "Meal prep",
+            tone: meal.tone,
+            canComplete: meal.canComplete,
+          }}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function MealSection({ meals }: { meals: readonly MealGlance[] }) {
   return (
     <PageSection title="Meal and prep" titleId="today-meals-title">
       {meals.length > 0 ? (
         <div className="flex flex-col gap-4">
-          {meals.map((meal) => (
-            <Card className="bg-secondary" key={mealGlanceKey(meal)} size="sm">
-              <CardHeader>
-                <CardTitle>{mealGlanceLabel(meal)}</CardTitle>
-                <CardAction>
-                  <Badge variant="accent">
-                    {meal.day === "today" ? "Today" : "Tomorrow"}
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-              <CardContent>
-                <strong>{meal.title}</strong>
-              </CardContent>
-            </Card>
-          ))}
+          {meals.map((meal) =>
+            meal.kind === "prep" ? (
+              <PrepCard key={mealGlanceKey(meal)} meal={meal} />
+            ) : (
+              <Card
+                className="bg-secondary"
+                key={mealGlanceKey(meal)}
+                size="sm"
+              >
+                <CardHeader>
+                  <CardTitle>{mealGlanceLabel(meal)}</CardTitle>
+                  <CardAction>
+                    <Badge variant="accent">{mealDayBadge(meal.day)}</Badge>
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <strong>{meal.title}</strong>
+                </CardContent>
+              </Card>
+            ),
+          )}
         </div>
       ) : (
         <EmptyState title="No meal planned">
