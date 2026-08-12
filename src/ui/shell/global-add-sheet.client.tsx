@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useRef } from "react";
 
 import { GLOBAL_ADD_OPTIONS } from "@/lib/ui/destinations";
 import { PlusIcon } from "@/ui/icons/app-icons";
@@ -9,27 +9,10 @@ import { PlusIcon } from "@/ui/icons/app-icons";
 export function GlobalAddSheet() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const titleId = useId();
-  const descriptionId = useId();
-  const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog === null) {
-      return;
-    }
-
-    if (open) {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-      return;
-    }
-
-    if (dialog.open) {
-      dialog.close();
-    }
-  }, [open]);
+  function closeDialog() {
+    dialogRef.current?.close();
+  }
 
   return (
     <>
@@ -38,8 +21,7 @@ export function GlobalAddSheet() {
         className="app-shell__add"
         aria-label="Add something"
         aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
+        onClick={() => dialogRef.current?.showModal()}
         ref={triggerRef}
       >
         <PlusIcon />
@@ -49,21 +31,14 @@ export function GlobalAddSheet() {
       <dialog
         ref={dialogRef}
         className="sheet"
-        aria-labelledby={titleId}
-        aria-describedby={descriptionId}
-        onClose={() => {
-          setOpen(false);
-          triggerRef.current?.focus();
-        }}
-        onCancel={(event) => {
-          event.preventDefault();
-          setOpen(false);
-        }}
+        aria-labelledby="global-add-title"
+        aria-describedby="global-add-description"
+        onClose={() => triggerRef.current?.focus()}
       >
         <div className="u-stack">
           <div className="u-stack u-stack--sm">
-            <h2 id={titleId}>Add something</h2>
-            <p id={descriptionId}>
+            <h2 id="global-add-title">Add something</h2>
+            <p id="global-add-description">
               It lands in the right place for both of you.
             </p>
           </div>
@@ -74,7 +49,7 @@ export function GlobalAddSheet() {
                 <Link
                   href={option.href}
                   className="sheet-option"
-                  onClick={() => setOpen(false)}
+                  onClick={closeDialog}
                 >
                   <strong>{option.label}</strong>
                   <p>{option.description}</p>
@@ -86,7 +61,7 @@ export function GlobalAddSheet() {
           <button
             type="button"
             className="button button--secondary"
-            onClick={() => setOpen(false)}
+            onClick={closeDialog}
           >
             Cancel
           </button>
