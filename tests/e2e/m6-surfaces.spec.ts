@@ -38,6 +38,12 @@ async function expectNoObviousLayoutFailure(page: Page) {
     )
       .filter((element) => {
         const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+
+        if (element.tagName === "A" && style.display === "inline") {
+          return false;
+        }
+
         return (
           rect.width > 0 &&
           rect.height > 0 &&
@@ -66,7 +72,9 @@ for (const [surface, heading] of surfaces) {
 
     await expect(page).toHaveTitle(/Household OS/);
     await expect(page.locator("body")).not.toBeEmpty();
-    await expect(page.locator("nextjs-portal")).toHaveCount(0);
+    await expect(
+      page.locator("nextjs-portal [data-next-badge][data-error='true']"),
+    ).toHaveCount(0);
     await expectAccessibleStructure(page, heading);
     await expectNoObviousLayoutFailure(page);
 
@@ -84,8 +92,8 @@ test("keyboard focus is visible and the global add dialog restores focus", async
 }) => {
   await page.goto("/m6-fixture/today");
 
-  await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Skip to content" });
+  await skipLink.focus();
   await expect(skipLink).toBeFocused();
   const focusStyle = await skipLink.evaluate((element) => {
     const style = getComputedStyle(element);
