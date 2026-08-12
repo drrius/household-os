@@ -88,12 +88,19 @@ for (const [surface, heading] of surfaces) {
 }
 
 test("keyboard focus is visible and the global add dialog restores focus", async ({
+  browserName,
   page,
 }) => {
   await page.goto("/m6-fixture/today");
 
   const skipLink = page.getByRole("link", { name: "Skip to content" });
-  await skipLink.focus();
+  if (browserName === "chromium") {
+    await page.keyboard.press("Tab");
+  } else {
+    // Safari follows the macOS link-tabbing preference, which Playwright does
+    // not control. Focus directly there while Chromium verifies tab order.
+    await skipLink.focus();
+  }
   await expect(skipLink).toBeFocused();
   const focusStyle = await skipLink.evaluate((element) => {
     const style = getComputedStyle(element);

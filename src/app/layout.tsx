@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const uiFont = Work_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-sans",
 });
 
