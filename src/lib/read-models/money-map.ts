@@ -212,6 +212,7 @@ export function mapMoneyViewModel(input: MoneyReadInput): MoneyViewModel {
       canConfirm: isExpenseDraftReady({
         amountCents: draft.amount_cents,
         payerMemberId: draft.payer_member_id,
+        memberIds: input.members.map((member) => member.user_id),
         proposedAllocations: draft.proposed_allocations,
       }),
     })),

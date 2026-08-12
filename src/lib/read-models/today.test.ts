@@ -111,7 +111,10 @@ describe("mapTodaySnapshot", () => {
             description: "Groceries",
             amount_cents: 4250,
             payer_member_id: "user-2",
-            proposed_allocations: [{}, {}],
+            proposed_allocations: [
+              { memberId: "user-2", allocatedCents: 2125 },
+              { memberId: "user-1", allocatedCents: 2125 },
+            ],
           },
           {
             id: "draft-incomplete",

@@ -74,7 +74,7 @@ function mapOpenRoutine(
   };
 }
 
-function mapDraft(row: DraftSource): DraftGlance {
+function mapDraft(row: DraftSource, memberIds: readonly string[]): DraftGlance {
   const common = {
     draftId: row.id,
     title: row.description,
@@ -85,6 +85,7 @@ function mapDraft(row: DraftSource): DraftGlance {
     isExpenseDraftReady({
       amountCents: row.amount_cents,
       payerMemberId: row.payer_member_id,
+      memberIds,
       proposedAllocations: row.proposed_allocations,
     })
   ) {
@@ -219,7 +220,12 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
     routinesToday: [...openToday, ...completed],
     meals: [...plannedMeals, ...prepMeals],
     shopping: mapShopping(snapshot.activeGroceryCount, shopperNames),
-    pendingDrafts: snapshot.drafts.map(mapDraft),
+    pendingDrafts: snapshot.drafts.map((draft) =>
+      mapDraft(
+        draft,
+        snapshot.members.map((member) => member.user_id),
+      ),
+    ),
   };
 }
 

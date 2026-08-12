@@ -94,7 +94,10 @@ describe("mapMoneyViewModel", () => {
             amount_cents: 2_600,
             occurred_on: "2026-08-11",
             payer_member_id: viewerId,
-            proposed_allocations: [{}, {}],
+            proposed_allocations: [
+              { memberId: viewerId, allocatedCents: 1_300 },
+              { memberId: partnerId, allocatedCents: 1_300 },
+            ],
           },
         ],
       }),

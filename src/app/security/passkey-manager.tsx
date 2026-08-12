@@ -18,11 +18,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { PasskeySummary } from "@/lib/auth/passkeys";
 import { createClient } from "@/lib/supabase/client";
+import { ZURICH_TIME_ZONE } from "@/lib/ui/zurich-date";
 import { EmptyState } from "@/ui/layout/empty-state";
 
 const passkeyTimestampFormatter = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: ZURICH_TIME_ZONE,
 });
 
 function formatPasskeyTimestamp(timestamp: string): string {
