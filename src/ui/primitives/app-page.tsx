@@ -7,8 +7,8 @@ export type AppPageProps = {
 
 export function AppPage({ children, labelledBy }: AppPageProps) {
   return (
-    <main className="app-shell__main u-stack" aria-labelledby={labelledBy}>
+    <div className="u-stack" aria-labelledby={labelledBy}>
       {children}
-    </main>
+    </div>
   );
 }
