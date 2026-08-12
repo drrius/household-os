@@ -19,6 +19,7 @@ function GroceryItem({
   item: GroceriesViewModel["categories"][number]["items"][number];
 }) {
   const isClaimed = item.claimedByName !== null;
+  const canToggle = !isClaimed || item.claimedByMe;
 
   return (
     <li
@@ -32,12 +33,14 @@ function GroceryItem({
         <Button
           aria-checked={isClaimed}
           aria-label={
-            isClaimed
-              ? `${item.name} is in ${item.claimedByName}'s cart`
-              : `Add ${item.name} to your cart`
+            item.claimedByMe
+              ? `Remove ${item.name} from your cart`
+              : isClaimed
+                ? `${item.name} is in ${item.claimedByName}'s cart`
+                : `Add ${item.name} to your cart`
           }
           className="size-11"
-          disabled={isClaimed}
+          disabled={!canToggle}
           role="checkbox"
           size="icon-lg"
           type="submit"

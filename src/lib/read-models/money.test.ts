@@ -93,6 +93,8 @@ describe("mapMoneyViewModel", () => {
             description: "Market shop",
             amount_cents: 2_600,
             occurred_on: "2026-08-11",
+            payer_member_id: viewerId,
+            proposed_allocations: [{}, {}],
           },
         ],
       }),
@@ -114,6 +116,7 @@ describe("mapMoneyViewModel", () => {
         amount: "CHF 26.00",
         meta: "Due 11 Aug 2026",
         source: "Shopping",
+        canConfirm: true,
       },
     ]);
     expect(model.events[0]).toEqual({

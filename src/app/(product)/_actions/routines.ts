@@ -30,9 +30,11 @@ export async function completeRoutineOccurrence(
 }
 
 export async function confirmTodayExpenseDraft(draftId: string): Promise<void> {
+  const confirmedDraftId = requireUuid(draftId, "Draft ID");
   await confirmExpenseDraft({
-    draftId: requireUuid(draftId, "Draft ID"),
-    idempotencyKey: randomUUID(),
+    draftId: confirmedDraftId,
+    idempotencyKey: `confirm-expense-draft:${confirmedDraftId}`,
   });
   revalidatePath("/");
+  revalidatePath("/money");
 }

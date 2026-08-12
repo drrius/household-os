@@ -55,7 +55,7 @@ async function loadRoutines(
     supabase
       .from("routine_occurrences")
       .select(
-        "id, due_date, planned_assignee_id, routine:routines!inner(title, priority)",
+        "id, due_date, planned_assignee_id, meal_plan_entry_id, routine:routines!inner(title, priority)",
       )
       .eq("household_id", householdId)
       .eq("status", "open")
@@ -64,7 +64,7 @@ async function loadRoutines(
     supabase
       .from("routine_completions")
       .select(
-        "completed_at, completed_by_member_id, occurrence:routine_occurrences!inner(id, due_date, planned_assignee_id, routine:routines!inner(title, priority))",
+        "completed_at, completed_by_member_id, occurrence:routine_occurrences!inner(id, due_date, planned_assignee_id, meal_plan_entry_id, routine:routines!inner(title, priority))",
       )
       .eq("household_id", householdId)
       .eq("completed_on", civilDate)

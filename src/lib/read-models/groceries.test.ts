@@ -217,6 +217,7 @@ describe("mapGroceriesViewModel", () => {
             name: "Batteries",
             note: null,
             claimedByName: null,
+            claimedByMe: false,
             duplicateHint: null,
           },
         ],

@@ -31,6 +31,7 @@ export type GroceriesViewModel = {
       name: string;
       note: string | null;
       claimedByName: string | null;
+      claimedByMe: boolean;
       duplicateHint: string | null;
     }>;
   }>;
@@ -216,6 +217,8 @@ export function mapGroceriesViewModel(
               ? null
               : (memberNames.get(session?.member_id ?? "") ??
                 "Another shopper"),
+          claimedByMe:
+            item.state === "claimed" && session?.member_id === input.viewerId,
           duplicateHint: duplicateData.hints.get(item.id) ?? null,
         };
       }),

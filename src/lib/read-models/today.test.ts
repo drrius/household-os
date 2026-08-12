@@ -36,26 +36,37 @@ describe("mapTodaySnapshot", () => {
           {
             id: "overdue-general",
             due_date: "2026-08-10",
+            meal_plan_entry_id: null,
             planned_assignee_id: null,
             routine: { title: "Take out recycling", priority: "general" },
           },
           {
             id: "today-cleaning",
             due_date: "2026-08-12",
+            meal_plan_entry_id: null,
             planned_assignee_id: "user-1",
             routine: { title: "Clean the sink", priority: "cleaning" },
           },
           {
             id: "overdue-pet",
             due_date: "2026-08-11",
+            meal_plan_entry_id: null,
             planned_assignee_id: "user-2",
             routine: { title: "Wash the cat bowls", priority: "pet_care" },
           },
           {
             id: "today-shared",
             due_date: "2026-08-12",
+            meal_plan_entry_id: null,
             planned_assignee_id: null,
             routine: { title: "Water the herbs", priority: "general" },
+          },
+          {
+            id: "today-prep",
+            due_date: "2026-08-12",
+            meal_plan_entry_id: "meal-today",
+            planned_assignee_id: "user-1",
+            routine: { title: "Chop onions", priority: "meal_deadline" },
           },
         ],
         completionsToday: [
@@ -65,6 +76,7 @@ describe("mapTodaySnapshot", () => {
             occurrence: {
               id: "completed-1",
               due_date: "2026-08-12",
+              meal_plan_entry_id: null,
               planned_assignee_id: "user-2",
               routine: { title: "Feed the cat", priority: "pet_care" },
             },
@@ -147,11 +159,28 @@ describe("mapTodaySnapshot", () => {
         tone: "completed",
       }),
     ]);
-    expect(view.progress).toEqual({ completedCount: 1, totalCount: 3 });
+    expect(view.progress).toEqual({ completedCount: 1, totalCount: 4 });
     expect(view.meals).toEqual([
-      expect.objectContaining({ entryId: "meal-today", day: "today" }),
-      expect.objectContaining({ entryId: "meal-tomorrow", day: "tomorrow" }),
+      expect.objectContaining({
+        kind: "meal",
+        entryId: "meal-today",
+        day: "today",
+      }),
+      expect.objectContaining({
+        kind: "meal",
+        entryId: "meal-tomorrow",
+        day: "tomorrow",
+      }),
+      expect.objectContaining({
+        kind: "prep",
+        occurrenceId: "today-prep",
+        title: "Chop onions",
+        day: "today",
+      }),
     ]);
+    expect(
+      view.routinesToday.some((row) => row.occurrenceId === "today-prep"),
+    ).toBe(false);
     expect(view.shopping).toEqual({
       kind: "live",
       itemCount: 4,

@@ -6,10 +6,10 @@ import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
 
 export default function ProductError({
-  retry,
+  reset,
 }: {
   error: Error & { digest?: string };
-  retry: () => void;
+  reset: () => void;
 }) {
   return (
     <AppPage labelledBy="error-title">
@@ -17,7 +17,7 @@ export default function ProductError({
       <EmptyState
         title="This view could not load"
         action={
-          <Button type="button" onClick={retry}>
+          <Button type="button" onClick={reset}>
             Try again
           </Button>
         }

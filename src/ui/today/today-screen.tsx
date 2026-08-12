@@ -16,10 +16,10 @@ import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
 import { PageSection } from "@/ui/layout/page-section";
 import { ProgressMeter } from "@/ui/layout/progress-meter";
+import { MealSection } from "@/ui/today/meal-section";
 import { RoutineList } from "@/ui/today/routine-list";
 import type {
   DraftGlance,
-  MealGlance,
   ShoppingGlance,
   TodayViewModel,
 } from "@/ui/today/today-view-model";
@@ -80,53 +80,6 @@ function RoutineSections({ view }: { view: TodayViewModel }) {
         )}
       </PageSection>
     </div>
-  );
-}
-
-function mealSlotLabel(slot: MealGlance["slot"]): string {
-  switch (slot) {
-    case "breakfast":
-      return "Breakfast";
-    case "lunch":
-      return "Lunch";
-    case "dinner":
-      return "Dinner";
-    case null:
-      return "Meal";
-    default: {
-      const exhaustiveSlot: never = slot;
-      return exhaustiveSlot;
-    }
-  }
-}
-
-function MealSection({ meals }: { meals: readonly MealGlance[] }) {
-  return (
-    <PageSection title="Meal and prep" titleId="today-meals-title">
-      {meals.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {meals.map((meal) => (
-            <Card className="bg-secondary" key={meal.entryId} size="sm">
-              <CardHeader>
-                <CardTitle>{mealSlotLabel(meal.slot)}</CardTitle>
-                <CardAction>
-                  <Badge variant="accent">
-                    {meal.day === "today" ? "Today" : "Tomorrow"}
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-              <CardContent>
-                <strong>{meal.title}</strong>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <EmptyState title="No meal planned">
-          <p>Today’s meal plan is open.</p>
-        </EmptyState>
-      )}
-    </PageSection>
   );
 }
 

@@ -39,7 +39,9 @@ async function queryMoneyRows(
         .eq("household_id", householdId),
       client
         .from("expense_drafts")
-        .select("id, source_kind, description, amount_cents, occurred_on")
+        .select(
+          "id, source_kind, description, amount_cents, occurred_on, payer_member_id, proposed_allocations",
+        )
         .eq("household_id", householdId)
         .eq("status", "pending")
         .order("occurred_on", { ascending: false })

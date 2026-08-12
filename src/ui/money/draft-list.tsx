@@ -45,7 +45,7 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                   <div className="flex flex-wrap gap-2 sm:col-span-2">
                     <form action={confirmDraftAction}>
                       <input name="draftId" type="hidden" value={draft.id} />
-                      <Button disabled={draft.amount === null} type="submit">
+                      <Button disabled={!draft.canConfirm} type="submit">
                         Confirm
                       </Button>
                     </form>

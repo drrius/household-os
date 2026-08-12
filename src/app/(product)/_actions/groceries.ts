@@ -7,6 +7,7 @@ import { requireMemberContext } from "@/lib/auth/member-context";
 import {
   claimGroceryItem,
   mergeGroceryItems,
+  releaseGroceryItem,
   startShoppingSession,
 } from "@/lib/groceries/commands";
 import { createClient } from "@/lib/supabase/server";
@@ -86,7 +87,21 @@ export async function claimGroceryItemAction(
       ? null
       : activeSessionRowSchema.parse(sessionResult.data);
   if (item.state === "purchased" || item.state === "removed") {
-    throw new Error("Only active grocery items can be claimed");
+    throw new Error(
+      "Only active or claimed grocery items can change cart state",
+    );
+  }
+  if (
+    item.state === "claimed" &&
+    item.claimed_by_session_id !== null &&
+    item.claimed_by_session_id === activeSession?.id
+  ) {
+    await releaseGroceryItem({
+      shoppingSessionId: activeSession.id,
+      groceryItemId: itemId,
+    });
+    revalidateGroceryViews();
+    return;
   }
   if (
     item.state === "claimed" &&
