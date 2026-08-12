@@ -245,15 +245,13 @@ function mapPlannedMeals(snapshot: TodayReadSnapshot): MealGlance[] {
         left.date.localeCompare(right.date) ||
         mealSlotOrder[left.slot] - mealSlotOrder[right.slot],
     )
-    .map(
-      (meal): MealGlance => ({
-        kind: "meal",
-        entryId: meal.id,
-        title: meal.title_snapshot,
-        day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
-        slot: meal.slot,
-      }),
-    );
+    .map((meal): MealGlance => ({
+      kind: "meal",
+      entryId: meal.id,
+      title: meal.title_snapshot,
+      day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
+      slot: meal.slot,
+    }));
 }
 
 function mapPrepMeals(
