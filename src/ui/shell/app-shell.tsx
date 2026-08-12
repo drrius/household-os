@@ -29,11 +29,11 @@ export function AppShell({ children, unreadCount }: AppShellProps) {
         ) : null}
       </header>
 
-      <PrimaryNav />
-
       <main id="main-content" className="app-shell__main" tabIndex={-1}>
         {children}
       </main>
+
+      <PrimaryNav />
 
       <GlobalAddSheet />
     </div>
