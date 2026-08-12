@@ -92,6 +92,7 @@ async function loadMeals(
     .eq("household_id", householdId)
     .in("date", [civilDate, addCivilDays(civilDate, 1)])
     .is("removed_at", null)
+    .not("slot", "is", null)
     .order("date")
     .order("slot");
   throwIfQueryFailed("Meals", result.error);

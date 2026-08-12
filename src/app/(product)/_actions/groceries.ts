@@ -13,6 +13,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 const groceryItemIdSchema = z.string().uuid();
+const claimIntentSchema = z.enum(["claim", "release"]);
 const sessionResultSchema = z.object({
   shopping_session_id: z.string().uuid(),
 });
@@ -42,6 +43,60 @@ function revalidateGroceryViews(): void {
   revalidatePath("/");
 }
 
+async function applyGroceryClaimIntent(input: {
+  intent: z.infer<typeof claimIntentSchema>;
+  itemId: string;
+  item: z.infer<typeof claimItemRowSchema>;
+  activeSession: z.infer<typeof activeSessionRowSchema> | null;
+}): Promise<void> {
+  const claimedByViewer =
+    input.item.state === "claimed" &&
+    input.item.claimed_by_session_id !== null &&
+    input.item.claimed_by_session_id === input.activeSession?.id;
+  const claimedByOther =
+    input.item.state === "claimed" &&
+    input.item.claimed_by_session_id !== input.activeSession?.id;
+
+  switch (input.intent) {
+    case "release": {
+      if (!claimedByViewer) {
+        return;
+      }
+      if (input.activeSession === null) {
+        throw new Error(
+          "Shopping session is required to release a grocery item",
+        );
+      }
+      await releaseGroceryItem({
+        shoppingSessionId: input.activeSession.id,
+        groceryItemId: input.itemId,
+      });
+      return;
+    }
+    case "claim": {
+      if (claimedByViewer) {
+        return;
+      }
+      if (claimedByOther) {
+        throw new Error("Grocery item is already in another member's cart");
+      }
+      const shoppingSessionId =
+        input.activeSession?.id ??
+        sessionResultSchema.parse(await startShoppingSession())
+          .shopping_session_id;
+      await claimGroceryItem({
+        shoppingSessionId,
+        groceryItemId: input.itemId,
+      });
+      return;
+    }
+    default: {
+      const exhaustiveIntent: never = input.intent;
+      throw new Error(`Unhandled grocery claim intent: ${exhaustiveIntent}`);
+    }
+  }
+}
+
 export async function joinShoppingSessionAction(): Promise<void> {
   await startShoppingSession();
   revalidateGroceryViews();
@@ -51,6 +106,7 @@ export async function claimGroceryItemAction(
   formData: FormData,
 ): Promise<void> {
   const itemId = groceryItemIdSchema.parse(formData.get("itemId"));
+  const intent = claimIntentSchema.parse(formData.get("intent"));
   const member = await requireMemberContext();
   const supabase = await createClient();
   const [itemResult, sessionResult] = await Promise.all([
@@ -91,32 +147,8 @@ export async function claimGroceryItemAction(
       "Only active or claimed grocery items can change cart state",
     );
   }
-  if (
-    item.state === "claimed" &&
-    item.claimed_by_session_id !== null &&
-    item.claimed_by_session_id === activeSession?.id
-  ) {
-    await releaseGroceryItem({
-      shoppingSessionId: activeSession.id,
-      groceryItemId: itemId,
-    });
-    revalidateGroceryViews();
-    return;
-  }
-  if (
-    item.state === "claimed" &&
-    item.claimed_by_session_id !== activeSession?.id
-  ) {
-    throw new Error("Grocery item is already in another member's cart");
-  }
 
-  const shoppingSessionId =
-    activeSession?.id ??
-    sessionResultSchema.parse(await startShoppingSession()).shopping_session_id;
-  await claimGroceryItem({
-    shoppingSessionId,
-    groceryItemId: itemId,
-  });
+  await applyGroceryClaimIntent({ intent, itemId, item, activeSession });
   revalidateGroceryViews();
 }
 
@@ -137,7 +169,6 @@ export async function mergeDuplicateGroceryItemsAction(
     .from("grocery_items")
     .select("id, name, quantity, unit, category_id, note, sort_order")
     .eq("household_id", member.householdId)
-    .eq("state", "active")
     .in("id", [request.leftId, request.rightId]);
 
   if (error) {
@@ -147,7 +178,7 @@ export async function mergeDuplicateGroceryItemsAction(
   const keepItem = rows.find((item) => item.id === request.leftId);
   const removeItem = rows.find((item) => item.id === request.rightId);
   if (keepItem === undefined || removeItem === undefined) {
-    throw new Error("Both duplicate groceries must still be active");
+    throw new Error("Both duplicate groceries must belong to the household");
   }
 
   await mergeGroceryItems({

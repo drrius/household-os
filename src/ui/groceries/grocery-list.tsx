@@ -30,6 +30,11 @@ function GroceryItem({
     >
       <form action={claimAction} className="flex">
         <input name="itemId" type="hidden" value={item.id} />
+        <input
+          name="intent"
+          type="hidden"
+          value={item.claimedByMe ? "release" : "claim"}
+        />
         <Button
           aria-checked={isClaimed}
           aria-label={
