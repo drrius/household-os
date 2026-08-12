@@ -5,6 +5,7 @@ import { PageHeader } from "@/ui/layout/page-header";
 
 import { DuplicateSuggestionList } from "./duplicate-suggestion-list.client";
 import { GroceryList } from "./grocery-list";
+import { PurchasedHistory } from "./purchased-history.client";
 import { ShoppingSessionRail } from "./shopping-session-rail";
 
 type GroceriesScreenProps = {
@@ -44,15 +45,7 @@ export function GroceriesScreen({
       <GroceryList categories={model.categories} claimAction={claimAction} />
       <Card size="sm">
         <CardContent>
-          <details>
-            <summary className="min-h-11 cursor-pointer font-heading text-xl font-semibold">
-              Purchased history
-            </summary>
-            <p className="text-muted-foreground">
-              {model.recentHistoryLabel ??
-                "No groceries were purchased in the last 30 days."}
-            </p>
-          </details>
+          <PurchasedHistory recentHistoryLabel={model.recentHistoryLabel} />
         </CardContent>
       </Card>
     </AppPage>

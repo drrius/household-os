@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { BalanceHero, MoneyViewModel } from "@/lib/read-models/money";
 import { Amount } from "@/ui/layout/amount";
+import { BalanceExplanation } from "@/ui/money/balance-explanation.client";
 
 function balanceSummary(hero: BalanceHero): ReactNode {
   switch (hero.kind) {
@@ -58,28 +59,7 @@ export function MoneyHero({
               </Button>
             </div>
           ) : null}
-          <details className="border-t pt-4">
-            <summary className="min-h-11 cursor-pointer font-heading font-bold">
-              How is this derived?
-            </summary>
-            {explanation.length === 0 ? (
-              <p className="text-muted-foreground">
-                No posted events contribute to this balance.
-              </p>
-            ) : (
-              <ul className="grid list-none gap-2">
-                {explanation.map((contribution, index) => (
-                  <li
-                    className="flex justify-between gap-3"
-                    key={`${contribution.label}-${index}`}
-                  >
-                    <span>{contribution.label}</span>
-                    <Amount value={contribution.delta} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </details>
+          <BalanceExplanation explanation={explanation} />
         </CardContent>
       </Card>
     </section>

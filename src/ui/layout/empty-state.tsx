@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
 
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+
 export type EmptyStateProps = {
   action?: ReactNode;
   children?: ReactNode;
@@ -8,18 +16,20 @@ export type EmptyStateProps = {
 
 export function EmptyState({ action, children, title }: EmptyStateProps) {
   return (
-    <div className="grid min-h-48 place-items-center rounded-2xl border border-dashed p-8 text-center text-muted-foreground">
-      <div className="flex flex-col items-center gap-2">
-        <h2 className="font-heading text-xl font-semibold text-foreground">
-          {title}
-        </h2>
-        {children}
-        {action !== undefined && action !== null ? (
+    <Empty className="min-h-48 border p-8">
+      <EmptyHeader>
+        <EmptyTitle>{title}</EmptyTitle>
+        {children !== undefined && children !== null ? (
+          <EmptyDescription>{children}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+      {action !== undefined && action !== null ? (
+        <EmptyContent>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {action}
           </div>
-        ) : null}
-      </div>
-    </div>
+        </EmptyContent>
+      ) : null}
+    </Empty>
   );
 }
