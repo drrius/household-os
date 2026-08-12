@@ -442,10 +442,6 @@ p {
   color: var(--color-ink);
 }
 
-.sheet::backdrop {
-  background: rgba(43, 37, 33, 0.35);
-}
-
 .sheet-option-list {
   display: flex;
   flex-direction: column;
