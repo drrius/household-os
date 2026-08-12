@@ -54,7 +54,67 @@ export function formErrorMessage(error: unknown): string {
   return "We couldn't save that change. Check the details and try again.";
 }
 
-export { parseRoutineForm } from "./routine";
+export { parseRoutineForm, routineFormChangesSchedule } from "./routine";
+export type { RoutineFormValue, StoredRoutineSchedule } from "./routine";
+
+const proposedAllocationSchema = z.object({
+  memberId: z.string().min(1),
+  allocatedCents: z.number().int(),
+});
+
+export function expenseFormHref(draftId: string | null): string {
+  if (draftId === null || draftId.length === 0) return "/money/expenses/new";
+  return `/money/expenses/new?draft=${encodeURIComponent(draftId)}`;
+}
+
+export function formatCentimesField(centimes: number): string {
+  const absolute = Math.abs(centimes);
+  return `${Math.floor(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
+}
+
+export function draftSplitDefaults(
+  amountCents: number | null,
+  payerMemberId: string | null,
+  memberIds: readonly [string, string],
+  proposedAllocations: unknown,
+): {
+  mode: "equal" | "exact";
+  allocationsByMemberId: Readonly<Record<string, number>>;
+} {
+  const parsed = z
+    .array(proposedAllocationSchema)
+    .safeParse(proposedAllocations);
+  const allocationsByMemberId: Record<string, number> = {};
+  if (parsed.success) {
+    for (const row of parsed.data) {
+      allocationsByMemberId[row.memberId] = row.allocatedCents;
+    }
+  }
+  if (
+    amountCents === null ||
+    payerMemberId === null ||
+    !parsed.success ||
+    parsed.data.length === 0
+  ) {
+    return { mode: "equal", allocationsByMemberId };
+  }
+  const otherMemberId = memberIds.find((id) => id !== payerMemberId);
+  if (otherMemberId === undefined) {
+    return { mode: "equal", allocationsByMemberId };
+  }
+  const equal = allocateEqualExpense(
+    amountCents,
+    asMemberId(payerMemberId),
+    asMemberId(otherMemberId),
+  );
+  const matchesEqual = equal.every(
+    (share) => allocationsByMemberId[share.memberId] === share.allocatedCents,
+  );
+  return {
+    mode: matchesEqual ? "equal" : "exact",
+    allocationsByMemberId,
+  };
+}
 
 export type GroceryFormValue = {
   name: string;

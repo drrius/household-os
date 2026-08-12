@@ -13,6 +13,7 @@ const draftSchema = z.object({
   amount_cents: z.number().int().nonnegative().nullable(),
   payer_member_id: z.string().uuid().nullable(),
   occurred_on: z.string(),
+  proposed_allocations: z.unknown(),
 });
 
 export default async function NewExpensePage({
@@ -30,7 +31,9 @@ export default async function NewExpensePage({
     const supabase = await createClient();
     const result = await supabase
       .from("expense_drafts")
-      .select("id, description, amount_cents, payer_member_id, occurred_on")
+      .select(
+        "id, description, amount_cents, payer_member_id, occurred_on, proposed_allocations",
+      )
       .eq("household_id", member.householdId)
       .eq("id", query.draft)
       .eq("status", "pending")

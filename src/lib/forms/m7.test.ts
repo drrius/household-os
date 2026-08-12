@@ -2,6 +2,8 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import {
+  draftSplitDefaults,
+  expenseFormHref,
   parseChfToCentimes,
   parseExpenseForm,
   parseGroceryForm,
@@ -9,6 +11,7 @@ import {
   parseOpeningBalanceForm,
   parseRoutineForm,
   parseSettlementForm,
+  routineFormChangesSchedule,
 } from "./m7";
 
 const firstMember = "11111111-1111-4111-8111-111111111111";
@@ -131,6 +134,104 @@ describe("M7 form parsing", () => {
         ).toBe(amountCents);
       }),
     );
+  });
+
+  it("keeps the draft query on the expense error path", () => {
+    expect(expenseFormHref(null)).toBe("/money/expenses/new");
+    expect(expenseFormHref(firstMember)).toBe(
+      `/money/expenses/new?draft=${firstMember}`,
+    );
+  });
+
+  it("initializes exact split mode from a non-equal draft allocation", () => {
+    expect(
+      draftSplitDefaults(
+        1_000,
+        firstMember,
+        [firstMember, secondMember],
+        [
+          { memberId: firstMember, allocatedCents: 500 },
+          { memberId: secondMember, allocatedCents: 500 },
+        ],
+      ).mode,
+    ).toBe("equal");
+    expect(
+      draftSplitDefaults(
+        1_000,
+        firstMember,
+        [firstMember, secondMember],
+        [
+          { memberId: firstMember, allocatedCents: 700 },
+          { memberId: secondMember, allocatedCents: 300 },
+        ],
+      ),
+    ).toEqual({
+      mode: "exact",
+      allocationsByMemberId: {
+        [firstMember]: 700,
+        [secondMember]: 300,
+      },
+    });
+  });
+
+  it("does not treat a metadata-only routine edit as a schedule change", () => {
+    const form = new FormData();
+    form.set("title", "Clean the kitchen");
+    form.set("areaId", areaId);
+    form.set("assignmentPolicy", "assigned");
+    form.set("memberId", firstMember);
+    form.set("scheduleMode", "weekly");
+    form.set("weeklyWeekday", "6");
+    form.set("priority", "cleaning");
+    const parsed = parseRoutineForm(form);
+    expect(
+      routineFormChangesSchedule(
+        {
+          scheduleKind: "calendar",
+          scheduleRule: { weekday: 6, kind: "weekly" },
+          assignmentPolicy: "assigned",
+          assignedMemberId: firstMember,
+          rotationAnchorMemberId: null,
+        },
+        parsed,
+      ),
+    ).toBe(false);
+    form.set("weeklyWeekday", "1");
+    expect(
+      routineFormChangesSchedule(
+        {
+          scheduleKind: "calendar",
+          scheduleRule: { kind: "weekly", weekday: 6 },
+          assignmentPolicy: "assigned",
+          assignedMemberId: firstMember,
+          rotationAnchorMemberId: null,
+        },
+        parseRoutineForm(form),
+      ),
+    ).toBe(true);
+  });
+
+  it("treats weekday order as the same schedule", () => {
+    const form = new FormData();
+    form.set("title", "Walk the dog");
+    form.set("areaId", areaId);
+    form.set("assignmentPolicy", "shared");
+    form.set("scheduleMode", "weekdays");
+    form.append("weekdays", "1");
+    form.append("weekdays", "5");
+    form.set("priority", "pet_care");
+    expect(
+      routineFormChangesSchedule(
+        {
+          scheduleKind: "calendar",
+          scheduleRule: { kind: "weekdays", days: [5, 1] },
+          assignmentPolicy: "shared",
+          assignedMemberId: null,
+          rotationAnchorMemberId: null,
+        },
+        parseRoutineForm(form),
+      ),
+    ).toBe(false);
   });
 });
 

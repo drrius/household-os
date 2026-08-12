@@ -1,6 +1,7 @@
 import { createExpenseAction } from "@/app/(product)/_actions/m7-money";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { draftSplitDefaults, formatCentimesField } from "@/lib/forms/m7";
 import { ExpenseSplitFields } from "@/ui/forms/expense-split-fields.client";
 import {
   FormField,
@@ -17,19 +18,22 @@ type Draft = {
   amount_cents: number | null;
   payer_member_id: string | null;
   occurred_on: string;
+  proposed_allocations: unknown;
 };
 
 function centsInput(value: number | null | undefined): string {
   if (value === null || value === undefined) return "";
-  return `${Math.floor(value / 100)}.${String(value % 100).padStart(2, "0")}`;
+  return formatCentimesField(value);
 }
 
 function ExpenseFields({
   draft,
+  isDraft,
   members,
   viewerId,
 }: {
-  draft: Draft | null;
+  draft: Draft;
+  isDraft: boolean;
   members: readonly Member[];
   viewerId: string;
 }) {
@@ -37,16 +41,17 @@ function ExpenseFields({
     <FormSection legend="Expense">
       <FormField label="Description">
         <Input
-          defaultValue={draft?.description}
+          defaultValue={draft.description}
           maxLength={200}
           name="description"
+          readOnly={isDraft}
           required
         />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Amount in CHF">
           <Input
-            defaultValue={centsInput(draft?.amount_cents)}
+            defaultValue={centsInput(draft.amount_cents)}
             inputMode="decimal"
             name="amount"
             placeholder="0.00"
@@ -55,7 +60,7 @@ function ExpenseFields({
         </FormField>
         <FormField label="Date">
           <Input
-            defaultValue={draft?.occurred_on}
+            defaultValue={draft.occurred_on}
             name="occurredOn"
             required
             type="date"
@@ -65,7 +70,7 @@ function ExpenseFields({
       <FormField label="Payer">
         <select
           className={selectClassName}
-          defaultValue={draft?.payer_member_id ?? viewerId}
+          defaultValue={draft.payer_member_id ?? viewerId}
           name="payerMemberId"
         >
           {members.map((member) => (
@@ -120,7 +125,19 @@ export function ExpenseForm({
     amount_cents: null,
     payer_member_id: null,
     occurred_on: occurredOn,
+    proposed_allocations: [],
   };
+  const firstMember = members[0];
+  const secondMember = members[1];
+  const split =
+    firstMember === undefined || secondMember === undefined
+      ? { mode: "equal" as const, allocationsByMemberId: {} }
+      : draftSplitDefaults(
+          normalizedDraft.amount_cents,
+          normalizedDraft.payer_member_id,
+          [firstMember.user_id, secondMember.user_id],
+          normalizedDraft.proposed_allocations,
+        );
   return (
     <FormFields
       action={action}
@@ -130,11 +147,16 @@ export function ExpenseForm({
       {draft ? <input name="draftId" type="hidden" value={draft.id} /> : null}
       <ExpenseFields
         draft={normalizedDraft}
+        isDraft={draft !== null}
         members={members}
         viewerId={viewerId}
       />
       <DetailFields categories={categories} />
-      <ExpenseSplitFields members={members} />
+      <ExpenseSplitFields
+        initialExactCents={split.allocationsByMemberId}
+        initialMode={split.mode}
+        members={members}
+      />
     </FormFields>
   );
 }

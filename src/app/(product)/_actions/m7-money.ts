@@ -11,6 +11,7 @@ import {
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { settlementAmount } from "@/domain/money/settlements";
 import {
+  expenseFormHref,
   parseExpenseForm,
   parseOpeningBalanceForm,
   parseSettlementForm,
@@ -24,6 +25,9 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export async function createExpenseAction(formData: FormData): Promise<void> {
+  const draftValue = formData.get("draftId");
+  const draftId =
+    typeof draftValue === "string" && draftValue.length > 0 ? draftValue : null;
   let failure: unknown = null;
   try {
     const members = await loadHouseholdMembers();
@@ -31,10 +35,9 @@ export async function createExpenseAction(formData: FormData): Promise<void> {
       members[0].user_id,
       members[1].user_id,
     ]);
-    const draftValue = formData.get("draftId");
-    if (typeof draftValue === "string" && draftValue.length > 0) {
+    if (draftId !== null) {
       await confirmExpenseDraft({
-        draftId: uuidSchema.parse(draftValue),
+        draftId: uuidSchema.parse(draftId),
         idempotencyKey: input.idempotencyKey,
         amountCents: input.amountCents,
         payerMemberId: input.payerMemberId,
@@ -49,7 +52,7 @@ export async function createExpenseAction(formData: FormData): Promise<void> {
   } catch (error) {
     failure = error;
   }
-  if (failure !== null) redirect(errorHref("/money/expenses/new", failure));
+  if (failure !== null) redirect(errorHref(expenseFormHref(draftId), failure));
   revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");
 }

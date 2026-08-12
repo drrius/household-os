@@ -127,3 +127,54 @@ export function parseRoutineForm(formData: FormData) {
       .parse(value(formData, "priority")),
   };
 }
+
+export type RoutineFormValue = ReturnType<typeof parseRoutineForm>;
+
+export type StoredRoutineSchedule = {
+  scheduleKind: RoutineFormValue["scheduleKind"];
+  scheduleRule: unknown;
+  assignmentPolicy: RoutineFormValue["assignmentPolicy"];
+  assignedMemberId: string | null;
+  rotationAnchorMemberId: string | null;
+};
+
+export function routineFormChangesSchedule(
+  current: StoredRoutineSchedule,
+  next: RoutineFormValue,
+): boolean {
+  return (
+    current.scheduleKind !== next.scheduleKind ||
+    current.assignmentPolicy !== next.assignmentPolicy ||
+    current.assignedMemberId !== next.assignedMemberId ||
+    current.rotationAnchorMemberId !== next.rotationAnchorMemberId ||
+    canonicalJson(normalizeScheduleRule(current.scheduleRule)) !==
+      canonicalJson(normalizeScheduleRule(next.scheduleRule))
+  );
+}
+
+function normalizeScheduleRule(rule: unknown): unknown {
+  if (rule === null || typeof rule !== "object" || Array.isArray(rule)) {
+    return rule;
+  }
+  const record = { ...(rule as Record<string, unknown>) };
+  if (record.kind === "weekdays" && Array.isArray(record.days)) {
+    record.days = [...record.days]
+      .map((day) => (typeof day === "string" ? Number(day) : day))
+      .sort((left, right) => Number(left) - Number(right));
+  }
+  return record;
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => canonicalJson(entry)).join(",")}]`;
+  }
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+    .join(",")}}`;
+}
