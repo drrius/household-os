@@ -68,10 +68,32 @@ async function queryMoneyRows(
   });
 }
 
+async function loadMoneyViewModel(
+  client: SupabaseClient,
+  viewerId: string,
+  householdId: string,
+) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const rows = await queryMoneyRows(client, householdId);
+    try {
+      return mapMoneyViewModel({ viewerId, ...rows });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!message.startsWith("Missing financial event") || attempt === 2) {
+        throw error;
+      }
+    }
+  }
+  throw new Error("Money snapshot stayed inconsistent after retries");
+}
+
 export default async function MoneyPage() {
   const member = await requireMemberContext();
   const client = await createClient();
-  const rows = await queryMoneyRows(client, member.householdId);
-  const model = mapMoneyViewModel({ viewerId: member.userId, ...rows });
+  const model = await loadMoneyViewModel(
+    client,
+    member.userId,
+    member.householdId,
+  );
   return <MoneyScreen model={model} confirmDraftAction={confirmDraftAction} />;
 }

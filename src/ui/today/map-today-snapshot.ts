@@ -182,18 +182,7 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
     tone: "completed",
     canComplete: false,
   }));
-  const tomorrow = addCivilDays(snapshot.civilDate, 1);
-  const plannedMeals = snapshot.meals
-    .filter(
-      (meal) => meal.date === snapshot.civilDate || meal.date === tomorrow,
-    )
-    .map((meal): MealGlance => ({
-      kind: "meal",
-      entryId: meal.id,
-      title: meal.title_snapshot,
-      day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
-      slot: meal.slot,
-    }));
+  const plannedMeals = mapPlannedMeals(snapshot);
   const prepMeals = mapPrepMeals(snapshot, openPrep);
   const completedPrepCount = prepMeals.filter(
     (meal) => meal.kind === "prep" && meal.tone === "completed",
@@ -227,6 +216,37 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
       ),
     ),
   };
+}
+
+function mapPlannedMeals(snapshot: TodayReadSnapshot): MealGlance[] {
+  const tomorrow = addCivilDays(snapshot.civilDate, 1);
+  const mealSlotOrder = {
+    breakfast: 0,
+    lunch: 1,
+    dinner: 2,
+  } as const;
+  return snapshot.meals
+    .flatMap((meal) => {
+      if (
+        meal.slot === null ||
+        (meal.date !== snapshot.civilDate && meal.date !== tomorrow)
+      ) {
+        return [];
+      }
+      return [meal] as const;
+    })
+    .sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        mealSlotOrder[left.slot] - mealSlotOrder[right.slot],
+    )
+    .map((meal): MealGlance => ({
+      kind: "meal",
+      entryId: meal.id,
+      title: meal.title_snapshot,
+      day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
+      slot: meal.slot,
+    }));
 }
 
 function mapPrepMeals(
