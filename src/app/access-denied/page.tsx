@@ -1,7 +1,5 @@
-import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
-import { SIGN_IN_PATH } from "@/lib/auth/paths";
+import { signOutAction } from "@/app/access-denied/sign-out-action";
 import { GateShell } from "@/ui/layout/gate-shell";
 
 export default function AccessDeniedPage() {
@@ -11,14 +9,11 @@ export default function AccessDeniedPage() {
       title="No household membership"
       titleId="access-denied-title"
     >
-      <Button
-        className="w-full"
-        nativeButton={false}
-        render={<Link href={SIGN_IN_PATH} />}
-        variant="outline"
-      >
-        Back to sign in
-      </Button>
+      <form action={signOutAction}>
+        <Button className="w-full" type="submit" variant="outline">
+          Sign out and return to sign in
+        </Button>
+      </form>
     </GateShell>
   );
 }

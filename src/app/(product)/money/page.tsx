@@ -68,6 +68,17 @@ async function queryMoneyRows(
   });
 }
 
+function isTransientMoneySnapshotError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return (
+    error.message.startsWith("Missing financial event") ||
+    error.message.startsWith("Invalid allocations for") ||
+    /^Reversal .+ requires a related event$/.test(error.message)
+  );
+}
+
 async function loadMoneyViewModel(
   client: SupabaseClient,
   viewerId: string,
@@ -78,8 +89,7 @@ async function loadMoneyViewModel(
     try {
       return mapMoneyViewModel({ viewerId, ...rows });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      if (!message.startsWith("Missing financial event") || attempt === 2) {
+      if (!isTransientMoneySnapshotError(error) || attempt === 2) {
         throw error;
       }
     }
