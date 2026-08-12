@@ -37,8 +37,9 @@ function throwIfQueryFailed(
   label: string,
   error: { message: string } | null,
 ): void {
-  if (error !== null)
+  if (error !== null) {
     throw new Error(`${label} query failed: ${error.message}`);
+  }
 }
 
 async function loadMembers(

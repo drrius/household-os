@@ -195,17 +195,39 @@ function deriveBalancePill(
   }));
   const balance =
     deriveMemberBalances(entries).get(asMemberId(snapshot.viewerUserId)) ?? 0;
-  const kind =
-    balance > 0
-      ? "partner_owes_you"
-      : balance < 0
-        ? "you_owe_partner"
-        : "settled";
+  const amount = formatCentimesAsFrancs(Math.abs(balance));
+  if (balance > 0) {
+    return {
+      kind: "partner_owes_you",
+      partnerName: partner.display_name,
+      amount,
+    };
+  }
+  if (balance < 0) {
+    return {
+      kind: "you_owe_partner",
+      partnerName: partner.display_name,
+      amount,
+    };
+  }
   return {
-    kind,
+    kind: "settled",
     partnerName: partner.display_name,
-    amount: formatCentimesAsFrancs(Math.abs(balance)),
+    amount,
   };
+}
+
+function mapShopping(
+  itemCount: number,
+  shopperNames: readonly string[],
+): ShoppingGlance {
+  if (shopperNames.length > 0) {
+    return { kind: "live", itemCount, shopperNames };
+  }
+  if (itemCount > 0) {
+    return { kind: "list", itemCount };
+  }
+  return { kind: "empty" };
 }
 
 export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
@@ -222,11 +244,11 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
   const openToday = sortedOpen
     .filter((row) => row.due_date === snapshot.civilDate)
     .map((row) => mapOpenRoutine(row, "open", snapshot, memberNames));
-  const completed = snapshot.completionsToday.map((completion) => ({
+  const completed = snapshot.completionsToday.map((completion): RoutineRow => ({
     occurrenceId: completion.occurrence.id,
     title: completion.occurrence.routine.title,
     meta: `${memberNames.get(completion.completed_by_member_id) ?? "Someone"} ${completionTimeFormatter.format(new Date(completion.completed_at))}`,
-    tone: "completed" as const,
+    tone: "completed",
     canComplete: false,
   }));
   const tomorrow = addCivilDays(snapshot.civilDate, 1);
@@ -234,28 +256,15 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
     .filter(
       (meal) => meal.date === snapshot.civilDate || meal.date === tomorrow,
     )
-    .map((meal) => ({
+    .map((meal): MealGlance => ({
       entryId: meal.id,
       title: meal.title_snapshot,
-      day:
-        meal.date === snapshot.civilDate
-          ? ("today" as const)
-          : ("tomorrow" as const),
+      day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
       slot: meal.slot,
     }));
   const shopperNames = snapshot.shoppingSessions.map(
     (session) => memberNames.get(session.member_id) ?? "Someone",
   );
-  const shopping: ShoppingGlance =
-    shopperNames.length > 0
-      ? {
-          kind: "live",
-          itemCount: snapshot.activeGroceryCount,
-          shopperNames,
-        }
-      : snapshot.activeGroceryCount > 0
-        ? { kind: "list", itemCount: snapshot.activeGroceryCount }
-        : { kind: "empty" };
   return {
     householdId: snapshot.householdId,
     viewerUserId: snapshot.viewerUserId,
@@ -270,7 +279,7 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
     overdue,
     routinesToday: [...openToday, ...completed],
     meals,
-    shopping,
+    shopping: mapShopping(snapshot.activeGroceryCount, shopperNames),
     pendingDrafts: snapshot.drafts.map(mapDraft),
   };
 }
