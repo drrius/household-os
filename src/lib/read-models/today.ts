@@ -51,6 +51,7 @@ async function loadRoutines(
   householdId: string,
   civilDate: string,
 ): Promise<Pick<TodayReadSnapshot, "openOccurrences" | "completionsToday">> {
+  const openThrough = addCivilDays(civilDate, 1);
   const [open, completions] = await Promise.all([
     supabase
       .from("routine_occurrences")
@@ -60,7 +61,7 @@ async function loadRoutines(
       .eq("household_id", householdId)
       .eq("status", "open")
       .eq("role", "current")
-      .lte("due_date", civilDate),
+      .lte("due_date", openThrough),
     supabase
       .from("routine_completions")
       .select(

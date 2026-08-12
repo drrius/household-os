@@ -29,6 +29,8 @@ export type GroceriesViewModel = {
     items: Array<{
       id: string;
       name: string;
+      quantity: string | null;
+      unit: string | null;
       note: string | null;
       claimedByName: string | null;
       claimedByMe: boolean;
@@ -211,6 +213,8 @@ export function mapGroceriesViewModel(
         return {
           id: item.id,
           name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
           note: item.note,
           claimedByName:
             item.state === "active"

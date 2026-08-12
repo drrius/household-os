@@ -233,13 +233,19 @@ function mapPrepMeals(
   snapshot: TodayReadSnapshot,
   openPrep: readonly RoutineSource[],
 ): MealGlance[] {
+  const tomorrow = addCivilDays(snapshot.civilDate, 1);
   const openPrepMeals = openPrep.map((row): MealGlance => {
     const overdue = row.due_date < snapshot.civilDate;
+    const day = overdue
+      ? "overdue"
+      : row.due_date === tomorrow
+        ? "tomorrow"
+        : "today";
     return {
       kind: "prep",
       occurrenceId: row.id,
       title: row.routine.title,
-      day: overdue ? "overdue" : "today",
+      day,
       tone: overdue ? "overdue" : "open",
       canComplete: true,
     };

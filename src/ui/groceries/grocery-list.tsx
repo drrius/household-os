@@ -65,6 +65,11 @@ function GroceryItem({
       <div className="grid min-w-0 gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <strong className="wrap-anywhere">{item.name}</strong>
+          {item.quantity !== null || item.unit !== null ? (
+            <span className="text-xs text-muted-foreground">
+              {[item.quantity, item.unit].filter(Boolean).join(" ")}
+            </span>
+          ) : null}
           {item.duplicateHint !== null ? (
             <Badge variant="warning">{item.duplicateHint}</Badge>
           ) : null}

@@ -110,6 +110,14 @@ describe("mapGroceriesViewModel", () => {
     expect(model.categories[1]?.items[0]?.duplicateHint).toContain(
       "Quantity or unit differs",
     );
+    expect(model.categories[1]?.items.map((item) => item.quantity)).toEqual([
+      "1",
+      "2",
+    ]);
+    expect(model.categories[1]?.items.map((item) => item.unit)).toEqual([
+      "L",
+      "L",
+    ]);
     expect(model.duplicates).toEqual([
       {
         leftId: "milk-one",
@@ -215,6 +223,8 @@ describe("mapGroceriesViewModel", () => {
           {
             id: "misc",
             name: "Batteries",
+            quantity: null,
+            unit: null,
             note: null,
             claimedByName: null,
             claimedByMe: false,
