@@ -2,8 +2,8 @@ import type { AppSurface, WatchedTable } from "./types";
 
 export const SURFACE_INVALIDATION_MAP = {
   inbox_notifications: ["inbox", "today"],
-  routine_occurrences: ["today", "home"],
-  routines: ["today", "home"],
+  routine_occurrences: ["today", "home", "plan"],
+  routines: ["today", "home", "plan"],
   meal_plan_entries: ["plan", "today"],
   grocery_items: ["groceries", "today"],
   shopping_sessions: ["groceries", "today"],
