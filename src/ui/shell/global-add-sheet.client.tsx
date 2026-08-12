@@ -1,78 +1,110 @@
 "use client";
 
+import {
+  CalendarCheck,
+  ShoppingBasket,
+  UtensilsCrossed,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { GLOBAL_ADD_OPTIONS } from "@/lib/ui/destinations";
 import { PlusIcon } from "@/ui/icons/app-icons";
 
+const ADD_OPTION_ICONS = {
+  routine: CalendarCheck,
+  grocery: ShoppingBasket,
+  meal: UtensilsCrossed,
+  expense: Wallet,
+} satisfies Record<(typeof GLOBAL_ADD_OPTIONS)[number]["id"], LucideIcon>;
+
 export function GlobalAddSheet() {
   return (
-    <Sheet>
-      <SheetTrigger
+    <Dialog>
+      <DialogTrigger
         render={
           <Button
             aria-label="Add something"
-            className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 size-14 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.3)] lg:static lg:col-start-1 lg:row-start-3 lg:m-4 lg:h-11 lg:w-auto lg:px-4"
+            className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 size-14 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.3)] ring-1 ring-primary lg:static lg:col-start-1 lg:row-start-3 lg:m-4 lg:h-11 lg:w-auto lg:px-4 lg:shadow-none"
             size="icon-lg"
           />
         }
       >
         <PlusIcon />
         <span className="hidden lg:inline">Add something</span>
-      </SheetTrigger>
+      </DialogTrigger>
 
-      <SheetContent
-        className="mx-auto max-h-[min(90dvh,48rem)] w-full max-w-xl overflow-y-auto rounded-t-3xl"
-        side="bottom"
+      <DialogContent
+        className="max-lg:top-auto max-lg:bottom-0 max-lg:left-0 max-lg:right-0 max-lg:max-w-none max-lg:translate-x-0 max-lg:translate-y-0 max-lg:gap-5 max-lg:rounded-b-none max-lg:rounded-t-3xl max-lg:p-0 max-lg:data-closed:zoom-out-100 max-lg:data-open:zoom-in-100 lg:max-w-2xl lg:gap-6 lg:p-8"
+        overlayClassName="bg-foreground/30 supports-backdrop-filter:backdrop-blur-sm"
       >
-        <SheetHeader className="pb-4">
-          <SheetTitle>Add something</SheetTitle>
-          <SheetDescription>
+        <DialogHeader className="max-lg:px-6 max-lg:pt-6 max-lg:pr-14 lg:pr-10">
+          <DialogTitle className="font-heading text-xl font-semibold lg:text-2xl">
+            Add something
+          </DialogTitle>
+          <DialogDescription className="text-base sm:text-sm">
             It lands in the right place for both of you.
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
 
-        <ul className="flex list-none flex-col gap-3 px-6 pb-4">
-          {GLOBAL_ADD_OPTIONS.map((option) => (
-            <li key={option.id}>
-              <SheetClose
-                render={
-                  <Link
-                    className="block rounded-2xl border bg-card p-4 shadow-sm no-underline transition-colors hover:bg-muted motion-reduce:transition-none"
-                    href={option.href}
-                  />
-                }
-              >
-                <strong className="block font-extrabold">{option.label}</strong>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {option.description}
-                </p>
-              </SheetClose>
-            </li>
-          ))}
+        <ul
+          className="grid list-none gap-3 max-lg:px-6 max-lg:pb-2 sm:grid-cols-2 sm:gap-4"
+          role="list"
+        >
+          {GLOBAL_ADD_OPTIONS.map((option) => {
+            const Icon = ADD_OPTION_ICONS[option.id];
+
+            return (
+              <li key={option.id} className="min-w-0">
+                <DialogClose
+                  nativeButton={false}
+                  render={
+                    <Link
+                      className="grid h-full min-h-11 gap-1 rounded-2xl border border-border bg-card p-4 no-underline outline-none hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      href={option.href}
+                    />
+                  }
+                >
+                  <span className="flex items-center gap-2 text-base sm:text-sm">
+                    <Icon
+                      aria-hidden="true"
+                      className="size-4 h-lh shrink-0 text-primary"
+                    />
+                    <strong className="font-heading font-semibold text-foreground">
+                      {option.label}
+                    </strong>
+                  </span>
+                  <span className="pl-6 text-base leading-snug text-muted-foreground sm:text-sm">
+                    {option.description}
+                  </span>
+                </DialogClose>
+              </li>
+            );
+          })}
         </ul>
 
-        <SheetFooter className="pt-0">
-          <SheetClose
+        <DialogFooter className="max-lg:px-6 max-lg:pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:justify-stretch">
+          <DialogClose
             render={
-              <Button className="w-full" variant="outline" type="button" />
+              <Button className="w-full" type="button" variant="outline" />
             }
           >
             Cancel
-          </SheetClose>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
