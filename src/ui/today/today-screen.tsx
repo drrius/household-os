@@ -186,7 +186,11 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
           <form action={confirmTodayExpenseDraft.bind(null, draft.draftId)}>
             <Button type="submit">Confirm</Button>
           </form>
-          <Button nativeButton={false} render={<Link href="/money" />} variant="outline">
+          <Button
+            nativeButton={false}
+            render={<Link href="/money" />}
+            variant="outline"
+          >
             Edit
           </Button>
         </div>
@@ -195,7 +199,11 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
       return (
         <div className="flex flex-wrap gap-2">
           <Button disabled>Confirm</Button>
-          <Button nativeButton={false} render={<Link href="/money" />} variant="outline">
+          <Button
+            nativeButton={false}
+            render={<Link href="/money" />}
+            variant="outline"
+          >
             Edit
           </Button>
         </div>

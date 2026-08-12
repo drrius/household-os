@@ -206,7 +206,11 @@ export function HomeScreen({ model }: HomeScreenProps) {
       <PetCards pets={model.pets} />
       <PageSection
         action={
-          <Button nativeButton={false} render={<Link href="/home/routines/new" />} variant="ghost">
+          <Button
+            nativeButton={false}
+            render={<Link href="/home/routines/new" />}
+            variant="ghost"
+          >
             Manage
           </Button>
         }
