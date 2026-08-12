@@ -9,7 +9,9 @@ import {
 
 describe("zurich-date", () => {
   it("formats a fixed instant as a Zurich civil date", () => {
-    expect(zurichCivilDate(new Date("2026-08-09T10:00:00Z"))).toBe("2026-08-09");
+    expect(zurichCivilDate(new Date("2026-08-09T10:00:00Z"))).toBe(
+      "2026-08-09",
+    );
   });
 
   it("adds civil days without floating-point time math", () => {
