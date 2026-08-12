@@ -4,6 +4,23 @@ create extension if not exists pgtap with schema extensions;
 
 select no_plan();
 
+select has_function(
+  'private',
+  'lock_household_ledger',
+  'household ledger lock helper exists'
+);
+
+select ok(
+  (
+    select pg_proc.prosrc like '%lock_household_ledger%'
+    from pg_proc
+    join pg_namespace on pg_namespace.oid = pg_proc.pronamespace
+    where pg_namespace.nspname = 'private'
+      and pg_proc.proname = 'post_financial_event'
+  ),
+  'every ledger write takes the household ledger lock'
+);
+
 insert into auth.users (id, email)
 values
   ('00000000-0000-4000-8000-000000000051', 'settle-one@example.invalid'),
