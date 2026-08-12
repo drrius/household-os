@@ -2,7 +2,7 @@ import { Card } from "@/ui/primitives/card";
 import { RoutineCompleteControl } from "@/ui/today/routine-complete-control.client";
 import type { RoutineRow } from "@/ui/today/today-view-model";
 
-export type RoutineListProps = {
+type RoutineListProps = {
   rows: readonly RoutineRow[];
 };
 

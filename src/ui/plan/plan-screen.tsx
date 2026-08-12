@@ -14,11 +14,7 @@ type PlanScreenProps = {
   plan: PlanViewModel;
 };
 
-type MealLibraryProps = {
-  meals: PlanViewModel["library"];
-};
-
-function MealLibrary({ meals }: MealLibraryProps) {
+function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
   return (
     <section aria-labelledby="meal-library-title">
       <Card

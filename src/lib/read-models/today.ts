@@ -16,14 +16,6 @@ import {
   type TodayViewModel,
 } from "@/ui/today/today-view-model";
 
-export type {
-  DraftGlance,
-  MealGlance,
-  RoutineRow,
-  ShoppingGlance,
-  TodayViewModel,
-} from "@/ui/today/today-view-model";
-
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
 function rows<T>(value: unknown, label: string): readonly T[] {

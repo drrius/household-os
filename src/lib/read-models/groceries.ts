@@ -50,7 +50,7 @@ export type GroceriesViewModel = {
   recentHistoryLabel: string | null;
 };
 
-export type GroceriesReadRows = {
+type GroceriesReadRows = {
   categories: CategoryRow[];
   items: ItemRow[];
   sessions: SessionRow[];

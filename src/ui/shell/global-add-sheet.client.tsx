@@ -10,7 +10,7 @@ export function GlobalAddSheet() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  function closeDialog() {
+  function close() {
     dialogRef.current?.close();
   }
 
@@ -49,7 +49,7 @@ export function GlobalAddSheet() {
                 <Link
                   href={option.href}
                   className="sheet-option"
-                  onClick={closeDialog}
+                  onClick={close}
                 >
                   <strong>{option.label}</strong>
                   <p>{option.description}</p>
@@ -61,7 +61,7 @@ export function GlobalAddSheet() {
           <button
             type="button"
             className="button button--secondary"
-            onClick={closeDialog}
+            onClick={close}
           >
             Cancel
           </button>

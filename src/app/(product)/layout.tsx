@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
-import { ProductSurfaceRefresh } from "@/ui/realtime/product-surface-refresh.client";
+import { SurfaceRefresh } from "@/ui/realtime/surface-refresh.client";
 import { AppShell } from "@/ui/shell/app-shell";
 
 export default async function ProductLayout({
@@ -11,7 +11,7 @@ export default async function ProductLayout({
 
   return (
     <AppShell>
-      <ProductSurfaceRefresh householdId={member.householdId} />
+      <SurfaceRefresh householdId={member.householdId} />
       {children}
     </AppShell>
   );

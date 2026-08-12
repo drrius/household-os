@@ -14,12 +14,10 @@ type HomeScreenProps = {
   model: HomeViewModel;
 };
 
-type HouseholdCardProps = {
-  householdLabel: HomeViewModel["householdLabel"];
-  members: HomeViewModel["members"];
-};
-
-function HouseholdCard({ householdLabel, members }: HouseholdCardProps) {
+function HouseholdCard({
+  householdLabel,
+  members,
+}: Pick<HomeViewModel, "householdLabel" | "members">) {
   return (
     <Card header={<h2 id="household-title">Household</h2>}>
       <div className="home-card-stack">
@@ -45,11 +43,7 @@ function HouseholdCard({ householdLabel, members }: HouseholdCardProps) {
   );
 }
 
-type PetCardsProps = {
-  pets: HomeViewModel["pets"];
-};
-
-function PetCards({ pets }: PetCardsProps) {
+function PetCards({ pets }: Pick<HomeViewModel, "pets">) {
   if (pets.length === 0) {
     return null;
   }
@@ -67,11 +61,7 @@ function PetCards({ pets }: PetCardsProps) {
   );
 }
 
-type AreaListProps = {
-  areas: HomeViewModel["areas"];
-};
-
-function AreaList({ areas }: AreaListProps) {
+function AreaList({ areas }: Pick<HomeViewModel, "areas">) {
   if (areas.length === 0) {
     return (
       <EmptyState title="No routine areas yet">
@@ -97,11 +87,7 @@ function AreaList({ areas }: AreaListProps) {
   );
 }
 
-type ActivityListProps = {
-  activity: HomeViewModel["activity"];
-};
-
-function ActivityList({ activity }: ActivityListProps) {
+function ActivityList({ activity }: Pick<HomeViewModel, "activity">) {
   if (activity.length === 0) {
     return (
       <EmptyState title="Nothing here yet">
@@ -126,11 +112,9 @@ function ActivityList({ activity }: ActivityListProps) {
   );
 }
 
-type SettingsListProps = {
-  storageUsedLabel: HomeViewModel["storageUsedLabel"];
-};
-
-function SettingsList({ storageUsedLabel }: SettingsListProps) {
+function SettingsList({
+  storageUsedLabel,
+}: Pick<HomeViewModel, "storageUsedLabel">) {
   const storageHint =
     storageUsedLabel === null
       ? "Images only · Warning at 500 MB"

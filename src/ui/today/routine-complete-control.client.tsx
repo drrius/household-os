@@ -7,7 +7,7 @@ import { Button } from "@/ui/primitives/button";
 import { StatusPill } from "@/ui/primitives/status-pill";
 import type { RoutineRow } from "@/ui/today/today-view-model";
 
-export type RoutineCompleteControlProps = {
+type RoutineCompleteControlProps = {
   row: RoutineRow;
 };
 
