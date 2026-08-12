@@ -11,6 +11,7 @@ import type {
   DraftGlance,
   DraftSource,
   MealGlance,
+  MealSource,
   MemberSource,
   RoutinePriority,
   RoutineRow,
@@ -19,6 +20,10 @@ import type {
   TodayReadSnapshot,
   TodayViewModel,
 } from "@/ui/today/today-view-model";
+
+type SlottedMeal = MealSource & {
+  slot: NonNullable<MealSource["slot"]>;
+};
 
 const priorityOrder: Record<RoutinePriority, number> = {
   pet_care: 0,
@@ -226,27 +231,29 @@ function mapPlannedMeals(snapshot: TodayReadSnapshot): MealGlance[] {
     dinner: 2,
   } as const;
   return snapshot.meals
-    .flatMap((meal) => {
+    .flatMap((meal): SlottedMeal[] => {
       if (
         meal.slot === null ||
         (meal.date !== snapshot.civilDate && meal.date !== tomorrow)
       ) {
         return [];
       }
-      return [meal] as const;
+      return [{ ...meal, slot: meal.slot }];
     })
     .sort(
       (left, right) =>
         left.date.localeCompare(right.date) ||
         mealSlotOrder[left.slot] - mealSlotOrder[right.slot],
     )
-    .map((meal): MealGlance => ({
-      kind: "meal",
-      entryId: meal.id,
-      title: meal.title_snapshot,
-      day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
-      slot: meal.slot,
-    }));
+    .map(
+      (meal): MealGlance => ({
+        kind: "meal",
+        entryId: meal.id,
+        title: meal.title_snapshot,
+        day: meal.date === snapshot.civilDate ? "today" : "tomorrow",
+        slot: meal.slot,
+      }),
+    );
 }
 
 function mapPrepMeals(
