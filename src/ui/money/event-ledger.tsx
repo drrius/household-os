@@ -1,8 +1,9 @@
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import type { MoneyViewModel } from "@/lib/read-models/money";
-import { Amount } from "@/ui/primitives/amount";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageSection } from "@/ui/primitives/page-section";
-import { StatusPill } from "@/ui/primitives/status-pill";
+import { Amount } from "@/ui/layout/amount";
+import { EmptyState } from "@/ui/layout/empty-state";
+import { PageSection } from "@/ui/layout/page-section";
 
 type EventLedgerProps = {
   events: MoneyViewModel["events"];
@@ -18,22 +19,31 @@ export function EventLedger({ events }: EventLedgerProps) {
           </p>
         </EmptyState>
       ) : (
-        <ol className="card money-ledger">
-          {events.map((event) => (
-            <li className="money-ledger__row" key={event.id}>
-              <div className="money-row__main">
-                <div className="u-cluster">
-                  <h3>{event.title}</h3>
-                  <StatusPill>{event.type}</StatusPill>
-                </div>
-                <p className="money-row__meta">{event.meta}</p>
-              </div>
-              <p className="money-row__amount">
-                <Amount value={event.amount} />
-              </p>
-            </li>
-          ))}
-        </ol>
+        <Card className="gap-0 py-0">
+          <CardContent className="px-0">
+            <ol className="list-none">
+              {events.map((event) => (
+                <li
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b p-4 last:border-b-0"
+                  key={event.id}
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold">{event.title}</h3>
+                      <Badge variant="secondary">{event.type}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {event.meta}
+                    </p>
+                  </div>
+                  <p className="text-xl font-extrabold">
+                    <Amount value={event.amount} />
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
       )}
     </PageSection>
   );

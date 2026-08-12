@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import type { BalanceHero, MoneyViewModel } from "@/lib/read-models/money";
-import { Amount } from "@/ui/primitives/amount";
-import { Button } from "@/ui/primitives/button";
+import { Amount } from "@/ui/layout/amount";
 
 function balanceSummary(hero: BalanceHero): ReactNode {
   switch (hero.kind) {
@@ -12,7 +13,7 @@ function balanceSummary(hero: BalanceHero): ReactNode {
       return (
         <>
           <h2 id="money-balance-title">{hero.partnerName} owes you</h2>
-          <p className="money-hero__amount">
+          <p className="text-3xl leading-tight font-extrabold">
             <Amount value={hero.amount} />
           </p>
         </>
@@ -21,7 +22,7 @@ function balanceSummary(hero: BalanceHero): ReactNode {
       return (
         <>
           <h2 id="money-balance-title">You owe {hero.partnerName}</h2>
-          <p className="money-hero__amount">
+          <p className="text-3xl leading-tight font-extrabold">
             <Amount value={hero.amount} />
           </p>
         </>
@@ -38,34 +39,49 @@ export function MoneyHero({
   hero,
 }: Pick<MoneyViewModel, "explanation" | "hero">) {
   return (
-    <section className="card money-hero" aria-labelledby="money-balance-title">
-      <div className="money-hero__balance">
-        <p className="money-hero__eyebrow">Right now</p>
-        {balanceSummary(hero)}
-      </div>
-      {hero.kind !== "settled" ? (
-        <div className="u-cluster">
-          <Button disabled>Settle up</Button>
-          <Button disabled variant="secondary">
-            Partial…
-          </Button>
-        </div>
-      ) : null}
-      <details className="money-explanation">
-        <summary>How is this derived?</summary>
-        {explanation.length === 0 ? (
-          <p>No posted events contribute to this balance.</p>
-        ) : (
-          <ul className="money-explanation__list">
-            {explanation.map((contribution, index) => (
-              <li key={`${contribution.label}-${index}`}>
-                <span>{contribution.label}</span>
-                <Amount value={contribution.delta} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </details>
+    <section aria-labelledby="money-balance-title">
+      <Card>
+        <CardContent className="grid gap-5">
+          <div className="grid gap-1">
+            <p className="font-heading text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">
+              Right now
+            </p>
+            <div className="[&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-semibold">
+              {balanceSummary(hero)}
+            </div>
+          </div>
+          {hero.kind !== "settled" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button disabled>Settle up</Button>
+              <Button disabled variant="outline">
+                Partial…
+              </Button>
+            </div>
+          ) : null}
+          <details className="border-t pt-4">
+            <summary className="min-h-11 cursor-pointer font-heading font-bold">
+              How is this derived?
+            </summary>
+            {explanation.length === 0 ? (
+              <p className="text-muted-foreground">
+                No posted events contribute to this balance.
+              </p>
+            ) : (
+              <ul className="grid list-none gap-2">
+                {explanation.map((contribution, index) => (
+                  <li
+                    className="flex justify-between gap-3"
+                    key={`${contribution.label}-${index}`}
+                  >
+                    <span>{contribution.label}</span>
+                    <Amount value={contribution.delta} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </details>
+        </CardContent>
+      </Card>
     </section>
   );
 }

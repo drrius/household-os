@@ -1,14 +1,14 @@
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SECURITY_PATH } from "@/lib/auth/paths";
 import type { HomeViewModel } from "@/lib/read-models/home";
-import { AppPage } from "@/ui/primitives/app-page";
-import { Button } from "@/ui/primitives/button";
-import { Card } from "@/ui/primitives/card";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageHeader } from "@/ui/primitives/page-header";
-import { PageSection } from "@/ui/primitives/page-section";
-import { StatusPill } from "@/ui/primitives/status-pill";
+import { AppPage } from "@/ui/layout/app-page";
+import { EmptyState } from "@/ui/layout/empty-state";
+import { PageHeader } from "@/ui/layout/page-header";
+import { PageSection } from "@/ui/layout/page-section";
 
 type HomeScreenProps = {
   model: HomeViewModel;
@@ -19,26 +19,34 @@ function HouseholdCard({
   members,
 }: Pick<HomeViewModel, "householdLabel" | "members">) {
   return (
-    <Card header={<h2 id="household-title">Household</h2>}>
-      <div className="home-card-stack">
-        <p className="home-card-lead">{householdLabel}</p>
-        <ul className="home-list" aria-label="Household members">
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h2 id="household-title">Household</h2>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-xl font-extrabold">{householdLabel}</p>
+        <ul className="list-none" aria-label="Household members">
           {members.map((member) => (
-            <li className="home-row" key={member.userId}>
-              <div className="home-row__copy">
+            <li
+              className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0"
+              key={member.userId}
+            >
+              <div className="grid min-w-0 gap-1">
                 <strong>{member.displayName}</strong>
-                <span className="home-row__meta">
+                <span className="text-xs text-muted-foreground">
                   {member.isSelf ? "You · Equal member" : "Equal member"}
                 </span>
               </div>
             </li>
           ))}
         </ul>
-        <p className="home-row__meta">
+        <p className="text-xs text-muted-foreground">
           Both members have equal access. Each person signs in with their own{" "}
           <Link href={SECURITY_PATH}>passkeys</Link>.
         </p>
-      </div>
+      </CardContent>
     </Card>
   );
 }
@@ -50,10 +58,17 @@ function PetCards({ pets }: Pick<HomeViewModel, "pets">) {
 
   return (
     <PageSection title="Pets" titleId="pets-title">
-      <div className="home-grid">
+      <div className="grid gap-4 sm:grid-cols-2">
         {pets.map((pet) => (
-          <Card key={pet.id} header={<h3>{pet.name}</h3>}>
-            <p className="home-row__meta">{pet.meta}</p>
+          <Card key={pet.id} size="sm">
+            <CardHeader>
+              <CardTitle>
+                <h3>{pet.name}</h3>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">{pet.meta}</p>
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -72,17 +87,22 @@ function AreaList({ areas }: Pick<HomeViewModel, "areas">) {
 
   return (
     <Card>
-      <ul className="home-list" aria-label="Routine areas">
-        {areas.map((area) => (
-          <li className="home-row" key={area.id}>
-            <strong>{area.name}</strong>
-            <StatusPill>
-              {area.routineCount}{" "}
-              {area.routineCount === 1 ? "routine" : "routines"}
-            </StatusPill>
-          </li>
-        ))}
-      </ul>
+      <CardContent>
+        <ul className="list-none" aria-label="Routine areas">
+          {areas.map((area) => (
+            <li
+              className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0"
+              key={area.id}
+            >
+              <strong>{area.name}</strong>
+              <Badge variant="secondary">
+                {area.routineCount}{" "}
+                {area.routineCount === 1 ? "routine" : "routines"}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
     </Card>
   );
 }
@@ -98,16 +118,23 @@ function ActivityList({ activity }: Pick<HomeViewModel, "activity">) {
 
   return (
     <Card>
-      <ol className="home-list" aria-label="Recent household activity">
-        {activity.map((item) => (
-          <li className="home-row" key={item.id}>
-            <div className="home-row__copy">
-              <strong>{item.title}</strong>
-              <span className="home-row__meta">{item.whenLabel}</span>
-            </div>
-          </li>
-        ))}
-      </ol>
+      <CardContent>
+        <ol className="list-none" aria-label="Recent household activity">
+          {activity.map((item) => (
+            <li
+              className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0"
+              key={item.id}
+            >
+              <div className="grid min-w-0 gap-1">
+                <strong className="wrap-anywhere">{item.title}</strong>
+                <span className="text-xs text-muted-foreground">
+                  {item.whenLabel}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
     </Card>
   );
 }
@@ -122,41 +149,48 @@ function SettingsList({
 
   return (
     <Card>
-      <ul className="home-list" aria-label="Household settings">
-        <li className="home-row">
-          <div className="home-row__copy">
-            <strong>Notifications & digest</strong>
-            <span className="home-row__meta">
-              In-app notifications, optional push, and a personal digest
-            </span>
-          </div>
-        </li>
-        <li className="home-row">
-          <Link className="home-settings-link" href={SECURITY_PATH}>
-            <span className="home-row__copy">
-              <strong>Passkeys & recovery</strong>
-              <span className="home-row__meta">
-                Manage authenticators and recovery access
+      <CardContent>
+        <ul className="list-none" aria-label="Household settings">
+          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
+            <div className="grid min-w-0 gap-1">
+              <strong>Notifications & digest</strong>
+              <span className="text-xs text-muted-foreground">
+                In-app notifications, optional push, and a personal digest
               </span>
-            </span>
-            <span aria-hidden="true">→</span>
-          </Link>
-        </li>
-        <li className="home-row">
-          <div className="home-row__copy">
-            <strong>Household settings</strong>
-            <span className="home-row__meta">
-              Household name and shared defaults
-            </span>
-          </div>
-        </li>
-        <li className="home-row">
-          <div className="home-row__copy">
-            <strong>Attachment storage</strong>
-            <span className="home-row__meta">{storageHint}</span>
-          </div>
-        </li>
-      </ul>
+            </div>
+          </li>
+          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
+            <Link
+              className="flex min-h-11 w-full items-center justify-between gap-3 no-underline"
+              href={SECURITY_PATH}
+            >
+              <span className="grid min-w-0 gap-1">
+                <strong>Passkeys & recovery</strong>
+                <span className="text-xs text-muted-foreground">
+                  Manage authenticators and recovery access
+                </span>
+              </span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          </li>
+          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
+            <div className="grid min-w-0 gap-1">
+              <strong>Household settings</strong>
+              <span className="text-xs text-muted-foreground">
+                Household name and shared defaults
+              </span>
+            </div>
+          </li>
+          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
+            <div className="grid min-w-0 gap-1">
+              <strong>Attachment storage</strong>
+              <span className="text-xs text-muted-foreground">
+                {storageHint}
+              </span>
+            </div>
+          </li>
+        </ul>
+      </CardContent>
     </Card>
   );
 }
@@ -172,7 +206,7 @@ export function HomeScreen({ model }: HomeScreenProps) {
       <PetCards pets={model.pets} />
       <PageSection
         action={
-          <Button href="/home/routines/new" variant="ghost">
+          <Button render={<Link href="/home/routines/new" />} variant="ghost">
             Manage
           </Button>
         }

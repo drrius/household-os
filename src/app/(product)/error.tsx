@@ -1,8 +1,9 @@
 "use client";
 
-import { AppPage } from "@/ui/primitives/app-page";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageHeader } from "@/ui/primitives/page-header";
+import { Button } from "@/components/ui/button";
+import { AppPage } from "@/ui/layout/app-page";
+import { EmptyState } from "@/ui/layout/empty-state";
+import { PageHeader } from "@/ui/layout/page-header";
 
 export default function ProductError({
   retry,
@@ -16,13 +17,9 @@ export default function ProductError({
       <EmptyState
         title="This view could not load"
         action={
-          <button
-            type="button"
-            className="button button--primary"
-            onClick={retry}
-          >
+          <Button type="button" onClick={retry}>
             Try again
-          </button>
+          </Button>
         }
       >
         <p>Your data is safe. Retry to reload this screen.</p>

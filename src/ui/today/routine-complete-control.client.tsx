@@ -3,8 +3,9 @@
 import { useOptimistic } from "react";
 
 import { completeRoutineOccurrence } from "@/app/(product)/_actions/routines";
-import { Button } from "@/ui/primitives/button";
-import { StatusPill } from "@/ui/primitives/status-pill";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { RoutineRow } from "@/ui/today/today-view-model";
 
 type RoutineCompleteControlProps = {
@@ -23,31 +24,34 @@ export function RoutineCompleteControl({ row }: RoutineCompleteControlProps) {
   }
 
   return (
-    <div
-      className={[
-        "today-routine",
-        isCompleted ? "today-routine--completed" : undefined,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <div className="today-routine__copy">
-        <span className="today-routine__check" aria-hidden="true">
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className="w-5 shrink-0 text-xl font-extrabold text-success"
+          aria-hidden="true"
+        >
           {isCompleted ? "✓" : ""}
         </span>
-        <span>
-          <strong>{row.title}</strong>
-          <small>{row.meta}</small>
+        <span className="grid min-w-0">
+          <strong
+            className={cn(
+              "wrap-anywhere",
+              isCompleted && "text-muted-foreground line-through",
+            )}
+          >
+            {row.title}
+          </strong>
+          <small className="text-xs text-muted-foreground">{row.meta}</small>
         </span>
       </div>
       {row.canComplete && !isCompleted ? (
         <form action={completeAction}>
-          <Button type="submit" variant="secondary">
+          <Button type="submit" variant="outline">
             Done
           </Button>
         </form>
       ) : (
-        <StatusPill tone="success">Done</StatusPill>
+        <Badge variant="success">Done</Badge>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import { Card } from "@/ui/primitives/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { RoutineCompleteControl } from "@/ui/today/routine-complete-control.client";
 import type { RoutineRow } from "@/ui/today/today-view-model";
 
@@ -8,13 +8,16 @@ type RoutineListProps = {
 
 export function RoutineList({ rows }: RoutineListProps) {
   return (
-    <div className="today-card-list">
+    <div className="flex flex-col gap-4">
       {rows.map((row) => (
         <Card
+          className={row.tone === "overdue" ? "bg-warning-soft" : undefined}
           key={row.occurrenceId}
-          tone={row.tone === "overdue" ? "warning" : "default"}
+          size="sm"
         >
-          <RoutineCompleteControl row={row} />
+          <CardContent>
+            <RoutineCompleteControl row={row} />
+          </CardContent>
         </Card>
       ))}
     </div>

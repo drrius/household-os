@@ -14,9 +14,12 @@ export function PageSection({
   titleId,
 }: PageSectionProps) {
   return (
-    <section className="page-section" aria-labelledby={titleId}>
-      <div className="u-split">
-        <h2 className="page-section__title" id={titleId}>
+    <section className="grid gap-3" aria-labelledby={titleId}>
+      <div className="flex items-center justify-between gap-3">
+        <h2
+          className="font-heading text-xl leading-tight font-semibold"
+          id={titleId}
+        >
           {title}
         </h2>
         {action}

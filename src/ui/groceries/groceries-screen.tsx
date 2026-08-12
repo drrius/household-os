@@ -1,10 +1,10 @@
+import { Card, CardContent } from "@/components/ui/card";
 import type { GroceriesViewModel } from "@/lib/read-models/groceries";
-import { AppPage } from "@/ui/primitives/app-page";
-import { PageHeader } from "@/ui/primitives/page-header";
+import { AppPage } from "@/ui/layout/app-page";
+import { PageHeader } from "@/ui/layout/page-header";
 
 import { DuplicateSuggestionList } from "./duplicate-suggestion-list.client";
 import { GroceryList } from "./grocery-list";
-import styles from "./groceries.module.css";
 import { ShoppingSessionRail } from "./shopping-session-rail";
 
 type GroceriesScreenProps = {
@@ -42,13 +42,19 @@ export function GroceriesScreen({
         mergeAction={mergeAction}
       />
       <GroceryList categories={model.categories} claimAction={claimAction} />
-      <details className={`card ${styles.history}`}>
-        <summary>Purchased history</summary>
-        <p>
-          {model.recentHistoryLabel ??
-            "No groceries were purchased in the last 30 days."}
-        </p>
-      </details>
+      <Card size="sm">
+        <CardContent>
+          <details>
+            <summary className="min-h-11 cursor-pointer font-heading text-xl font-semibold">
+              Purchased history
+            </summary>
+            <p className="text-muted-foreground">
+              {model.recentHistoryLabel ??
+                "No groceries were purchased in the last 30 days."}
+            </p>
+          </details>
+        </CardContent>
+      </Card>
     </AppPage>
   );
 }

@@ -1,6 +1,6 @@
-import { AppPage } from "@/ui/primitives/app-page";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageHeader } from "@/ui/primitives/page-header";
+import { AppPage } from "@/ui/layout/app-page";
+import { EmptyState } from "@/ui/layout/empty-state";
+import { PageHeader } from "@/ui/layout/page-header";
 
 export default function NewRoutinePage() {
   return (

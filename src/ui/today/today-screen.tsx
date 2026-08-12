@@ -1,13 +1,21 @@
+import Link from "next/link";
+
 import { confirmTodayExpenseDraft } from "@/app/(product)/_actions/routines";
-import { Amount } from "@/ui/primitives/amount";
-import { AppPage } from "@/ui/primitives/app-page";
-import { Button } from "@/ui/primitives/button";
-import { Card } from "@/ui/primitives/card";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageHeader } from "@/ui/primitives/page-header";
-import { PageSection } from "@/ui/primitives/page-section";
-import { ProgressMeter } from "@/ui/primitives/progress-meter";
-import { StatusPill } from "@/ui/primitives/status-pill";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Amount } from "@/ui/layout/amount";
+import { AppPage } from "@/ui/layout/app-page";
+import { EmptyState } from "@/ui/layout/empty-state";
+import { PageHeader } from "@/ui/layout/page-header";
+import { PageSection } from "@/ui/layout/page-section";
+import { ProgressMeter } from "@/ui/layout/progress-meter";
 import { RoutineList } from "@/ui/today/routine-list";
 import type {
   DraftGlance,
@@ -22,21 +30,21 @@ function BalanceStatus({ balance }: { balance: BalancePill }) {
   switch (balance.kind) {
     case "partner_owes_you":
       return (
-        <StatusPill tone="accent">
+        <Badge variant="accent">
           {balance.partnerName} owes you <Amount value={balance.amount} />
-        </StatusPill>
+        </Badge>
       );
     case "you_owe_partner":
       return (
-        <StatusPill tone="warning">
+        <Badge variant="warning">
           You owe {balance.partnerName} <Amount value={balance.amount} />
-        </StatusPill>
+        </Badge>
       );
     case "settled":
       return (
-        <StatusPill tone="success">
+        <Badge variant="success">
           Settled <Amount value={balance.amount} />
-        </StatusPill>
+        </Badge>
       );
     default: {
       const exhaustiveBalance: never = balance.kind;
@@ -52,7 +60,7 @@ function progressLabel(progress: TodayViewModel["progress"]): string {
 
 function RoutineSections({ view }: { view: TodayViewModel }) {
   return (
-    <div className="today-column">
+    <div className="flex flex-col gap-4">
       <PageSection title="Overdue" titleId="today-overdue-title">
         {view.overdue.length > 0 ? (
           <RoutineList rows={view.overdue} />
@@ -96,21 +104,20 @@ function MealSection({ meals }: { meals: readonly MealGlance[] }) {
   return (
     <PageSection title="Meal and prep" titleId="today-meals-title">
       {meals.length > 0 ? (
-        <div className="today-card-list">
+        <div className="flex flex-col gap-4">
           {meals.map((meal) => (
-            <Card
-              header={
-                <>
-                  <span>{mealSlotLabel(meal.slot)}</span>
-                  <StatusPill tone="accent">
+            <Card className="bg-secondary" key={meal.entryId} size="sm">
+              <CardHeader>
+                <CardTitle>{mealSlotLabel(meal.slot)}</CardTitle>
+                <CardAction>
+                  <Badge variant="accent">
                     {meal.day === "today" ? "Today" : "Tomorrow"}
-                  </StatusPill>
-                </>
-              }
-              key={meal.entryId}
-              tone="meal"
-            >
-              <strong>{meal.title}</strong>
+                  </Badge>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <strong>{meal.title}</strong>
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -137,26 +144,31 @@ function ShoppingCard({ shopping }: { shopping: ShoppingGlance }) {
       );
     case "list":
       return (
-        <Card header={<StatusPill tone="accent">Ready</StatusPill>}>
-          <strong>{itemCountLabel(shopping.itemCount)}</strong>
-          <p className="today-card-meta">on the shared list</p>
+        <Card size="sm">
+          <CardContent className="grid gap-1">
+            <Badge className="mb-2" variant="accent">
+              Ready
+            </Badge>
+            <strong>{itemCountLabel(shopping.itemCount)}</strong>
+            <p className="text-xs text-muted-foreground">on the shared list</p>
+          </CardContent>
         </Card>
       );
     case "live":
       return (
-        <Card
-          header={
-            <>
-              <span>Shopping now</span>
-              <StatusPill tone="success">Live</StatusPill>
-            </>
-          }
-          tone="success"
-        >
-          <strong>{shopping.shopperNames.join(" and ")}</strong>
-          <p className="today-card-meta">
-            {itemCountLabel(shopping.itemCount)} on the list
-          </p>
+        <Card className="bg-success-soft" size="sm">
+          <CardHeader>
+            <CardTitle>Shopping now</CardTitle>
+            <CardAction>
+              <Badge variant="success">Live</Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="grid gap-1">
+            <strong>{shopping.shopperNames.join(" and ")}</strong>
+            <p className="text-xs text-muted-foreground">
+              {itemCountLabel(shopping.itemCount)} on the list
+            </p>
+          </CardContent>
         </Card>
       );
     default: {
@@ -170,20 +182,20 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
   switch (draft.kind) {
     case "ready":
       return (
-        <div className="today-draft-actions">
+        <div className="flex flex-wrap gap-2">
           <form action={confirmTodayExpenseDraft.bind(null, draft.draftId)}>
             <Button type="submit">Confirm</Button>
           </form>
-          <Button href="/money" variant="secondary">
+          <Button render={<Link href="/money" />} variant="outline">
             Edit
           </Button>
         </div>
       );
     case "incomplete":
       return (
-        <div className="today-draft-actions">
+        <div className="flex flex-wrap gap-2">
           <Button disabled>Confirm</Button>
-          <Button href="/money" variant="secondary">
+          <Button render={<Link href="/money" />} variant="outline">
             Edit
           </Button>
         </div>
@@ -199,36 +211,36 @@ function MoneySection({ drafts }: { drafts: readonly DraftGlance[] }) {
   return (
     <PageSection title="Money requiring attention" titleId="today-money-title">
       {drafts.length > 0 ? (
-        <div className="today-card-list">
+        <div className="flex flex-col gap-4">
           {drafts.map((draft) => (
-            <Card
-              header={
-                <>
-                  <span>{draft.title}</span>
-                  <StatusPill
-                    tone={draft.kind === "ready" ? "warning" : "default"}
+            <Card key={draft.draftId} size="sm">
+              <CardHeader>
+                <CardTitle>{draft.title}</CardTitle>
+                <CardAction>
+                  <Badge
+                    variant={draft.kind === "ready" ? "warning" : "secondary"}
                   >
                     {draft.kind === "ready" ? "Confirm" : "Needs details"}
-                  </StatusPill>
-                </>
-              }
-              key={draft.draftId}
-            >
-              <div className="u-stack">
-                <p className="today-card-meta">
-                  {draft.source === "shopping"
-                    ? "Shopping draft"
-                    : "Recurring draft"}
-                </p>
-                {draft.amount === null ? (
-                  <strong>Amount needed</strong>
-                ) : (
-                  <strong>
-                    <Amount value={draft.amount} />
-                  </strong>
-                )}
-                <DraftActions draft={draft} />
-              </div>
+                  </Badge>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <p className="text-xs text-muted-foreground">
+                    {draft.source === "shopping"
+                      ? "Shopping draft"
+                      : "Recurring draft"}
+                  </p>
+                  {draft.amount === null ? (
+                    <strong>Amount needed</strong>
+                  ) : (
+                    <strong>
+                      <Amount value={draft.amount} />
+                    </strong>
+                  )}
+                  <DraftActions draft={draft} />
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -264,15 +276,15 @@ export function TodayScreen({ view }: { view: TodayViewModel }) {
           valueLabel={summary}
         />
       ) : null}
-      <div className="today-grid">
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
         <RoutineSections view={view} />
-        <div className="today-column">
+        <div className="flex flex-col gap-4">
           <MealSection meals={view.meals} />
           <PageSection title="Shopping" titleId="today-shopping-title">
             <ShoppingCard shopping={view.shopping} />
           </PageSection>
         </div>
-        <div className="today-column">
+        <div className="flex flex-col gap-4">
           <MoneySection drafts={view.pendingDrafts} />
         </div>
       </div>

@@ -5,5 +5,5 @@ export type AmountProps = {
 };
 
 export function Amount({ value }: AmountProps) {
-  return <span className="amount">{value}</span>;
+  return <span className="tabular-nums whitespace-nowrap">{value}</span>;
 }

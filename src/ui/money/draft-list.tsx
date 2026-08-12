@@ -1,9 +1,12 @@
+import Link from "next/link";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import type { MoneyViewModel } from "@/lib/read-models/money";
-import { Amount } from "@/ui/primitives/amount";
-import { Button } from "@/ui/primitives/button";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageSection } from "@/ui/primitives/page-section";
-import { StatusPill } from "@/ui/primitives/status-pill";
+import { Amount } from "@/ui/layout/amount";
+import { EmptyState } from "@/ui/layout/empty-state";
+import { PageSection } from "@/ui/layout/page-section";
 
 type DraftListProps = {
   confirmDraftAction: (formData: FormData) => Promise<void>;
@@ -18,37 +21,47 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
           <p>Shopping and recurring expense drafts will appear here.</p>
         </EmptyState>
       ) : (
-        <ul className="money-list">
+        <ul className="grid list-none gap-3">
           {drafts.map((draft) => (
-            <li className="card money-row" key={draft.id}>
-              <div className="money-row__main">
-                <div className="u-cluster">
-                  <h3>{draft.title}</h3>
-                  <StatusPill tone="warning">{draft.source}</StatusPill>
-                </div>
-                <p className="money-row__meta">{draft.meta}</p>
-              </div>
-              <p className="money-row__amount">
-                {draft.amount === null ? (
-                  "Amount needed"
-                ) : (
-                  <Amount value={draft.amount} />
-                )}
-              </p>
-              <div className="money-row__actions">
-                <form action={confirmDraftAction}>
-                  <input name="draftId" type="hidden" value={draft.id} />
-                  <Button disabled={draft.amount === null} type="submit">
-                    Confirm
-                  </Button>
-                </form>
-                <Button
-                  href={`/money/expenses/new?draft=${encodeURIComponent(draft.id)}`}
-                  variant="secondary"
-                >
-                  Edit
-                </Button>
-              </div>
+            <li key={draft.id}>
+              <Card size="sm">
+                <CardContent className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold">{draft.title}</h3>
+                      <Badge variant="warning">{draft.source}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {draft.meta}
+                    </p>
+                  </div>
+                  <p className="text-xl font-extrabold">
+                    {draft.amount === null ? (
+                      "Amount needed"
+                    ) : (
+                      <Amount value={draft.amount} />
+                    )}
+                  </p>
+                  <div className="flex flex-wrap gap-2 sm:col-span-2">
+                    <form action={confirmDraftAction}>
+                      <input name="draftId" type="hidden" value={draft.id} />
+                      <Button disabled={draft.amount === null} type="submit">
+                        Confirm
+                      </Button>
+                    </form>
+                    <Button
+                      render={
+                        <Link
+                          href={`/money/expenses/new?draft=${encodeURIComponent(draft.id)}`}
+                        />
+                      }
+                      variant="outline"
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </li>
           ))}
         </ul>

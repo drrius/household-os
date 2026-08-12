@@ -1,6 +1,6 @@
 import type { MoneyViewModel } from "@/lib/read-models/money";
-import { AppPage } from "@/ui/primitives/app-page";
-import { PageHeader } from "@/ui/primitives/page-header";
+import { AppPage } from "@/ui/layout/app-page";
+import { PageHeader } from "@/ui/layout/page-header";
 
 import { DraftList } from "./draft-list";
 import { EventLedger } from "./event-ledger";

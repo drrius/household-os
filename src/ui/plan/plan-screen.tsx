@@ -1,14 +1,20 @@
+import Link from "next/link";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { addCivilDays } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
-import { AppPage } from "@/ui/primitives/app-page";
-import { Button } from "@/ui/primitives/button";
-import { Card } from "@/ui/primitives/card";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageHeader } from "@/ui/primitives/page-header";
-import { StatusPill } from "@/ui/primitives/status-pill";
+import { AppPage } from "@/ui/layout/app-page";
+import { EmptyState } from "@/ui/layout/empty-state";
+import { PageHeader } from "@/ui/layout/page-header";
 import { MealBoard } from "@/ui/plan/meal-board";
-
-import styles from "./meal-board.module.css";
 
 type PlanScreenProps = {
   plan: PlanViewModel;
@@ -17,28 +23,31 @@ type PlanScreenProps = {
 function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
   return (
     <section aria-labelledby="meal-library-title">
-      <Card
-        className={styles.libraryCard}
-        header={
-          <div className={styles.libraryHeading}>
-            <h2 id="meal-library-title">Meal library</h2>
-            <StatusPill>{meals.length} saved</StatusPill>
-          </div>
-        }
-      >
-        {meals.length === 0 ? (
-          <EmptyState title="No saved meals yet">
-            <p>Meals you save will appear here for quick reuse.</p>
-          </EmptyState>
-        ) : (
-          <ul className={styles.libraryList} aria-label="Saved meals">
-            {meals.map((meal) => (
-              <li key={meal.id}>
-                <StatusPill>{meal.title}</StatusPill>
-              </li>
-            ))}
-          </ul>
-        )}
+      <Card>
+        <CardHeader>
+          <CardTitle id="meal-library-title">Meal library</CardTitle>
+          <CardAction>
+            <Badge variant="secondary">{meals.length} saved</Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {meals.length === 0 ? (
+            <EmptyState title="No saved meals yet">
+              <p>Meals you save will appear here for quick reuse.</p>
+            </EmptyState>
+          ) : (
+            <ul
+              className="flex list-none gap-2 overflow-x-auto pb-1"
+              aria-label="Saved meals"
+            >
+              {meals.map((meal) => (
+                <li key={meal.id}>
+                  <Badge variant="secondary">{meal.title}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
       </Card>
     </section>
   );
@@ -57,15 +66,15 @@ export function PlanScreen({ plan }: PlanScreenProps) {
         trailing={
           <>
             <Button
-              href={`/plan?week=${previousWeek}`}
-              variant="secondary"
+              render={<Link href={`/plan?week=${previousWeek}`} />}
+              variant="outline"
               aria-label="Previous week"
             >
               ←
             </Button>
             <Button
-              href={`/plan?week=${nextWeek}`}
-              variant="secondary"
+              render={<Link href={`/plan?week=${nextWeek}`} />}
+              variant="outline"
               aria-label="Next week"
             >
               →
