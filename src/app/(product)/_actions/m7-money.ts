@@ -135,6 +135,7 @@ export async function recordSettlementAction(
       description: `${debtor.display_name} paid ${creditor.display_name}`,
       idempotencyKey: input.idempotencyKey,
       note: input.note,
+      mode: input.mode,
     });
   } catch (error) {
     failure = error;
