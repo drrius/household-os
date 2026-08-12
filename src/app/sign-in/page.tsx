@@ -6,6 +6,7 @@ import {
   getVerifiedIdentity,
 } from "@/lib/auth/member-context";
 import { ACCESS_DENIED_PATH } from "@/lib/auth/paths";
+import { GateShell } from "@/ui/layout/gate-shell";
 
 export default async function SignInPage() {
   const identity = await getVerifiedIdentity();
@@ -16,10 +17,12 @@ export default async function SignInPage() {
   }
 
   return (
-    <main>
-      <h1>Sign in</h1>
-      <p>Use a discoverable passkey. No email is collected here.</p>
+    <GateShell
+      description="Use a discoverable passkey. No email is collected here."
+      title="Sign in"
+      titleId="sign-in-title"
+    >
       <SignInForm />
-    </main>
+    </GateShell>
   );
 }

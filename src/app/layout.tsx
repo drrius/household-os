@@ -1,7 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { Nunito, Work_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
-import "./reset.css";
+import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const uiFont = Work_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-sans",
+});
+
+const headingFont = Nunito({
+  subsets: ["latin"],
+  weight: ["600", "700", "800", "900"],
+  variable: "--font-heading",
+});
 
 export const metadata: Metadata = {
   title: "Household OS",
@@ -17,7 +31,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={cn(uiFont.variable, headingFont.variable, "font-sans")}
+    >
       <body>{children}</body>
     </html>
   );
