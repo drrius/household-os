@@ -1,7 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
-
 import { revalidatePath } from "next/cache";
 
 import { confirmExpenseDraft } from "@/lib/money/commands";
@@ -21,9 +19,10 @@ function requireUuid(value: string, label: string): string {
 export async function completeRoutineOccurrence(
   occurrenceId: string,
 ): Promise<void> {
+  const confirmedOccurrenceId = requireUuid(occurrenceId, "Occurrence ID");
   await completeOccurrence({
-    occurrenceId: requireUuid(occurrenceId, "Occurrence ID"),
-    idempotencyKey: randomUUID(),
+    occurrenceId: confirmedOccurrenceId,
+    idempotencyKey: `complete-occurrence:${confirmedOccurrenceId}`,
     completedOn: zurichCivilDate(),
   });
   revalidatePath("/");

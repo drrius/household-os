@@ -10,7 +10,7 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="grid min-h-dvh grid-rows-[auto_minmax(0,1fr)_auto] lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
+    <div className="grid min-h-dvh grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
       <a
         className="fixed top-2 left-2 z-40 -translate-y-[calc(100%+0.5rem)] rounded-lg bg-foreground px-3 py-2 font-heading font-bold text-background no-underline focus:translate-y-0"
         href="#main-content"

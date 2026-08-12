@@ -20,7 +20,7 @@ import type { PasskeySummary } from "@/lib/auth/passkeys";
 import { createClient } from "@/lib/supabase/client";
 import { EmptyState } from "@/ui/layout/empty-state";
 
-const passkeyTimestampFormatter = new Intl.DateTimeFormat(undefined, {
+const passkeyTimestampFormatter = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
 });
