@@ -14,6 +14,11 @@ select has_table(
 select has_table('public', 'meal_plan_entries', 'meal plan entries table exists');
 select has_table('public', 'shopping_sessions', 'shopping sessions table exists');
 select has_table('public', 'expense_drafts', 'expense drafts table exists');
+select has_function(
+  'public',
+  'create_and_place_meal',
+  'atomic library save and placement command exists'
+);
 select has_table('public', 'grocery_items', 'grocery items table exists');
 select has_table(
   'public',
@@ -320,6 +325,75 @@ select is(
   (select count(*)::integer from public.grocery_categories),
   10,
   'members read only their household grocery categories'
+);
+
+select lives_ok(
+  $$
+    select public.create_and_place_meal(
+      p_household_id => '10000000-0000-4000-8000-000000000021'::uuid,
+      p_name => 'Atomic soup',
+      p_date => '2030-08-07'::date,
+      p_slot => 'lunch',
+      p_idempotency_key => 'create-place-library-1',
+      p_recipe_url => 'https://example.invalid/soup',
+      p_notes => 'One transaction'
+    )
+  $$,
+  'a member can atomically save and place a library meal'
+);
+
+select lives_ok(
+  $$
+    select public.create_and_place_meal(
+      p_household_id => '10000000-0000-4000-8000-000000000021'::uuid,
+      p_name => 'Atomic soup',
+      p_date => '2030-08-07'::date,
+      p_slot => 'lunch',
+      p_idempotency_key => 'create-place-library-1',
+      p_recipe_url => 'https://example.invalid/soup',
+      p_notes => 'One transaction'
+    )
+  $$,
+  'a same-key save-and-place retry returns the stored result'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.meal_definitions
+    where household_id = '10000000-0000-4000-8000-000000000021'
+      and name = 'Atomic soup'
+  ),
+  1,
+  'the save-and-place retry creates one library definition'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.meal_plan_entries
+    where household_id = '10000000-0000-4000-8000-000000000021'
+      and date = '2030-08-07'
+      and slot = 'lunch'
+      and title_snapshot = 'Atomic soup'
+  ),
+  1,
+  'the save-and-place retry creates one weekly slot entry'
+);
+
+select throws_ok(
+  $$
+    select public.create_and_place_meal(
+      p_household_id => '10000000-0000-4000-8000-000000000022'::uuid,
+      p_name => 'Denied soup',
+      p_date => '2030-08-07'::date,
+      p_slot => 'dinner',
+      p_idempotency_key => 'cross-household-create-place'
+    )
+  $$,
+  '42501',
+  'caller is not a member of household 10000000-0000-4000-8000-000000000022',
+  'the composite meal command rejects cross-household callers'
 );
 
 select lives_ok(

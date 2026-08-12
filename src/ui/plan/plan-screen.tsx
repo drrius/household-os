@@ -85,6 +85,12 @@ export function PlanScreen({ plan }: PlanScreenProps) {
             >
               →
             </Link>
+            <Link
+              className={buttonVariants({ className: "no-underline" })}
+              href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}
+            >
+              Add meal
+            </Link>
           </>
         }
       />

@@ -23,6 +23,31 @@ export type PlaceMealInput = {
   notes?: string | null;
 };
 
+export async function createAndPlaceMeal(input: {
+  name: string;
+  date: string;
+  slot: "breakfast" | "lunch" | "dinner";
+  idempotencyKey: string;
+  recipeUrl?: string | null;
+  notes?: string | null;
+}): Promise<Record<string, unknown>> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_and_place_meal", {
+    p_household_id: member.householdId,
+    p_name: input.name,
+    p_date: input.date,
+    p_slot: input.slot,
+    p_idempotency_key: input.idempotencyKey,
+    p_recipe_url: input.recipeUrl ?? null,
+    p_notes: input.notes ?? null,
+  });
+  if (error) {
+    throw new Error(`create_and_place_meal failed: ${error.message}`);
+  }
+  return asRecord(data);
+}
+
 export async function placeMeal(
   input: PlaceMealInput,
 ): Promise<Record<string, unknown>> {

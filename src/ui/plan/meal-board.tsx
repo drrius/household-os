@@ -16,11 +16,12 @@ type PlanDay = PlanViewModel["days"][number];
 type PlanSlot = PlanDay["slots"][number];
 
 type MealSlotProps = {
+  date: string;
   dateLabel: string;
   mealSlot: PlanSlot;
 };
 
-function MealSlot({ dateLabel, mealSlot }: MealSlotProps) {
+function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
   const { entry, slot } = mealSlot;
 
   if (entry === null) {
@@ -28,7 +29,7 @@ function MealSlot({ dateLabel, mealSlot }: MealSlotProps) {
       <li className="min-w-0">
         <Link
           className="flex min-h-full items-center justify-center rounded-xl border border-dashed p-3 font-heading font-bold text-muted-foreground no-underline transition-colors hover:border-primary hover:bg-card hover:text-secondary-foreground motion-reduce:transition-none"
-          href="/plan/meals/new"
+          href={`/plan/meals/new?date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`}
           aria-label={`Add ${slot} on ${dateLabel}`}
         >
           + {slot}
@@ -93,6 +94,7 @@ function DayColumn({ day }: { day: PlanDay }) {
         {day.slots.map((mealSlot) => (
           <MealSlot
             key={mealSlot.slot}
+            date={day.date}
             dateLabel={dateLabel}
             mealSlot={mealSlot}
           />

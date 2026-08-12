@@ -10,6 +10,51 @@ function asRecord(value: unknown): Record<string, unknown> {
   throw new Error("Grocery command returned an unexpected payload");
 }
 
+export async function createGroceryItem(input: {
+  name: string;
+  quantity?: string | null;
+  unit?: string | null;
+  categoryId?: string | null;
+  note?: string | null;
+}): Promise<Record<string, unknown>> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  let orderQuery = supabase
+    .from("grocery_items")
+    .select("sort_order")
+    .eq("household_id", member.householdId)
+    .in("state", ["active", "claimed"]);
+  orderQuery =
+    input.categoryId === null || input.categoryId === undefined
+      ? orderQuery.is("category_id", null)
+      : orderQuery.eq("category_id", input.categoryId);
+  const { data: orderRows, error: orderError } = await orderQuery
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  if (orderError) {
+    throw new Error(`grocery_item_order failed: ${orderError.message}`);
+  }
+  const previousOrder = orderRows?.[0]?.sort_order;
+  const sortOrder = typeof previousOrder === "number" ? previousOrder + 10 : 0;
+  const { data, error } = await supabase
+    .from("grocery_items")
+    .insert({
+      household_id: member.householdId,
+      name: input.name,
+      quantity: input.quantity ?? null,
+      unit: input.unit ?? null,
+      category_id: input.categoryId ?? null,
+      note: input.note ?? null,
+      sort_order: sortOrder,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    throw new Error(`create_grocery_item failed: ${error.message}`);
+  }
+  return asRecord(data);
+}
+
 export async function startShoppingSession(
   householdId?: string,
 ): Promise<Record<string, unknown>> {

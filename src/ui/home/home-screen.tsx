@@ -139,6 +139,38 @@ function ActivityList({ activity }: Pick<HomeViewModel, "activity">) {
   );
 }
 
+function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
+  if (routines.length === 0) {
+    return (
+      <EmptyState title="No routines yet">
+        <p>Create the first one-off or recurring household routine.</p>
+      </EmptyState>
+    );
+  }
+  return (
+    <Card>
+      <CardContent>
+        <ul className="list-none" aria-label="Household routines">
+          {routines.map((routine) => (
+            <li
+              className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0"
+              key={routine.id}
+            >
+              <span className="grid min-w-0 gap-1">
+                <strong>{routine.title}</strong>
+                <span className="text-xs text-muted-foreground">
+                  {routine.areaName}
+                </span>
+              </span>
+              <Link href={`/home/routines/${routine.id}/edit`}>Edit</Link>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SettingsList({
   storageUsedLabel,
 }: Pick<HomeViewModel, "storageUsedLabel">) {
@@ -174,12 +206,18 @@ function SettingsList({
             </Link>
           </li>
           <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
-            <div className="grid min-w-0 gap-1">
-              <strong>Household settings</strong>
-              <span className="text-xs text-muted-foreground">
-                Household name and shared defaults
+            <Link
+              className="flex min-h-11 w-full items-center justify-between gap-3 no-underline"
+              href="/home/setup"
+            >
+              <span className="grid min-w-0 gap-1">
+                <strong>Household settings</strong>
+                <span className="text-xs text-muted-foreground">
+                  Household name, areas, and pets
+                </span>
               </span>
-            </div>
+              <span aria-hidden="true">→</span>
+            </Link>
           </li>
           <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
             <div className="grid min-w-0 gap-1">
@@ -198,7 +236,21 @@ function SettingsList({
 export function HomeScreen({ model }: HomeScreenProps) {
   return (
     <AppPage labelledBy="home-title">
-      <PageHeader titleId="home-title" title="Our home" />
+      <PageHeader
+        titleId="home-title"
+        title="Our home"
+        trailing={
+          <Link
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "outline",
+            })}
+            href="/home/setup"
+          >
+            Set up
+          </Link>
+        }
+      />
       <HouseholdCard
         householdLabel={model.householdLabel}
         members={model.members}
@@ -211,15 +263,32 @@ export function HomeScreen({ model }: HomeScreenProps) {
               className: "no-underline",
               variant: "ghost",
             })}
-            href="/home/routines/new"
+            href="/home/setup"
           >
-            Manage
+            Edit areas
           </Link>
         }
         title="Routines by area"
         titleId="routines-by-area-title"
       >
         <AreaList areas={model.areas} />
+      </PageSection>
+      <PageSection
+        action={
+          <Link
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "ghost",
+            })}
+            href="/home/routines/new"
+          >
+            Add routine
+          </Link>
+        }
+        title="Routines"
+        titleId="routines-title"
+      >
+        <RoutineList routines={model.routines} />
       </PageSection>
       <PageSection title="Lately" titleId="lately-title">
         <ActivityList activity={model.activity} />

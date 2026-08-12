@@ -1,4 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import type { GroceriesViewModel } from "@/lib/read-models/groceries";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
@@ -33,6 +35,14 @@ export function GroceriesScreen({
         eyebrow={activeItemLabel(model.activeItemCount)}
         title="Groceries"
         titleId="groceries-title"
+        trailing={
+          <Link
+            className={buttonVariants({ className: "no-underline" })}
+            href="/groceries/new"
+          >
+            Add item
+          </Link>
+        }
       />
       {model.liveSession === null ? null : (
         <ShoppingSessionRail

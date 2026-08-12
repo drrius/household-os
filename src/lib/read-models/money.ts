@@ -71,6 +71,7 @@ export type BalanceHero =
     };
 
 export type MoneyViewModel = {
+  hasOpeningBalance: boolean;
   hero: BalanceHero;
   explanation: Array<{ label: string; delta: FrancDisplay }>;
   drafts: Array<{
