@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { SIGN_IN_PATH } from "@/lib/auth/paths";
 import { GateShell } from "@/ui/layout/gate-shell";
 
@@ -11,14 +11,15 @@ export default function AuthErrorPage() {
       title="Sign-in link invalid"
       titleId="auth-error-title"
     >
-      <Button
-        className="w-full"
-        nativeButton={false}
-        render={<Link href={SIGN_IN_PATH} />}
-        variant="outline"
+      <Link
+        className={buttonVariants({
+          className: "w-full no-underline",
+          variant: "outline",
+        })}
+        href={SIGN_IN_PATH}
       >
         Back to sign in
-      </Button>
+      </Link>
     </GateShell>
   );
 }

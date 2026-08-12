@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { confirmTodayExpenseDraft } from "@/app/(product)/_actions/routines";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -139,26 +139,30 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
           <form action={confirmTodayExpenseDraft.bind(null, draft.draftId)}>
             <Button type="submit">Confirm</Button>
           </form>
-          <Button
-            nativeButton={false}
-            render={<Link href="/money" />}
-            variant="outline"
+          <Link
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "outline",
+            })}
+            href="/money"
           >
             Edit
-          </Button>
+          </Link>
         </div>
       );
     case "incomplete":
       return (
         <div className="flex flex-wrap gap-2">
           <Button disabled>Confirm</Button>
-          <Button
-            nativeButton={false}
-            render={<Link href="/money" />}
-            variant="outline"
+          <Link
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "outline",
+            })}
+            href="/money"
           >
             Edit
-          </Button>
+          </Link>
         </div>
       );
     default: {

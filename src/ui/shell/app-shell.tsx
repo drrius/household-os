@@ -31,7 +31,7 @@ export function AppShell({ children }: AppShellProps) {
 
         <main
           id="main-content"
-          className="row-start-1 mx-auto w-full max-w-6xl px-4 pt-6 pb-24 lg:col-start-2 lg:row-[1/-1] lg:max-w-none lg:p-8"
+          className="row-start-1 mx-auto min-w-0 w-full max-w-6xl px-4 pt-6 pb-24 lg:col-start-2 lg:row-[1/-1] lg:max-w-none lg:p-8"
           tabIndex={-1}
         >
           {children}

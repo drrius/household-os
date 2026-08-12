@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,18 +18,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { PasskeySummary } from "@/lib/auth/passkeys";
 import { createClient } from "@/lib/supabase/client";
-import { ZURICH_TIME_ZONE } from "@/lib/ui/zurich-date";
+import { formatZurichTimestamp } from "@/lib/ui/zurich-date";
 import { EmptyState } from "@/ui/layout/empty-state";
-
-const passkeyTimestampFormatter = new Intl.DateTimeFormat("en-GB", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: ZURICH_TIME_ZONE,
-});
-
-function formatPasskeyTimestamp(timestamp: string): string {
-  return passkeyTimestampFormatter.format(new Date(timestamp));
-}
 
 async function listPasskeys(): Promise<PasskeySummary[]> {
   const supabase = createClient();
@@ -148,14 +138,15 @@ function PasskeyManagerActions({
       {hasPasskeys ? (
         <>
           <Separator />
-          <Button
-            className="w-full"
-            nativeButton={false}
-            render={<Link href="/" />}
-            variant="outline"
+          <Link
+            className={buttonVariants({
+              className: "w-full no-underline",
+              variant: "outline",
+            })}
+            href="/"
           >
             Continue to Today
-          </Button>
+          </Link>
         </>
       ) : null}
 
@@ -263,9 +254,9 @@ function PasskeyItem({
           {passkey.friendlyName?.trim() || "Unnamed passkey"}
         </ItemTitle>
         <ItemDescription>
-          Created {formatPasskeyTimestamp(passkey.createdAt)}
+          Created {formatZurichTimestamp(passkey.createdAt)}
           {passkey.lastUsedAt
-            ? ` · Last used ${formatPasskeyTimestamp(passkey.lastUsedAt)}`
+            ? ` · Last used ${formatZurichTimestamp(passkey.lastUsedAt)}`
             : null}
         </ItemDescription>
       </ItemContent>

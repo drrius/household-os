@@ -14,6 +14,32 @@ const zurichWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",
 });
 
+const zurichTimestampFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: ZURICH_TIME_ZONE,
+  year: "numeric",
+  month: "short",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+export function formatZurichTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError(`Invalid timestamp: ${timestamp}`);
+  }
+
+  const parts = Object.fromEntries(
+    zurichTimestampFormatter
+      .formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute}`;
+}
+
 export function zurichCivilDate(now = new Date()): string {
   return zurichDateFormatter.format(now);
 }

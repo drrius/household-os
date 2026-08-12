@@ -68,14 +68,9 @@ export function GlobalAddSheet() {
 
             return (
               <li key={option.id} className="min-w-0">
-                <DialogClose
-                  nativeButton={false}
-                  render={
-                    <Link
-                      className="grid h-full min-h-11 gap-1 rounded-2xl border border-border bg-card p-4 no-underline outline-none hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                      href={option.href}
-                    />
-                  }
+                <Link
+                  className="grid h-full min-h-11 gap-1 rounded-2xl border border-border bg-card p-4 no-underline outline-none hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  href={option.href}
                 >
                   <span className="flex items-center gap-2 text-base sm:text-sm">
                     <Icon
@@ -89,7 +84,7 @@ export function GlobalAddSheet() {
                   <span className="pl-6 text-base leading-snug text-muted-foreground sm:text-sm">
                     {option.description}
                   </span>
-                </DialogClose>
+                </Link>
               </li>
             );
           })}

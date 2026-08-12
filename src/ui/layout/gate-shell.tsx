@@ -37,8 +37,8 @@ export function GateShell({
 
         <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-2xl" id={titleId}>
-              {title}
+            <CardTitle className="font-heading text-2xl">
+              <h1 id={titleId}>{title}</h1>
             </CardTitle>
             {description !== undefined && description !== null ? (
               <CardDescription>{description}</CardDescription>

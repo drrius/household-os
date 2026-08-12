@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SECURITY_PATH } from "@/lib/auth/paths";
 import type { HomeViewModel } from "@/lib/read-models/home";
@@ -206,13 +206,15 @@ export function HomeScreen({ model }: HomeScreenProps) {
       <PetCards pets={model.pets} />
       <PageSection
         action={
-          <Button
-            nativeButton={false}
-            render={<Link href="/home/routines/new" />}
-            variant="ghost"
+          <Link
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "ghost",
+            })}
+            href="/home/routines/new"
           >
             Manage
-          </Button>
+          </Link>
         }
         title="Routines by area"
         titleId="routines-by-area-title"

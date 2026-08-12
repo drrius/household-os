@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MoneyViewModel } from "@/lib/read-models/money";
 import { Amount } from "@/ui/layout/amount";
@@ -49,17 +49,15 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                         Confirm
                       </Button>
                     </form>
-                    <Button
-                      nativeButton={false}
-                      render={
-                        <Link
-                          href={`/money/expenses/new?draft=${encodeURIComponent(draft.id)}`}
-                        />
-                      }
-                      variant="outline"
+                    <Link
+                      className={buttonVariants({
+                        className: "no-underline",
+                        variant: "outline",
+                      })}
+                      href={`/money/expenses/new?draft=${encodeURIComponent(draft.id)}`}
                     >
                       Edit
-                    </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

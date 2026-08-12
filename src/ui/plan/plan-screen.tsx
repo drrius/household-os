@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -65,22 +65,26 @@ export function PlanScreen({ plan }: PlanScreenProps) {
         eyebrow={`${plan.rangeLabel} · ${plan.timeZoneLabel}`}
         trailing={
           <>
-            <Button
-              nativeButton={false}
-              render={<Link href={`/plan?week=${previousWeek}`} />}
-              variant="outline"
+            <Link
               aria-label="Previous week"
+              className={buttonVariants({
+                className: "no-underline",
+                variant: "outline",
+              })}
+              href={`/plan?week=${previousWeek}`}
             >
               ←
-            </Button>
-            <Button
-              nativeButton={false}
-              render={<Link href={`/plan?week=${nextWeek}`} />}
-              variant="outline"
+            </Link>
+            <Link
               aria-label="Next week"
+              className={buttonVariants({
+                className: "no-underline",
+                variant: "outline",
+              })}
+              href={`/plan?week=${nextWeek}`}
             >
               →
-            </Button>
+            </Link>
           </>
         }
       />
