@@ -17,7 +17,7 @@ export function PageSection({
     <section className="grid gap-3" aria-labelledby={titleId}>
       <div className="flex items-center justify-between gap-3">
         <h2
-          className="font-heading text-xl leading-tight font-semibold"
+          className="font-heading text-base leading-tight font-extrabold text-muted-foreground"
           id={titleId}
         >
           {title}

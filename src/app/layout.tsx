@@ -1,19 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito, Noto_Sans } from "next/font/google";
+import { Nunito, Work_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const uiFont = Nunito({
+const uiFont = Work_Sans({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800", "900"],
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
 });
 
-const headingFont = Noto_Sans({
+const headingFont = Nunito({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["600", "700", "800", "900"],
   variable: "--font-heading",
 });
 

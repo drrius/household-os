@@ -1,26 +1,42 @@
 import { expect, test } from "@playwright/test";
 
-test("anonymous visitors are sent to the neutral sign-in surface", async ({
-  page,
-}) => {
-  await page.goto("/");
+const protectedDestinations = [
+  "/",
+  "/plan",
+  "/groceries",
+  "/money",
+  "/home",
+  "/security",
+];
 
-  await expect(page).toHaveURL(/\/sign-in$/);
-  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Sign in with passkey" }),
-  ).toBeVisible();
-});
+for (const destination of protectedDestinations) {
+  test(`anonymous visitors cannot open ${destination}`, async ({ page }) => {
+    await page.goto(destination);
 
-test("the invalid-link surface exposes a semantic return link", async ({
+    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Sign in with passkey" }),
+    ).toBeVisible();
+  });
+}
+
+test("auth failure and membership-denied gates remain usable", async ({
   page,
 }) => {
   await page.goto("/auth/error");
-
   await expect(
     page.getByRole("heading", { name: "Sign-in link invalid" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Back to sign in" }),
   ).toHaveAttribute("href", "/sign-in");
+
+  await page.goto("/access-denied");
+  await expect(
+    page.getByRole("heading", { name: "No household membership" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign out and return to sign in" }),
+  ).toBeVisible();
 });

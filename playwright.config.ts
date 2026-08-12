@@ -11,14 +11,24 @@ export default defineConfig({
   reporter: "html",
   use: {
     baseURL,
-    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
     { name: "mobile-safari", use: { ...devices["iPhone 15"] } },
   ],
   webServer: {
-    command: `pnpm dev --port ${port}`,
+    command: `pnpm dev --webpack --hostname 127.0.0.1 --port ${port}`,
+    env: {
+      ...process.env,
+      HOUSEHOLD_OS_E2E_FIXTURES: "1",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "e2e-local-key",
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+    },
     reuseExistingServer: !process.env.CI,
     url: baseURL,
   },

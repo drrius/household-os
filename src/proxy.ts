@@ -12,6 +12,14 @@ function applyCookies(from: NextResponse, to: NextResponse) {
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  if (
+    process.env.HOUSEHOLD_OS_E2E_FIXTURES === "1" &&
+    request.nextUrl.pathname.startsWith("/m6-fixture/")
+  ) {
+    return response;
+  }
+
   const env = getPublicEnv();
 
   const supabase = createServerClient(

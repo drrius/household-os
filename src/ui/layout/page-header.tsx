@@ -17,12 +17,12 @@ export function PageHeader({
     <header className="flex items-end justify-between gap-4">
       <div className="grid gap-1">
         {eyebrow !== undefined && eyebrow !== null ? (
-          <p className="font-heading text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">
+          <p className="text-xs font-semibold text-muted-foreground">
             {eyebrow}
           </p>
         ) : null}
         <h1
-          className="font-heading text-3xl leading-[1.1] font-semibold"
+          className="font-heading text-3xl leading-[1.1] font-black"
           id={titleId}
         >
           {title}
