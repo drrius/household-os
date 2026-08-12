@@ -861,3 +861,68 @@ dialog.sheet::backdrop {
     grid-column: 1 / -1;
   }
 }
+
+.home-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.home-card-stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.home-card-lead {
+  font-size: var(--text-title);
+  font-weight: 800;
+}
+
+.home-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-row {
+  display: flex;
+  min-height: var(--tap-min);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+}
+
+.home-row + .home-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.home-row__copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.home-row__copy strong {
+  overflow-wrap: anywhere;
+}
+
+.home-row__meta {
+  color: var(--color-ink-muted);
+  font-size: var(--text-meta);
+}
+
+.home-settings-link {
+  display: flex;
+  width: 100%;
+  min-height: var(--tap-min);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+
+@media (min-width: 42rem) {
+  .home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
