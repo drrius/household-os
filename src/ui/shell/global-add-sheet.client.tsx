@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,8 +32,10 @@ const ADD_OPTION_ICONS = {
 } satisfies Record<(typeof GLOBAL_ADD_OPTIONS)[number]["id"], LucideIcon>;
 
 export function GlobalAddSheet() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
           <Button
@@ -71,6 +74,7 @@ export function GlobalAddSheet() {
                 <Link
                   className="grid h-full min-h-11 gap-1 rounded-2xl border border-border bg-card p-4 no-underline outline-none hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   href={option.href}
+                  onClick={() => setOpen(false)}
                 >
                   <span className="flex items-center gap-2 text-base sm:text-sm">
                     <Icon
