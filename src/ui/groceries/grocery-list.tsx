@@ -1,3 +1,5 @@
+import { CheckIcon } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,11 +56,13 @@ function GroceryItem({
           <span
             aria-hidden="true"
             className={cn(
-              "inline-flex size-6 items-center justify-center rounded-lg border-2 font-extrabold text-primary-foreground",
-              isClaimed && "border-success bg-success",
+              "inline-flex size-6 items-center justify-center rounded-[6px] border border-input",
+              isClaimed && "border-success bg-success text-success-foreground",
             )}
           >
-            {isClaimed ? "✓" : null}
+            {isClaimed ? (
+              <CheckIcon className="size-4 shrink-0" strokeWidth={3} />
+            ) : null}
           </span>
         </Button>
       </form>
@@ -81,7 +85,7 @@ function GroceryItem({
         ) : null}
         {item.claimedByName !== null ? (
           <p className="font-heading text-xs font-bold text-success">
-            ✓ in {item.claimedByName}&apos;s cart
+            In {item.claimedByName}&apos;s cart
           </p>
         ) : null}
       </div>
@@ -110,7 +114,9 @@ export function GroceryList({ categories, claimAction }: GroceryListProps) {
                   <h3 className="font-heading text-xl" id={categoryTitleId}>
                     {category.name}
                   </h3>
-                  <Badge variant="secondary">{category.items.length}</Badge>
+                  <Badge className="text-muted-foreground" variant="outline">
+                    {category.items.length}
+                  </Badge>
                 </div>
                 <Card className="gap-0 py-0">
                   <CardContent className="px-0">

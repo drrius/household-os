@@ -21,7 +21,10 @@ export function MoneyScreen({ confirmDraftAction, model }: MoneyScreenProps) {
         title="Money"
         trailing={
           <Link
-            className={buttonVariants({ className: "no-underline" })}
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "outline",
+            })}
             href="/money/expenses/new"
           >
             Add expense

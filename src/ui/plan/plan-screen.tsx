@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -69,21 +70,23 @@ export function PlanScreen({ plan }: PlanScreenProps) {
               aria-label="Previous week"
               className={buttonVariants({
                 className: "no-underline",
+                size: "icon",
                 variant: "outline",
               })}
               href={`/plan?week=${previousWeek}`}
             >
-              ←
+              <ChevronLeft aria-hidden="true" className="size-4 shrink-0" />
             </Link>
             <Link
               aria-label="Next week"
               className={buttonVariants({
                 className: "no-underline",
+                size: "icon",
                 variant: "outline",
               })}
               href={`/plan?week=${nextWeek}`}
             >
-              →
+              <ChevronRight aria-hidden="true" className="size-4 shrink-0" />
             </Link>
             <Link
               className={buttonVariants({ className: "no-underline" })}

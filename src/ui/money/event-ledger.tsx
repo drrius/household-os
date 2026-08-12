@@ -9,6 +9,10 @@ type EventLedgerProps = {
   events: MoneyViewModel["events"];
 };
 
+function toBadgeLabel(type: string): string {
+  return `${type.charAt(0).toUpperCase()}${type.slice(1)}`;
+}
+
 export function EventLedger({ events }: EventLedgerProps) {
   return (
     <PageSection title="Recent events" titleId="money-events-title">
@@ -30,7 +34,9 @@ export function EventLedger({ events }: EventLedgerProps) {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold">{event.title}</h3>
-                      <Badge variant="secondary">{event.type}</Badge>
+                      <Badge variant="secondary">
+                        {toBadgeLabel(event.type)}
+                      </Badge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {event.meta}

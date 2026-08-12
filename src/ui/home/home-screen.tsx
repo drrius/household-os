@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -171,6 +172,46 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
   );
 }
 
+type SettingsRowProps = {
+  hint: string;
+  title: string;
+};
+
+function SettingsRow({ hint, title }: SettingsRowProps) {
+  return (
+    <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
+      <div className="grid min-w-0 gap-1">
+        <strong>{title}</strong>
+        <span className="text-xs text-muted-foreground">{hint}</span>
+      </div>
+    </li>
+  );
+}
+
+function SettingsLinkRow({
+  href,
+  hint,
+  title,
+}: SettingsRowProps & { href: string }) {
+  return (
+    <li className="border-t first:border-t-0">
+      <Link
+        className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-xl px-2 py-3 no-underline hover:bg-muted"
+        href={href}
+      >
+        <span className="grid min-w-0 gap-1">
+          <strong>{title}</strong>
+          <span className="text-xs text-muted-foreground">{hint}</span>
+        </span>
+        <ChevronRight
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground"
+        />
+      </Link>
+    </li>
+  );
+}
+
 function SettingsList({
   storageUsedLabel,
 }: Pick<HomeViewModel, "storageUsedLabel">) {
@@ -183,50 +224,21 @@ function SettingsList({
     <Card>
       <CardContent>
         <ul className="list-none" aria-label="Household settings">
-          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
-            <div className="grid min-w-0 gap-1">
-              <strong>Notifications & digest</strong>
-              <span className="text-xs text-muted-foreground">
-                In-app notifications, optional push, and a personal digest
-              </span>
-            </div>
-          </li>
-          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
-            <Link
-              className="flex min-h-11 w-full items-center justify-between gap-3 no-underline"
-              href={SECURITY_PATH}
-            >
-              <span className="grid min-w-0 gap-1">
-                <strong>Passkeys & recovery</strong>
-                <span className="text-xs text-muted-foreground">
-                  Manage authenticators and recovery access
-                </span>
-              </span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          </li>
-          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
-            <Link
-              className="flex min-h-11 w-full items-center justify-between gap-3 no-underline"
-              href="/home/setup"
-            >
-              <span className="grid min-w-0 gap-1">
-                <strong>Household settings</strong>
-                <span className="text-xs text-muted-foreground">
-                  Household name, areas, and pets
-                </span>
-              </span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          </li>
-          <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
-            <div className="grid min-w-0 gap-1">
-              <strong>Attachment storage</strong>
-              <span className="text-xs text-muted-foreground">
-                {storageHint}
-              </span>
-            </div>
-          </li>
+          <SettingsRow
+            hint="In-app notifications, optional push, and a personal digest"
+            title="Notifications & digest"
+          />
+          <SettingsLinkRow
+            hint="Manage authenticators and recovery access"
+            href={SECURITY_PATH}
+            title="Passkeys & recovery"
+          />
+          <SettingsLinkRow
+            hint="Household name, areas, and pets"
+            href="/home/setup"
+            title="Household settings"
+          />
+          <SettingsRow hint={storageHint} title="Attachment storage" />
         </ul>
       </CardContent>
     </Card>

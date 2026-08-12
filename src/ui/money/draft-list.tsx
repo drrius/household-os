@@ -30,6 +30,14 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold">{draft.title}</h3>
                       <Badge variant="warning">{draft.source}</Badge>
+                      {draft.canConfirm ? null : (
+                        <Badge
+                          id={`${draft.id}-needs-details`}
+                          variant="secondary"
+                        >
+                          Needs details
+                        </Badge>
+                      )}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {draft.meta}
@@ -45,7 +53,16 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                   <div className="flex flex-wrap gap-2 sm:col-span-2">
                     <form action={confirmDraftAction}>
                       <input name="draftId" type="hidden" value={draft.id} />
-                      <Button disabled={!draft.canConfirm} type="submit">
+                      <Button
+                        aria-describedby={
+                          draft.canConfirm
+                            ? undefined
+                            : `${draft.id}-needs-details`
+                        }
+                        disabled={!draft.canConfirm}
+                        type="submit"
+                        variant={draft.canConfirm ? "default" : "secondary"}
+                      >
                         Confirm
                       </Button>
                     </form>

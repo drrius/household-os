@@ -1,6 +1,7 @@
 import { createExpenseAction } from "@/app/(product)/_actions/m7-money";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ExpenseSplitFields } from "@/ui/forms/expense-split-fields.client";
 import {
   FormField,
   FormFields,
@@ -78,58 +79,23 @@ function ExpenseFields({
   );
 }
 
-function SplitFields({
-  categories,
-  members,
-}: {
-  categories: readonly Option[];
-  members: readonly Member[];
-}) {
+function DetailFields({ categories }: { categories: readonly Option[] }) {
   return (
-    <>
-      <FormSection legend="Details">
-        <FormField label="Category">
-          <select className={selectClassName} name="categoryId">
-            <option value="">Other</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Note">
-          <Textarea maxLength={4000} name="note" />
-        </FormField>
-      </FormSection>
-      <FormSection legend="Split">
-        <FormField label="Allocation">
-          <select
-            className={selectClassName}
-            defaultValue="equal"
-            name="splitMode"
-          >
-            <option value="equal">50/50</option>
-            <option value="exact">Exact amounts</option>
-          </select>
-        </FormField>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {members.map((member) => (
-            <FormField
-              key={member.user_id}
-              label={`${member.display_name}'s exact share`}
-              description="Used only for an exact split."
-            >
-              <Input
-                inputMode="decimal"
-                name={`allocation:${member.user_id}`}
-                placeholder="0.00"
-              />
-            </FormField>
+    <FormSection legend="Details">
+      <FormField label="Category">
+        <select className={selectClassName} name="categoryId">
+          <option value="">Other</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
           ))}
-        </div>
-      </FormSection>
-    </>
+        </select>
+      </FormField>
+      <FormField label="Note">
+        <Textarea maxLength={4000} name="note" />
+      </FormField>
+    </FormSection>
   );
 }
 
@@ -167,7 +133,8 @@ export function ExpenseForm({
         members={members}
         viewerId={viewerId}
       />
-      <SplitFields categories={categories} members={members} />
+      <DetailFields categories={categories} />
+      <ExpenseSplitFields members={members} />
     </FormFields>
   );
 }

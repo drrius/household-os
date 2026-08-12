@@ -24,11 +24,17 @@ test("routine form exposes the complete M7 scheduling contract", async ({
   await page
     .getByRole("combobox", { name: "Assignment" })
     .selectOption("alternating");
+
+  // Only the fields for the selected repeat mode are rendered.
+  await expect(page.locator('input[name="oneOffDate"]')).toHaveCount(1);
+  await expect(page.getByRole("checkbox", { name: "Monday" })).toHaveCount(0);
+
   await page.getByRole("combobox", { name: "Repeat" }).selectOption("weekdays");
   await page.getByRole("checkbox", { name: "Monday" }).check();
   await page.getByRole("checkbox", { name: "Friday" }).check();
   await expect(page.getByRole("checkbox", { name: "Monday" })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Friday" })).toBeChecked();
+  await expect(page.locator('input[name="oneOffDate"]')).toHaveCount(0);
 });
 
 test("expense form supports payer selection and exact centime allocations", async ({
@@ -42,9 +48,17 @@ test("expense form supports payer selection and exact centime allocations", asyn
   await page
     .getByRole("combobox", { name: "Payer" })
     .selectOption({ label: "Partner" });
+
+  // Exact shares stay hidden until the exact allocation is chosen.
+  await expect(page.getByRole("textbox", { name: /exact share/ })).toHaveCount(
+    0,
+  );
   await page
     .getByRole("combobox", { name: "Allocation" })
     .selectOption("exact");
+  await expect(page.getByRole("textbox", { name: /exact share/ })).toHaveCount(
+    2,
+  );
   await page
     .getByRole("textbox", { name: /Darius's exact share/ })
     .fill("7.00");

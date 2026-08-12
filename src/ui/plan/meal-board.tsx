@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -28,11 +29,12 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
     return (
       <li className="min-w-0">
         <Link
-          className="flex min-h-full items-center justify-center rounded-xl border border-dashed p-3 font-heading font-bold text-muted-foreground no-underline transition-colors hover:border-primary hover:bg-card hover:text-secondary-foreground motion-reduce:transition-none"
+          className="flex min-h-full items-center justify-center gap-1 rounded-xl border border-dashed p-3 font-heading font-bold text-muted-foreground no-underline transition-colors hover:border-primary hover:bg-card hover:text-secondary-foreground motion-reduce:transition-none"
           href={`/plan/meals/new?date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`}
           aria-label={`Add ${slot} on ${dateLabel}`}
         >
-          + {slot}
+          <Plus aria-hidden="true" className="size-4 shrink-0" />
+          <span className="truncate capitalize">{slot}</span>
         </Link>
       </li>
     );
@@ -77,20 +79,23 @@ function DayColumn({ day }: { day: PlanDay }) {
   return (
     <article
       className={cn(
-        "grid min-w-0 snap-start border-2 border-transparent border-r-border p-3 last:border-r-transparent lg:snap-none lg:p-2",
+        "grid min-w-0 snap-start grid-rows-[auto_1fr] border-2 border-transparent border-r-border p-3 last:border-r-transparent lg:snap-none lg:p-2",
         day.isToday && "border-primary bg-secondary last:border-primary",
       )}
       aria-labelledby={`plan-day-${day.date}`}
     >
-      <header className="flex min-h-11 items-center justify-between gap-2">
-        <h2 className="font-heading text-xl" id={`plan-day-${day.date}`}>
+      <header className="flex h-11 items-center justify-between gap-2">
+        <h2
+          className="min-w-0 truncate font-heading text-xl lg:text-base"
+          id={`plan-day-${day.date}`}
+        >
           <time dateTime={day.date} title={dateLabel}>
             {day.weekdayLabel}
           </time>
         </h2>
         {day.isToday ? <Badge variant="accent">Today</Badge> : null}
       </header>
-      <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,auto))] gap-2">
+      <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2">
         {day.slots.map((mealSlot) => (
           <MealSlot
             key={mealSlot.slot}

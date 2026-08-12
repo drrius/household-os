@@ -41,6 +41,8 @@ export function MoneyHero({
   hasOpeningBalance,
   hero,
 }: Pick<MoneyViewModel, "explanation" | "hasOpeningBalance" | "hero">) {
+  const showsSettleUp = hero.kind !== "settled";
+
   return (
     <section aria-labelledby="money-balance-title">
       <Card>
@@ -56,14 +58,17 @@ export function MoneyHero({
           {!hasOpeningBalance ? (
             <div>
               <Link
-                className={buttonVariants({ className: "no-underline" })}
+                className={buttonVariants({
+                  className: "no-underline",
+                  variant: showsSettleUp ? "outline" : "default",
+                })}
                 href="/money/opening-balance"
               >
                 Set opening balance
               </Link>
             </div>
           ) : null}
-          {hero.kind !== "settled" ? (
+          {showsSettleUp ? (
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 className={buttonVariants({ className: "no-underline" })}

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
@@ -126,13 +127,7 @@ export function CheckboxField({
 }) {
   return (
     <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-      <input
-        className="size-4 accent-primary"
-        defaultChecked={defaultChecked}
-        name={name}
-        type="checkbox"
-        value={value}
-      />
+      <Checkbox defaultChecked={defaultChecked} name={name} value={value} />
       {label}
     </label>
   );
