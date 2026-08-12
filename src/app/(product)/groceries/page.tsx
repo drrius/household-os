@@ -1,21 +1,20 @@
-import { requireMemberContext } from "@/lib/auth/member-context";
-import { AppPage } from "@/ui/primitives/app-page";
-import { EmptyState } from "@/ui/primitives/empty-state";
-import { PageHeader } from "@/ui/primitives/page-header";
+import {
+  claimGroceryItemAction,
+  joinShoppingSessionAction,
+  mergeDuplicateGroceryItemsAction,
+} from "@/app/(product)/_actions/groceries";
+import { loadGroceriesViewModel } from "@/lib/read-models/groceries";
+import { GroceriesScreen } from "@/ui/groceries/groceries-screen";
 
 export default async function GroceriesPage() {
-  await requireMemberContext();
+  const model = await loadGroceriesViewModel();
 
   return (
-    <AppPage labelledBy="groceries-title">
-      <PageHeader
-        titleId="groceries-title"
-        title="Groceries"
-        eyebrow="Shared list"
-      />
-      <EmptyState title="Categorized shopping list">
-        <p>Categories, live sessions, and merge suggestions land here next.</p>
-      </EmptyState>
-    </AppPage>
+    <GroceriesScreen
+      claimAction={claimGroceryItemAction}
+      joinAction={joinShoppingSessionAction}
+      mergeAction={mergeDuplicateGroceryItemsAction}
+      model={model}
+    />
   );
 }
