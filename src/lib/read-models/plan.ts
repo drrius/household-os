@@ -49,11 +49,18 @@ type MealDefinitionRow = {
   name: string;
 };
 
+type MealPrepRow = {
+  meal_plan_entry_id: string;
+  due_date: string;
+  routine: { title: string };
+};
+
 type BuildPlanViewModelInput = {
   weekStartParam?: string | null;
   today: string;
   entries: readonly MealPlanEntryRow[];
   library: readonly MealDefinitionRow[];
+  prep: readonly MealPrepRow[];
 };
 
 const MEAL_SLOTS: readonly MealSlot[] = ["breakfast", "lunch", "dinner"];
@@ -127,8 +134,31 @@ function entryKey(date: string, slot: MealSlot): string {
   return `${date}:${slot}`;
 }
 
+function cookLabelsByEntry(
+  prep: readonly MealPrepRow[],
+): ReadonlyMap<string, string> {
+  const titlesByEntry = new Map<string, string[]>();
+  const sorted = [...prep].sort(
+    (left, right) =>
+      left.due_date.localeCompare(right.due_date) ||
+      left.routine.title.localeCompare(right.routine.title),
+  );
+  for (const row of sorted) {
+    const titles = titlesByEntry.get(row.meal_plan_entry_id) ?? [];
+    titles.push(row.routine.title);
+    titlesByEntry.set(row.meal_plan_entry_id, titles);
+  }
+  return new Map(
+    [...titlesByEntry].map(([entryId, titles]) => [
+      entryId,
+      titles.join(" · "),
+    ]),
+  );
+}
+
 function indexEntries(
   rows: readonly MealPlanEntryRow[],
+  cookLabels: ReadonlyMap<string, string>,
 ): ReadonlyMap<
   string,
   PlanViewModel["days"][number]["slots"][number]["entry"]
@@ -146,7 +176,7 @@ function indexEntries(
         title: row.title_snapshot,
         isLeftover: row.leftover_of_entry_id !== null,
         notes: row.notes,
-        cookLabel: null,
+        cookLabel: cookLabels.get(row.id) ?? null,
       });
     }
   }
@@ -159,10 +189,11 @@ export function buildPlanViewModel({
   today,
   entries,
   library,
+  prep,
 }: BuildPlanViewModelInput): PlanViewModel {
   const weekStart = resolveWeekStart(weekStartParam, today);
   const weekEnd = addCivilDays(weekStart, 6);
-  const entriesBySlot = indexEntries(entries);
+  const entriesBySlot = indexEntries(entries, cookLabelsByEntry(prep));
   const days = Array.from({ length: 7 }, (_, offset) => {
     const date = addCivilDays(weekStart, offset);
     return {
@@ -227,10 +258,29 @@ export async function loadPlanViewModel(
     );
   }
 
+  const entryIds = entriesResult.data.map((entry) => entry.id);
+  const prepResult =
+    entryIds.length === 0
+      ? { data: [] as MealPrepRow[], error: null }
+      : await supabase
+          .from("routine_occurrences")
+          .select("meal_plan_entry_id, due_date, routine:routines!inner(title)")
+          .eq("household_id", member.householdId)
+          .eq("status", "open")
+          .in("meal_plan_entry_id", entryIds)
+          .order("due_date")
+          .order("id")
+          .overrideTypes<MealPrepRow[], { merge: false }>();
+
+  if (prepResult.error) {
+    throw new Error(`Meal prep lookup failed: ${prepResult.error.message}`);
+  }
+
   return buildPlanViewModel({
     weekStartParam,
     today,
     entries: entriesResult.data,
     library: libraryResult.data,
+    prep: prepResult.data ?? [],
   });
 }

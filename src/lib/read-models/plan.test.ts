@@ -36,6 +36,13 @@ describe("buildPlanViewModel", () => {
         },
       ],
       library: [{ id: "meal-1", name: "Tomato tart" }],
+      prep: [
+        {
+          meal_plan_entry_id: "first",
+          due_date: "2025-08-04",
+          routine: { title: "Blind bake the crust" },
+        },
+      ],
     });
 
     expect(plan.weekStart).toBe("2025-08-04");
@@ -60,6 +67,9 @@ describe("buildPlanViewModel", () => {
       "Sun 10",
     ]);
     expect(plan.days[0]?.slots[1]?.entry?.id).toBe("first");
+    expect(plan.days[0]?.slots[1]?.entry?.cookLabel).toBe(
+      "Blind bake the crust",
+    );
     expect(plan.days[6]?.slots[2]?.entry?.isLeftover).toBe(true);
     expect(plan.days.filter((day) => day.isToday)).toHaveLength(1);
     expect(plan.library).toEqual([{ id: "meal-1", title: "Tomato tart" }]);
@@ -71,6 +81,7 @@ describe("buildPlanViewModel", () => {
       today: "2026-09-02",
       entries: [],
       library: [],
+      prep: [],
     });
 
     expect(plan.weekStart).toBe("2026-08-31");
@@ -84,6 +95,7 @@ describe("buildPlanViewModel", () => {
       today: "2025-12-31",
       entries: [],
       library: [],
+      prep: [],
     });
 
     expect(plan.weekStart).toBe("2025-12-29");
@@ -97,6 +109,7 @@ describe("buildPlanViewModel", () => {
       today: "2026-08-12",
       entries: [],
       library: [],
+      prep: [],
     });
 
     expect(plan.weekStart).toBe("2026-08-10");
