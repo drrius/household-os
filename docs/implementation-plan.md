@@ -76,9 +76,31 @@ Exit criteria:
 - Current iPhone Safari, desktop Safari, and Chrome pass critical flows.
 - Keyboard, focus, reduced-motion, contrast, and semantic accessibility checks pass.
 
-## M7: Household trial
+## M7: Write flows and household setup
 
-Deploy to the stable Vercel hostname, enroll both passkeys, establish the opening CHF balance, seed real routines and meal defaults, and begin the four-week replacement trial.
+Wire the create and confirmation forms that turn the designed surfaces into a usable household app. Domain engines from M2 through M4 and the M6 shell already exist; this milestone replaces the placeholder Add destinations and unfinished Money actions with real mutations.
+
+Scope:
+
+- Routine create and edit (one-off and recurring, assignment, areas).
+- Grocery item create onto the shared list.
+- Meal create onto a weekly slot, with optional library save.
+- Manual expense create with 50/50 or exact split.
+- Opening CHF balance entry.
+- Settle up and partial settlement from Money.
+- Home setup for pets, areas, and the minimum household settings needed before trial.
+
+Exit criteria:
+
+- Each global Add option opens a working form that persists through the existing domain commands and appears on the matching surface.
+- A two-member household can establish an opening balance, post expenses, settle or partially settle, and explain the resulting balance.
+- Placeholder "coming soon" create routes are gone.
+- New write paths have example tests, and financial writes also have property tests.
+- `pnpm verify` and `pnpm db:test` pass for the touched mutations.
+
+## M8: Household trial
+
+Deploy to the stable Vercel hostname, enroll both passkeys, establish the opening CHF balance, seed real routines and meal defaults, and begin the four-week replacement trial. M7 write flows must be complete before this milestone starts.
 
 Exit criteria:
 
