@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito, Work_Sans } from "next/font/google";
+import { Nunito, Noto_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
-import "./design-system.css";
+import "./globals.css";
+import { cn } from "@/lib/utils";
 
 const uiFont = Nunito({
   subsets: ["latin"],
   weight: ["500", "600", "700", "800", "900"],
-  variable: "--font-ui",
+  variable: "--font-sans",
 });
 
-const chromeFont = Work_Sans({
+const headingFont = Noto_Sans({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
-  variable: "--font-chrome",
+  variable: "--font-heading",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +31,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${uiFont.variable} ${chromeFont.variable}`}>
+    <html
+      lang="en"
+      className={cn(uiFont.variable, headingFont.variable, "font-sans")}
+    >
       <body>{children}</body>
     </html>
   );
