@@ -544,6 +544,71 @@ dialog.sheet::backdrop {
   white-space: nowrap;
 }
 
+.today-grid {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.today-column,
+.today-card-list {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.today-routine {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.today-routine__copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.today-routine__copy > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.today-routine__copy strong {
+  overflow-wrap: anywhere;
+}
+
+.today-routine__copy small,
+.today-card-meta {
+  color: var(--color-ink-muted);
+  font-size: var(--text-meta);
+}
+
+.today-routine__check {
+  width: 1.25rem;
+  flex: 0 0 auto;
+  color: var(--color-success);
+  font-size: var(--text-title);
+  font-weight: 800;
+}
+
+.today-routine--completed strong {
+  color: var(--color-ink-muted);
+  text-decoration: line-through;
+}
+
+.today-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.today-grid .empty-state {
+  min-height: 8rem;
+  padding: var(--space-6);
+}
+
 .u-stack {
   display: flex;
   flex-direction: column;
@@ -586,6 +651,11 @@ dialog.sheet::backdrop {
 
 /* At 64rem, the default shell becomes a 240px left rail with a flexible main. */
 @media (min-width: 64rem) {
+  .today-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+
   .app-shell:not(.app-shell--phone) {
     grid-template-columns: 15rem minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
