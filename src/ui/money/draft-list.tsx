@@ -50,6 +50,7 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                       </Button>
                     </form>
                     <Button
+                      nativeButton={false}
                       render={
                         <Link
                           href={`/money/expenses/new?draft=${encodeURIComponent(draft.id)}`}

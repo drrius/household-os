@@ -2,6 +2,7 @@ import { PasskeyManager } from "@/app/security/passkey-manager";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import type { PasskeySummary } from "@/lib/auth/passkeys";
 import { createClient } from "@/lib/supabase/server";
+import { GateShell } from "@/ui/layout/gate-shell";
 
 async function loadPasskeys(): Promise<PasskeySummary[]> {
   const supabase = await createClient();
@@ -24,13 +25,12 @@ export default async function SecurityPage() {
   const passkeys = await loadPasskeys();
 
   return (
-    <main>
-      <h1>Security</h1>
-      <p>
-        Passkeys are the only normal sign-in method. Register a second
-        authenticator when you can.
-      </p>
+    <GateShell
+      description="Passkeys are the only normal sign-in method. Register a second authenticator when you can."
+      title="Security"
+      titleId="security-title"
+    >
       <PasskeyManager initialPasskeys={passkeys} />
-    </main>
+    </GateShell>
   );
 }

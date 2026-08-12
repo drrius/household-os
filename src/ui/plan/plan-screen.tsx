@@ -66,6 +66,7 @@ export function PlanScreen({ plan }: PlanScreenProps) {
         trailing={
           <>
             <Button
+              nativeButton={false}
               render={<Link href={`/plan?week=${previousWeek}`} />}
               variant="outline"
               aria-label="Previous week"
@@ -73,6 +74,7 @@ export function PlanScreen({ plan }: PlanScreenProps) {
               ←
             </Button>
             <Button
+              nativeButton={false}
               render={<Link href={`/plan?week=${nextWeek}`} />}
               variant="outline"
               aria-label="Next week"

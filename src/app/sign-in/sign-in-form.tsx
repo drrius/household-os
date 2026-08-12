@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignInForm() {
@@ -29,15 +31,21 @@ export function SignInForm() {
 
   return (
     <form
+      className="grid gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         void handleSignIn();
       }}
     >
-      <button type="submit" disabled={pending}>
-        Sign in with passkey
-      </button>
-      {errorMessage ? <p role="alert">{errorMessage}</p> : null}
+      <Button className="w-full" disabled={pending} type="submit">
+        {pending ? "Waiting for passkey…" : "Sign in with passkey"}
+      </Button>
+      {errorMessage ? (
+        <Alert variant="destructive">
+          <AlertTitle>Sign-in failed</AlertTitle>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      ) : null}
     </form>
   );
 }
