@@ -94,9 +94,7 @@ export async function placeFromLibraryAction(
   redirect("/plan");
 }
 
-export async function removeMealEntryAction(
-  formData: FormData,
-): Promise<void> {
+export async function removeMealEntryAction(formData: FormData): Promise<void> {
   let failure: unknown = null;
   let entryId: string | null = null;
   try {

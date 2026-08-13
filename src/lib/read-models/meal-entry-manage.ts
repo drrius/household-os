@@ -41,9 +41,7 @@ export async function loadManageMealEntry(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("meal_plan_entries")
-    .select(
-      "id, title_snapshot, date, slot, notes, leftover_of_entry_id",
-    )
+    .select("id, title_snapshot, date, slot, notes, leftover_of_entry_id")
     .eq("household_id", member.householdId)
     .eq("id", parsedId.data)
     .is("removed_at", null)

@@ -7,9 +7,7 @@ import { loadManageMealEntry } from "@/lib/read-models/meal-entry-manage";
 import { cn } from "@/lib/utils";
 import { FormField, FormPage } from "@/ui/forms/form-page";
 
-function slotLabel(
-  slot: "breakfast" | "lunch" | "dinner" | null,
-): string {
+function slotLabel(slot: "breakfast" | "lunch" | "dinner" | null): string {
   switch (slot) {
     case "breakfast":
       return "Breakfast";

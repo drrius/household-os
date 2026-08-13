@@ -49,10 +49,7 @@ export default async function NewMealPage({
         error={query.error}
         title="Place saved meal"
       >
-        <FormFields
-          action={placeFromLibraryAction}
-          submitLabel="Add to plan"
-        >
+        <FormFields action={placeFromLibraryAction} submitLabel="Add to plan">
           <input
             name="idempotencyKey"
             type="hidden"

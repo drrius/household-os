@@ -76,13 +76,7 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
   );
 }
 
-function DayColumn({
-  day,
-  dayIndex,
-}: {
-  day: PlanDay;
-  dayIndex: number;
-}) {
+function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
   const dateLabel = formatZurichDayLabel(day.date);
 
   return (
