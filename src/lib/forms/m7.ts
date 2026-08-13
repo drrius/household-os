@@ -167,6 +167,44 @@ export function parseMealForm(formData: FormData): MealFormValue {
   };
 }
 
+export type PlaceFromLibraryFormValue = {
+  libraryId: string;
+  date: string;
+  slot: "breakfast" | "lunch" | "dinner";
+  notes: string | null;
+  idempotencyKey: string;
+};
+
+export function parsePlaceFromLibraryForm(
+  formData: FormData,
+): PlaceFromLibraryFormValue {
+  return {
+    libraryId: uuidSchema.parse(requiredString(formData, "libraryId")),
+    date: dateSchema.parse(requiredString(formData, "date")),
+    slot: z
+      .enum(["breakfast", "lunch", "dinner"])
+      .parse(requiredString(formData, "slot")),
+    notes: optionalText(formData.get("notes")),
+    idempotencyKey: uuidSchema.parse(
+      requiredString(formData, "idempotencyKey"),
+    ),
+  };
+}
+
+export type RemoveMealFormValue = {
+  entryId: string;
+  idempotencyKey: string;
+};
+
+export function parseRemoveMealForm(formData: FormData): RemoveMealFormValue {
+  return {
+    entryId: uuidSchema.parse(requiredString(formData, "entryId")),
+    idempotencyKey: uuidSchema.parse(
+      requiredString(formData, "idempotencyKey"),
+    ),
+  };
+}
+
 export type ExpenseFormValue = {
   description: string;
   amountCents: number;

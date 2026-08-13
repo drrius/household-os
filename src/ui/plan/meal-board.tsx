@@ -42,33 +42,39 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
 
   return (
     <li className="min-w-0">
-      <Card
-        className={cn(
-          "h-full",
-          entry.isLeftover ? "bg-warning-soft" : "bg-secondary",
-        )}
-        size="sm"
+      <Link
+        aria-label={`${slot} on ${dateLabel}: ${entry.title}`}
+        className="block h-full no-underline transition-transform hover:scale-[1.02] motion-reduce:transition-none motion-reduce:hover:scale-100"
+        href={`/plan/meals/${entry.id}`}
       >
-        <CardHeader className="flex-row flex-wrap items-start">
-          <CardTitle className="text-xs text-muted-foreground capitalize">
-            {slot}
-          </CardTitle>
-          <CardAction>
-            {entry.isLeftover ? (
-              <Badge variant="warning">Leftover</Badge>
+        <Card
+          className={cn(
+            "h-full",
+            entry.isLeftover ? "bg-warning-soft" : "bg-secondary",
+          )}
+          size="sm"
+        >
+          <CardHeader className="flex-row flex-wrap items-start">
+            <CardTitle className="text-xs text-muted-foreground capitalize">
+              {slot}
+            </CardTitle>
+            <CardAction>
+              {entry.isLeftover ? (
+                <Badge variant="warning">Leftover</Badge>
+              ) : null}
+            </CardAction>
+          </CardHeader>
+          <CardContent className="grid min-w-0 gap-2">
+            <h3 className="wrap-anywhere text-sm leading-snug font-semibold">
+              {entry.title}
+            </h3>
+            {entry.notes !== null ? <p>{entry.notes}</p> : null}
+            {entry.cookLabel !== null ? (
+              <p className="font-heading font-bold">{entry.cookLabel}</p>
             ) : null}
-          </CardAction>
-        </CardHeader>
-        <CardContent className="grid min-w-0 gap-2">
-          <h3 className="wrap-anywhere text-sm leading-snug font-semibold">
-            {entry.title}
-          </h3>
-          {entry.notes !== null ? <p>{entry.notes}</p> : null}
-          {entry.cookLabel !== null ? (
-            <p className="font-heading font-bold">{entry.cookLabel}</p>
-          ) : null}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Link>
     </li>
   );
 }

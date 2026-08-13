@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -104,21 +106,23 @@ export function MealSection({ meals }: { meals: readonly MealGlance[] }) {
             meal.kind === "prep" ? (
               <PrepCard key={mealGlanceKey(meal)} meal={meal} />
             ) : (
-              <Card
-                className="bg-secondary"
+              <Link
+                className="block no-underline transition-transform hover:scale-[1.02] motion-reduce:transition-none motion-reduce:hover:scale-100"
+                href={`/plan/meals/${meal.entryId}`}
                 key={mealGlanceKey(meal)}
-                size="sm"
               >
-                <CardHeader>
-                  <CardTitle>{mealGlanceLabel(meal)}</CardTitle>
-                  <CardAction>
-                    <Badge variant="accent">{mealDayBadge(meal.day)}</Badge>
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  <strong>{meal.title}</strong>
-                </CardContent>
-              </Card>
+                <Card className="bg-secondary" size="sm">
+                  <CardHeader>
+                    <CardTitle>{mealGlanceLabel(meal)}</CardTitle>
+                    <CardAction>
+                      <Badge variant="accent">{mealDayBadge(meal.day)}</Badge>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent>
+                    <strong>{meal.title}</strong>
+                  </CardContent>
+                </Card>
+              </Link>
             ),
           )}
         </div>
