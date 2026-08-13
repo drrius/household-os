@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { FormFieldError } from "@/lib/forms/field-error";
+
 const uuidSchema = z.string().uuid("Choose a valid household option.");
 const dateSchema = z.iso.date("Choose a valid date.");
 const shortTextSchema = z.string().trim().min(1).max(120);
@@ -19,13 +21,28 @@ function optionalText(value: FormDataEntryValue | null): string | null {
   return trimmed.length === 0 ? null : trimmed;
 }
 
+// Named so the rejection lands under the Recipe link control, not only in the
+// alert above the card. `type="url"` accepts ftp:, so the server still decides.
+const recipeUrlError = () =>
+  new FormFieldError(
+    "recipeUrl",
+    "Recipe links must start with http:// or https://.",
+  );
+
 function parseOptionalRecipeUrl(formData: FormData): string | null {
   const recipeUrl = optionalText(formData.get("recipeUrl"));
-  if (recipeUrl !== null) {
-    const parsed = new URL(recipeUrl);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      throw new Error("Recipe links must use http or https.");
-    }
+  if (recipeUrl === null) {
+    return null;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(recipeUrl);
+  } catch {
+    throw recipeUrlError();
+  }
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw recipeUrlError();
   }
   return recipeUrl;
 }

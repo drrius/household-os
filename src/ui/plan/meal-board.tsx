@@ -6,9 +6,15 @@ import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
 import { cn } from "@/lib/utils";
 import { MealBoardSlotPresence } from "@/ui/plan/meal-board-presence.client";
+import { PlanWeekPager } from "@/ui/plan/plan-week-pager.client";
 
 type PlanDay = PlanViewModel["days"][number];
 type PlanSlot = PlanDay["slots"][number];
+
+// The pager scrolls columns into view by id, so the convention lives here.
+function dayColumnId(date: string): string {
+  return `plan-day-column-${date}`;
+}
 
 type MealSlotProps = {
   date: string;
@@ -56,9 +62,9 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
           >
             {entry.isLeftover ? "Leftover" : slot}
           </p>
-          <h3 className="wrap-anywhere text-sm leading-snug font-semibold">
+          <h4 className="wrap-anywhere text-sm leading-snug font-semibold">
             {entry.title}
-          </h3>
+          </h4>
           {entry.notes !== null ? <p>{entry.notes}</p> : null}
           {entry.cookLabel !== null ? (
             <p className="font-heading font-bold">{entry.cookLabel}</p>
@@ -76,6 +82,7 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
     <article
       aria-current={day.isToday ? "date" : undefined}
       aria-labelledby={`plan-day-${day.date}`}
+      id={dayColumnId(day.date)}
       className={cn(
         "relative grid min-w-0 snap-start grid-rows-[auto_1fr] border-r border-border p-3 last:border-r-0 lg:snap-none lg:p-2",
         day.isToday &&
@@ -83,7 +90,7 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
       )}
     >
       <header className="flex h-11 items-center justify-between gap-2">
-        <h2
+        <h3
           className={cn(
             "min-w-0 truncate font-heading text-xl tabular-nums lg:text-base",
             day.isToday && "text-primary",
@@ -93,7 +100,7 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
           <time dateTime={day.date} title={dateLabel}>
             {day.weekdayLabel}
           </time>
-        </h2>
+        </h3>
         {day.isToday ? (
           <p className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary lg:text-xs">
             <span
@@ -104,7 +111,8 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
           </p>
         ) : null}
       </header>
-      <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2">
+      {/* Shorter rows below lg keep one whole day plus the pager inside 844px. */}
+      <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2 max-lg:grid-rows-[repeat(3,minmax(6rem,1fr))]">
         {day.slots.map((mealSlot, slotIndex) => (
           <MealBoardSlotPresence
             index={dayIndex * day.slots.length + slotIndex}
@@ -130,8 +138,10 @@ export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
       </h2>
       <Card className="gap-0 py-0">
         <CardContent className="px-0">
-          <div className="snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-px-3 lg:snap-none lg:overflow-x-visible">
-            <div className="grid min-w-max auto-cols-[minmax(15rem,82vw)] grid-flow-col lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-7">
+          {/* A container, so the column width below lg is measured against the
+              scroller instead of the viewport, which a scrollbar corrupts. */}
+          <div className="@container snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-px-3 max-lg:px-3 lg:snap-none lg:overflow-x-visible">
+            <div className="grid min-w-max auto-cols-[minmax(14rem,calc(100cqw-3.5rem))] grid-flow-col lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-7">
               {days.map((day, dayIndex) => (
                 <DayColumn day={day} dayIndex={dayIndex} key={day.date} />
               ))}
@@ -139,6 +149,13 @@ export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
           </div>
         </CardContent>
       </Card>
+      <PlanWeekPager
+        days={days.map((day) => ({
+          columnId: dayColumnId(day.date),
+          isToday: day.isToday,
+          weekdayLabel: day.weekdayLabel,
+        }))}
+      />
     </section>
   );
 }

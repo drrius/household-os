@@ -1,14 +1,13 @@
-import {
-  removeMealEntryAction,
-  updateMealEntryAction,
-} from "@/app/(product)/_actions/m7-plan-groceries";
+import { updateMealEntryAction } from "@/app/(product)/_actions/m7-plan-groceries";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ManageMealEntry } from "@/lib/read-models/meal-entry-manage";
-import { cn } from "@/lib/utils";
+import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import { FormField, FormFields, selectClassName } from "@/ui/forms/form-page";
+import { RemoveMealButton } from "@/ui/plan/remove-meal-button.client";
+
+const RECIPE_URL_HINT = "Must start with http:// or https://";
 
 function MealEditFields({ entry }: { entry: ManageMealEntry }) {
   const slot = entry.slot ?? "dinner";
@@ -34,7 +33,7 @@ function MealEditFields({ entry }: { entry: ManageMealEntry }) {
           </select>
         </FormField>
       </div>
-      <FormField label="Recipe link">
+      <FormField description={RECIPE_URL_HINT} label="Recipe link" optional>
         <Input
           defaultValue={entry.recipeUrl ?? ""}
           maxLength={2000}
@@ -42,7 +41,7 @@ function MealEditFields({ entry }: { entry: ManageMealEntry }) {
           type="url"
         />
       </FormField>
-      <FormField label="Notes">
+      <FormField label="Notes" optional>
         <Textarea
           defaultValue={entry.notes ?? ""}
           maxLength={4000}
@@ -70,23 +69,14 @@ export function ManageMealForms({ entry }: { entry: ManageMealEntry }) {
         />
         <MealEditFields entry={entry} />
       </FormFields>
-      <form action={removeMealEntryAction} className="grid gap-3">
-        <input name="entryId" type="hidden" value={entry.id} />
-        <input
-          name="idempotencyKey"
-          type="hidden"
-          value={crypto.randomUUID()}
-        />
-        <button
-          className={cn(
-            buttonVariants({ size: "lg", variant: "destructive" }),
-            "w-full sm:w-fit",
-          )}
-          type="submit"
-        >
-          Remove from plan
-        </button>
-      </form>
+      <RemoveMealButton
+        dateLabel={formatZurichDayLabel(entry.date)}
+        entryId={entry.id}
+        // Generated on the server so the client component never has to, which
+        // would not survive hydration.
+        idempotencyKey={crypto.randomUUID()}
+        title={entry.title}
+      />
     </div>
   );
 }

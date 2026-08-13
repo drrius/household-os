@@ -15,6 +15,8 @@ import {
 
 type SlotDefault = string | undefined;
 
+const RECIPE_URL_HINT = "Must start with http:// or https://";
+
 function DateAndSlotFields({
   date,
   slot,
@@ -74,7 +76,7 @@ export function PlaceLibraryMealForm({
           <p className="text-sm font-normal">{libraryTitle}</p>
         </FormField>
         <DateAndSlotFields date={date} slot={slot} />
-        <FormField label="Notes">
+        <FormField label="Notes" optional>
           <Textarea maxLength={4000} name="notes" />
         </FormField>
       </FormFields>
@@ -108,10 +110,10 @@ export function CreateMealForm({
           <Input maxLength={120} name="title" required />
         </FormField>
         <DateAndSlotFields date={date} slot={slot} />
-        <FormField label="Recipe link">
+        <FormField description={RECIPE_URL_HINT} label="Recipe link" optional>
           <Input maxLength={2000} name="recipeUrl" type="url" />
         </FormField>
-        <FormField label="Notes">
+        <FormField label="Notes" optional>
           <Textarea maxLength={4000} name="notes" />
         </FormField>
         <CheckboxField
