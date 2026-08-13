@@ -1,0 +1,470 @@
+#!/usr/bin/env node
+
+import { execSync, spawn } from "node:child_process";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const SKILL_DIR = resolve(SCRIPT_DIR, "..");
+const DEFAULT_PORT = 4173;
+const RUN_DIR = "/tmp/household-os-verify/run";
+const ARTIFACT_DIR = "/tmp/household-os-verify/artifacts";
+const STATE_PATH = join(RUN_DIR, "state.json");
+const PROFILE_DIR = join(RUN_DIR, "browser-profile");
+const READY_PATH = "/sign-in";
+const READY_TIMEOUT_MS = 90_000;
+
+function usage() {
+  return `Usage:
+  control-household-os launch [--port ${DEFAULT_PORT}]
+  control-household-os doctor
+  control-household-os browser goto --path <path-or-url>
+  control-household-os browser click --role <role> --name <name>
+  control-household-os browser fill --role <role> --name <name> --value <value>
+  control-household-os browser press --key <key>
+  control-household-os browser url
+  control-household-os browser snapshot --aria --path <file>
+  control-household-os browser screenshot --path <file>
+  control-household-os cleanup`;
+}
+
+function fail(message) {
+  console.error(message);
+  process.exit(1);
+}
+
+function parseArgs(argv) {
+  const flags = {};
+  const positionals = [];
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token.startsWith("--")) {
+      positionals.push(token);
+      continue;
+    }
+
+    const key = token.slice(2);
+    const next = argv[index + 1];
+    if (next === undefined || next.startsWith("--")) {
+      flags[key] = true;
+      continue;
+    }
+
+    flags[key] = next;
+    index += 1;
+  }
+
+  return { flags, positionals };
+}
+
+function findRepoRoot(startDir) {
+  let current = startDir;
+  while (true) {
+    const packagePath = join(current, "package.json");
+    if (existsSync(packagePath)) {
+      const pkg = JSON.parse(readFileSync(packagePath, "utf8"));
+      if (pkg.name === "household-os") {
+        return current;
+      }
+    }
+
+    const parent = dirname(current);
+    if (parent === current) {
+      fail("Could not find the household-os repo root from this script.");
+    }
+    current = parent;
+  }
+}
+
+function readState() {
+  if (!existsSync(STATE_PATH)) {
+    return null;
+  }
+  return JSON.parse(readFileSync(STATE_PATH, "utf8"));
+}
+
+function writeState(state) {
+  mkdirSync(RUN_DIR, { recursive: true });
+  writeFileSync(STATE_PATH, `${JSON.stringify(state, null, 2)}\n`);
+}
+
+function requireState() {
+  const state = readState();
+  if (state === null) {
+    fail("No verification instance. Run control-household-os launch first.");
+  }
+  return state;
+}
+
+function processIsAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function envLooksConfigured(repoRoot) {
+  const envPath = join(repoRoot, ".env.local");
+  if (!existsSync(envPath)) {
+    return false;
+  }
+  const text = readFileSync(envPath, "utf8");
+  return (
+    text.includes("NEXT_PUBLIC_SUPABASE_URL=") &&
+    text.includes("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=")
+  );
+}
+
+async function fetchStatus(url) {
+  try {
+    const response = await fetch(url, { redirect: "manual" });
+    return response.status;
+  } catch {
+    return null;
+  }
+}
+
+async function waitForReady(baseUrl) {
+  const deadline = Date.now() + READY_TIMEOUT_MS;
+  const target = new URL(READY_PATH, baseUrl).toString();
+
+  while (Date.now() < deadline) {
+    const status = await fetchStatus(target);
+    if (status === 200) {
+      return;
+    }
+    await new Promise((resolveTimer) => setTimeout(resolveTimer, 500));
+  }
+
+  fail(
+    `Timed out waiting for ${target} to return HTTP 200. See ${join(RUN_DIR, "next.log")}.`,
+  );
+}
+
+function loadPlaywright(repoRoot) {
+  const require = createRequire(join(repoRoot, "package.json"));
+  return require("@playwright/test");
+}
+
+async function withPage(state, run) {
+  const { chromium } = loadPlaywright(state.repoRoot);
+  mkdirSync(PROFILE_DIR, { recursive: true });
+
+  const context = await chromium.launchPersistentContext(PROFILE_DIR, {
+    headless: true,
+    viewport: { width: 1280, height: 800 },
+  });
+
+  try {
+    const page = context.pages()[0] ?? (await context.newPage());
+    if (state.lastUrl) {
+      await page.goto(state.lastUrl, { waitUntil: "domcontentloaded" });
+    }
+    const result = await run(page);
+    writeState({
+      ...state,
+      lastUrl: page.url(),
+    });
+    return result;
+  } finally {
+    await context.close();
+  }
+}
+
+function resolveArtifactPath(pathValue) {
+  if (pathValue.startsWith("/")) {
+    return pathValue;
+  }
+  return resolve(ARTIFACT_DIR, pathValue);
+}
+
+async function commandLaunch(flags) {
+  const repoRoot = findRepoRoot(SKILL_DIR);
+  const port = Number(flags.port ?? DEFAULT_PORT);
+  if (!Number.isInteger(port) || port < 1) {
+    fail(`Invalid --port: ${flags.port}`);
+  }
+
+  const existing = readState();
+  if (existing !== null && processIsAlive(existing.pid)) {
+    fail(
+      `A verification instance is already running (pid ${existing.pid} on ${existing.baseUrl}). Run doctor, or cleanup first.`,
+    );
+  }
+
+  if (!envLooksConfigured(repoRoot)) {
+    fail(
+      "Missing .env.local with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Run pnpm db:start and copy the printed values, or bash .cursor/scripts/start.sh.",
+    );
+  }
+
+  const supabaseStatus = await fetchStatus("http://127.0.0.1:54321/auth/v1/health");
+  if (supabaseStatus === null) {
+    fail("Local Supabase is not answering on 127.0.0.1:54321. Run pnpm db:start.");
+  }
+
+  const occupied = await fetchStatus(`http://127.0.0.1:${port}/sign-in`);
+  if (occupied !== null) {
+    fail(
+      `Port ${port} is already answering. Use a free port or cleanup the process that owns it. Do not attach to the user's pnpm dev on :3000.`,
+    );
+  }
+
+  mkdirSync(RUN_DIR, { recursive: true });
+  mkdirSync(ARTIFACT_DIR, { recursive: true });
+
+  const logPath = join(RUN_DIR, "next.log");
+  const logFd = openSync(logPath, "w");
+  const child = spawn(
+    "pnpm",
+    ["dev", "--webpack", "--hostname", "127.0.0.1", "--port", String(port)],
+    {
+      cwd: repoRoot,
+      detached: true,
+      stdio: ["ignore", logFd, logFd],
+      env: {
+        ...process.env,
+        HOUSEHOLD_OS_E2E_FIXTURES: "",
+        HOUSEHOLD_OS_VERIFY_DIST_DIR: ".next-verify",
+      },
+    },
+  );
+  closeSync(logFd);
+
+  if (child.pid === undefined) {
+    fail("Failed to spawn pnpm dev.");
+  }
+
+  child.unref();
+
+  const baseUrl = `http://127.0.0.1:${port}`;
+  writeState({
+    pid: child.pid,
+    port,
+    baseUrl,
+    repoRoot,
+    startedAt: new Date().toISOString(),
+    lastUrl: new URL(READY_PATH, baseUrl).toString(),
+  });
+
+  try {
+    await waitForReady(baseUrl);
+  } catch (error) {
+    if (processIsAlive(child.pid)) {
+      process.kill(child.pid, "SIGTERM");
+    }
+    throw error;
+  }
+
+  console.log(`Launched Household OS at ${baseUrl} (pid ${child.pid})`);
+}
+
+async function commandDoctor() {
+  const state = requireState();
+  const problems = [];
+
+  if (!processIsAlive(state.pid)) {
+    problems.push(`Process ${state.pid} is not running.`);
+  }
+
+  const signInStatus = await fetchStatus(new URL(READY_PATH, state.baseUrl));
+  if (signInStatus !== 200) {
+    problems.push(`/sign-in returned ${signInStatus ?? "no response"}.`);
+  }
+
+  const protectedStatus = await fetchStatus(new URL("/", state.baseUrl));
+  if (protectedStatus !== 307 && protectedStatus !== 308 && protectedStatus !== 200) {
+    problems.push(`GET / returned ${protectedStatus ?? "no response"} (expected 307/308 redirect or 200).`);
+  }
+
+  if (state.port === 3000) {
+    problems.push("Refusing port 3000: that is the user's ordinary dev server.");
+  }
+
+  if (problems.length > 0) {
+    fail(`Doctor failed:\n- ${problems.join("\n- ")}`);
+  }
+
+  console.log(
+    [
+      "ok",
+      `pid=${state.pid}`,
+      `url=${state.baseUrl}`,
+      `port=${state.port}`,
+      "identity=Household OS",
+      `sign-in=${signInStatus}`,
+    ].join(" "),
+  );
+}
+
+async function commandBrowser(positionals, flags) {
+  const action = positionals[0];
+  const state = requireState();
+
+  if (!processIsAlive(state.pid)) {
+    fail(`Verification process ${state.pid} is dead. Launch again.`);
+  }
+
+  switch (action) {
+    case "goto": {
+      if (typeof flags.path !== "string") {
+        fail("browser goto requires --path");
+      }
+      const target = flags.path.startsWith("http")
+        ? flags.path
+        : new URL(flags.path, state.baseUrl).toString();
+      await withPage(state, async (page) => {
+        const response = await page.goto(target, {
+          waitUntil: "domcontentloaded",
+        });
+        console.log(`${response?.status() ?? "no-status"} ${page.url()}`);
+      });
+      return;
+    }
+    case "click": {
+      if (typeof flags.role !== "string" || typeof flags.name !== "string") {
+        fail("browser click requires --role and --name");
+      }
+      await withPage(state, async (page) => {
+        await page.getByRole(flags.role, { name: flags.name }).click();
+        await page.waitForLoadState("domcontentloaded");
+        console.log(`clicked ${flags.role} ${JSON.stringify(flags.name)}`);
+        console.log(page.url());
+      });
+      return;
+    }
+    case "fill": {
+      if (
+        typeof flags.role !== "string" ||
+        typeof flags.name !== "string" ||
+        typeof flags.value !== "string"
+      ) {
+        fail("browser fill requires --role, --name, and --value");
+      }
+      await withPage(state, async (page) => {
+        await page.getByRole(flags.role, { name: flags.name }).fill(flags.value);
+        console.log(`filled ${flags.role} ${JSON.stringify(flags.name)}`);
+      });
+      return;
+    }
+    case "press": {
+      if (typeof flags.key !== "string") {
+        fail("browser press requires --key");
+      }
+      await withPage(state, async (page) => {
+        await page.keyboard.press(flags.key);
+        console.log(`pressed ${flags.key}`);
+      });
+      return;
+    }
+    case "url": {
+      await withPage(state, async (page) => {
+        console.log(page.url());
+      });
+      return;
+    }
+    case "snapshot": {
+      if (flags.aria !== true && flags.aria !== "true") {
+        fail("browser snapshot requires --aria");
+      }
+      if (typeof flags.path !== "string") {
+        fail("browser snapshot requires --path");
+      }
+      const outputPath = resolveArtifactPath(flags.path);
+      mkdirSync(dirname(outputPath), { recursive: true });
+      await withPage(state, async (page) => {
+        const aria = await page.locator("body").ariaSnapshot();
+        writeFileSync(outputPath, `${aria}\n`);
+        console.log(outputPath);
+      });
+      return;
+    }
+    case "screenshot": {
+      if (typeof flags.path !== "string") {
+        fail("browser screenshot requires --path");
+      }
+      const outputPath = resolveArtifactPath(flags.path);
+      mkdirSync(dirname(outputPath), { recursive: true });
+      await withPage(state, async (page) => {
+        await page.screenshot({ path: outputPath, fullPage: true });
+        console.log(outputPath);
+      });
+      return;
+    }
+    default: {
+      fail(`Unknown browser action: ${action ?? "(missing)"}\n${usage()}`);
+    }
+  }
+}
+
+function stopPid(pid) {
+  try {
+    process.kill(-pid, "SIGTERM");
+  } catch {
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch {
+      return;
+    }
+  }
+
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline && processIsAlive(pid)) {
+    execSync("sleep 0.1");
+  }
+
+  if (processIsAlive(pid)) {
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        return;
+      }
+    }
+  }
+}
+
+function commandCleanup() {
+  const state = readState();
+  if (state !== null && processIsAlive(state.pid)) {
+    stopPid(state.pid);
+  }
+
+  rmSync(RUN_DIR, { recursive: true, force: true });
+  console.log(`Cleaned verification instance. Evidence remains in ${ARTIFACT_DIR}`);
+}
+
+const { flags, positionals } = parseArgs(process.argv.slice(2));
+const command = positionals[0];
+
+switch (command) {
+  case "launch":
+    await commandLaunch(flags);
+    break;
+  case "doctor":
+    await commandDoctor();
+    break;
+  case "browser":
+    await commandBrowser(positionals.slice(1), flags);
+    break;
+  case "cleanup":
+    commandCleanup();
+    break;
+  default:
+    fail(usage());
+}
