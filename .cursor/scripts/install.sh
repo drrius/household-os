@@ -5,7 +5,7 @@ cd /workspace
 
 if ! command -v pnpm >/dev/null 2>&1; then
   corepack enable
-  corepack prepare pnpm@11.12.0 --activate
+  corepack prepare pnpm@11.21.0 --activate
 fi
 
 pnpm install --frozen-lockfile
