@@ -37,13 +37,13 @@ function HouseholdCard({
               <div className="grid min-w-0 gap-1">
                 <strong>{member.displayName}</strong>
                 {member.isSelf ? (
-                  <span className="text-xs text-muted-foreground">You</span>
+                  <span className="text-sm text-muted-foreground">You</span>
                 ) : null}
               </div>
             </li>
           ))}
         </ul>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Each person signs in with their own{" "}
           <Link href={SECURITY_PATH}>passkeys</Link>.
         </p>
@@ -68,7 +68,7 @@ function PetCards({ pets }: Pick<HomeViewModel, "pets">) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">{pet.meta}</p>
+              <p className="text-sm text-muted-foreground">{pet.meta}</p>
             </CardContent>
           </Card>
         ))}
@@ -128,7 +128,7 @@ function ActivityList({ activity }: Pick<HomeViewModel, "activity">) {
             >
               <div className="grid min-w-0 gap-1">
                 <strong className="wrap-anywhere">{item.title}</strong>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {item.whenLabel}
                 </span>
               </div>
@@ -169,7 +169,7 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
             >
               <span className="grid min-w-0 gap-1">
                 <strong>{routine.title}</strong>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {routine.areaName}
                 </span>
               </span>

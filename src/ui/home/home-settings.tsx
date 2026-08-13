@@ -15,7 +15,7 @@ function SettingsRow({ hint, title }: SettingsRowProps) {
     <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
       <div className="grid min-w-0 gap-1">
         <strong>{title}</strong>
-        <span className="text-xs text-muted-foreground">{hint}</span>
+        <span className="text-sm text-muted-foreground">{hint}</span>
       </div>
     </li>
   );
@@ -34,7 +34,7 @@ function SettingsLinkRow({
       >
         <span className="grid min-w-0 gap-1">
           <strong>{title}</strong>
-          <span className="text-xs text-muted-foreground">{hint}</span>
+          <span className="text-sm text-muted-foreground">{hint}</span>
         </span>
         <ChevronRight
           aria-hidden="true"
