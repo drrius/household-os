@@ -1560,7 +1560,7 @@
             <div class="hero">
               <div>
                 <p class="eyebrow">A source-backed mental model</p>
-                <h1>From a tap to durable household truth.</h1>
+                <h1 tabindex="-1">From a tap to durable household truth.</h1>
                 <p class="hero-copy">
                   The browser presents and reacts, Next.js composes and
                   coordinates, and Postgres commits the truth. Pure TypeScript
@@ -1782,7 +1782,7 @@
             <header class="chapter-intro">
               <div>
                 <p class="eyebrow">Trace the execution</p>
-                <h1>Follow real requests through the stack.</h1>
+                <h1 tabindex="-1">Follow real requests through the stack.</h1>
                 <p class="hero-copy">
                   Choose a journey, then step through it. The “payload” labels
                   show what crosses each boundary, and the source links take you
@@ -1878,7 +1878,7 @@
             <header class="chapter-intro">
               <div>
                 <p class="eyebrow">Business boundaries</p>
-                <h1>Each domain owns one kind of truth.</h1>
+                <h1 tabindex="-1">Each domain owns one kind of truth.</h1>
                 <p class="hero-copy">
                   The domains collaborate through explicit handoffs. Meals can
                   create grocery intent, shopping can create an expense draft,
@@ -1958,7 +1958,9 @@
             <header class="chapter-intro">
               <div>
                 <p class="eyebrow">Security and consistency</p>
-                <h1>Assume every mutation is a public API call.</h1>
+                <h1 tabindex="-1">
+                  Assume every mutation is a public API call.
+                </h1>
                 <p class="hero-copy">
                   A hidden button is not authorization. The server establishes
                   the member context, RLS scopes every tenant row, and sensitive
@@ -2051,7 +2053,9 @@
             <header class="chapter-intro">
               <div>
                 <p class="eyebrow">Orientation guide</p>
-                <h1>Know where to look before reading everything.</h1>
+                <h1 tabindex="-1">
+                  Know where to look before reading everything.
+                </h1>
                 <p class="hero-copy">
                   Start at the route for the screen, follow its read model or
                   server action into <code>src/lib</code>, then open the RPC
@@ -3265,7 +3269,15 @@
           .join("");
       }
 
-      function showChapter(chapterId, updateHash = true) {
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      );
+
+      function scrollBehavior() {
+        return reducedMotion.matches ? "auto" : "smooth";
+      }
+
+      function showChapter(chapterId, updateHash = true, focusHeading = true) {
         document.querySelectorAll(".chapter").forEach((chapter) => {
           chapter.hidden = chapter.id !== chapterId;
         });
@@ -3275,15 +3287,17 @@
           button.tabIndex = selected ? 0 : -1;
         });
         if (updateHash) history.replaceState(null, "", `#${chapterId}`);
-        document
-          .querySelector(`#${chapterId} h1`)
-          ?.focus({ preventScroll: true });
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (focusHeading) {
+          document
+            .querySelector(`#${chapterId} h1`)
+            ?.focus({ preventScroll: true });
+        }
+        window.scrollTo({ top: 0, behavior: scrollBehavior() });
       }
 
       document.querySelectorAll(".chapter-button").forEach((button) => {
         button.addEventListener("click", () =>
-          showChapter(button.dataset.chapter),
+          showChapter(button.dataset.chapter, true, false),
         );
         button.addEventListener("keydown", (event) => {
           if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
@@ -3293,7 +3307,7 @@
           const target =
             buttons[(index + delta + buttons.length) % buttons.length];
           target.focus();
-          showChapter(target.dataset.chapter);
+          showChapter(target.dataset.chapter, true, false);
         });
       });
 
@@ -3402,7 +3416,7 @@
           ?.scrollIntoView({
             block: "nearest",
             inline: "center",
-            behavior: "smooth",
+            behavior: scrollBehavior(),
           });
       }
       document.getElementById("previous-step").addEventListener("click", () => {
@@ -3627,6 +3641,10 @@
         "code",
       ];
       if (validChapters.includes(initialHash)) showChapter(initialHash, false);
+      window.addEventListener("hashchange", () => {
+        const chapterId = window.location.hash.slice(1) || "overview";
+        if (validChapters.includes(chapterId)) showChapter(chapterId, false);
+      });
     </script>
   </body>
 </html>
