@@ -11,13 +11,19 @@ import {
   asFinancialEventId,
   asMemberId,
 } from "@/domain/money/values";
-import { isExpenseDraftReady } from "@/lib/read-models/expense-draft-readiness";
+import {
+  EXPENSE_DRAFT_BLOCKER_COPY,
+  getExpenseDraftReadiness,
+} from "@/lib/read-models/expense-draft-readiness";
 import type {
   BalanceHero,
   MoneyReadInput,
   MoneyViewModel,
 } from "@/lib/read-models/money";
-import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
+import {
+  formatCentimesAsFrancs,
+  formatSignedCentimesAsFrancs,
+} from "@/lib/ui/franc-display";
 
 type MoneyMemberRow = MoneyReadInput["members"][number];
 type MoneyEventRow = MoneyReadInput["events"][number];
@@ -144,12 +150,99 @@ function toFinancialEvent(
   };
 }
 
+/**
+ * Names who put the money in, not merely who typed the row. Reversals carry no
+ * payer, and an opening balance stores the creditor rather than a payer, so
+ * both fall back to the member who recorded the event.
+ */
+function toEventMeta(
+  row: MoneyEventRow,
+  memberNameById: ReadonlyMap<string, string>,
+): string {
+  const occurredOn = formatCivilDate(row.occurred_on);
+  const payerName =
+    row.payer_member_id === null || row.type === "opening_balance"
+      ? undefined
+      : memberNameById.get(row.payer_member_id);
+  if (payerName !== undefined) {
+    return `${payerName} paid · ${occurredOn}`;
+  }
+  const creatorName = memberNameById.get(row.created_by_member_id) ?? "Someone";
+  return `${creatorName} recorded · ${occurredOn}`;
+}
+
+/** States a signed balance movement in words, always framed as a receivable. */
+function toBalanceEffect(deltaCents: number, partnerName: string): string {
+  if (deltaCents === 0) {
+    return `No change to what ${partnerName} owes you`;
+  }
+  const magnitude = formatCentimesAsFrancs(Math.abs(deltaCents));
+  return deltaCents > 0
+    ? `${partnerName} owes you ${magnitude} more`
+    : `${magnitude} off what ${partnerName} owes you`;
+}
+
 function toHero(balanceCents: number, partnerName: string): BalanceHero {
   if (balanceCents === 0) return { kind: "settled" };
   const amount = formatCentimesAsFrancs(Math.abs(balanceCents));
   return balanceCents > 0
     ? { kind: "partner_owes_you", partnerName, amount }
     : { kind: "you_owe_partner", partnerName, amount };
+}
+
+function toEventRows(
+  rows: readonly MoneyEventRow[],
+  deltaByEventId: ReadonlyMap<string, number>,
+  memberNameById: ReadonlyMap<string, string>,
+  partnerName: string,
+): MoneyViewModel["events"] {
+  return [...rows]
+    .sort(
+      (left, right) =>
+        right.occurred_on.localeCompare(left.occurred_on) ||
+        right.created_at.localeCompare(left.created_at),
+    )
+    .slice(0, 20)
+    .map((row) => {
+      const deltaCents = deltaByEventId.get(row.id) ?? 0;
+      return {
+        id: row.id,
+        title: row.description,
+        meta: toEventMeta(row, memberNameById),
+        amount: formatCentimesAsFrancs(row.amount_cents),
+        balanceDelta: formatSignedCentimesAsFrancs(deltaCents),
+        balanceEffect: toBalanceEffect(deltaCents, partnerName),
+        type: eventTypeLabels[row.type],
+      };
+    });
+}
+
+function toDraftCards(
+  rows: MoneyReadInput["drafts"],
+  memberIds: readonly string[],
+): MoneyViewModel["drafts"] {
+  return rows.map((row) => {
+    const readiness = getExpenseDraftReadiness({
+      amountCents: row.amount_cents,
+      payerMemberId: row.payer_member_id,
+      memberIds,
+      proposedAllocations: row.proposed_allocations,
+    });
+    return {
+      id: row.id,
+      title: row.description,
+      amount:
+        row.amount_cents === null
+          ? null
+          : formatCentimesAsFrancs(row.amount_cents),
+      meta: `Due ${formatCivilDate(row.occurred_on)} · does not count until confirmed`,
+      source: sourceLabels[row.source_kind],
+      canConfirm: readiness.ready,
+      blocker: readiness.ready
+        ? null
+        : EXPENSE_DRAFT_BLOCKER_COPY[readiness.blocker],
+    };
+  });
 }
 
 export function mapMoneyViewModel(input: MoneyReadInput): MoneyViewModel {
@@ -171,54 +264,40 @@ export function mapMoneyViewModel(input: MoneyReadInput): MoneyViewModel {
   );
   const balanceCents = deriveMemberBalances(ledgerEntries).get(viewerId) ?? 0;
   const eventById = new Map(input.events.map((event) => [event.id, event]));
-  const explanation =
-    explainBalance(ledgerEntries, financialEvents)
-      .find(({ memberId }) => memberId === viewerId)
-      ?.contributions.map((contribution) => ({
-        label:
-          eventById.get(contribution.financialEventId)?.description ??
-          eventTypeLabels[contribution.eventType],
-        delta: formatCentimesAsFrancs(contribution.deltaCents),
-      })) ?? [];
+  const contributions =
+    explainBalance(ledgerEntries, financialEvents).find(
+      ({ memberId }) => memberId === viewerId,
+    )?.contributions ?? [];
+  const explanation = contributions.map((contribution) => ({
+    label:
+      eventById.get(contribution.financialEventId)?.description ??
+      eventTypeLabels[contribution.eventType],
+    delta: formatSignedCentimesAsFrancs(contribution.deltaCents),
+  }));
+  const deltaByEventId = new Map<string, number>(
+    contributions.map((contribution) => [
+      contribution.financialEventId,
+      contribution.deltaCents,
+    ]),
+  );
   const memberNameById = new Map(
     input.members.map((member) => [member.user_id, member.display_name]),
   );
-  const events = [...input.events]
-    .sort(
-      (left, right) =>
-        right.occurred_on.localeCompare(left.occurred_on) ||
-        right.created_at.localeCompare(left.created_at),
-    )
-    .slice(0, 20)
-    .map((event) => ({
-      id: event.id,
-      title: event.description,
-      meta: `${memberNameById.get(event.created_by_member_id) ?? "Household"} · ${formatCivilDate(event.occurred_on)}`,
-      amount: formatCentimesAsFrancs(event.amount_cents),
-      type: eventTypeLabels[event.type],
-    }));
   return {
     hasOpeningBalance: input.events.some(
       (event) => event.type === "opening_balance",
     ),
     hero: toHero(balanceCents, partner.display_name),
     explanation,
-    drafts: input.drafts.map((draft) => ({
-      id: draft.id,
-      title: draft.description,
-      amount:
-        draft.amount_cents === null
-          ? null
-          : formatCentimesAsFrancs(draft.amount_cents),
-      meta: `Due ${formatCivilDate(draft.occurred_on)}`,
-      source: sourceLabels[draft.source_kind],
-      canConfirm: isExpenseDraftReady({
-        amountCents: draft.amount_cents,
-        payerMemberId: draft.payer_member_id,
-        memberIds: input.members.map((member) => member.user_id),
-        proposedAllocations: draft.proposed_allocations,
-      }),
-    })),
-    events,
+    drafts: toDraftCards(
+      input.drafts,
+      input.members.map((member) => member.user_id),
+    ),
+    events: toEventRows(
+      input.events,
+      deltaByEventId,
+      memberNameById,
+      partner.display_name,
+    ),
   };
 }

@@ -109,26 +109,31 @@ describe("mapMoneyViewModel", () => {
       amount: "CHF 8.00",
     });
     expect(model.explanation).toEqual([
-      { label: "Groceries", delta: "CHF 5.00" },
-      { label: "Starting balance", delta: "CHF 3.00" },
+      { label: "Groceries", delta: "+CHF 5.00" },
+      { label: "Starting balance", delta: "+CHF 3.00" },
     ]);
     expect(model.drafts).toEqual([
       {
         id: "draft",
         title: "Market shop",
         amount: "CHF 26.00",
-        meta: "Due 11 Aug 2026",
+        meta: "Due 11 Aug 2026 · does not count until confirmed",
         source: "Shopping",
         canConfirm: true,
+        blocker: null,
       },
     ]);
     expect(model.events[0]).toEqual({
       id: "expense",
       title: "Groceries",
-      meta: "Sam · 10 Aug 2026",
+      meta: "Sam paid · 10 Aug 2026",
       amount: "CHF 10.00",
+      balanceDelta: "+CHF 5.00",
+      balanceEffect: "Leah owes you CHF 5.00 more",
       type: "Expense",
     });
+    // An opening balance stores the creditor, not a payer, so it reads as recorded.
+    expect(model.events[1]?.meta).toBe("Sam recorded · 1 Aug 2026");
   });
 
   it("labels a negative viewer balance as money owed to the partner", () => {
@@ -182,6 +187,54 @@ describe("mapMoneyViewModel", () => {
     expect(model.explanation).toEqual([
       { label: "Dinner", delta: "-CHF 5.00" },
     ]);
+    expect(model.events[0]).toEqual({
+      id: "expense",
+      title: "Dinner",
+      meta: "Leah paid · 10 Aug 2026",
+      amount: "CHF 10.00",
+      balanceDelta: "-CHF 5.00",
+      balanceEffect: "CHF 5.00 off what Leah owes you",
+      type: "Expense",
+    });
+  });
+
+  it("names the one requirement each unconfirmable draft is missing", () => {
+    function blockerFor(draft: Partial<MoneyReadInput["drafts"][number]>) {
+      const model = mapMoneyViewModel(
+        moneyInput({
+          drafts: [
+            {
+              id: "draft",
+              source_kind: "recurring",
+              description: "Netflix",
+              amount_cents: 2_390,
+              occurred_on: "2026-08-11",
+              payer_member_id: viewerId,
+              proposed_allocations: [
+                { memberId: viewerId, allocatedCents: 1_195 },
+                { memberId: partnerId, allocatedCents: 1_195 },
+              ],
+              ...draft,
+            },
+          ],
+        }),
+      );
+      return model.drafts[0];
+    }
+
+    expect(blockerFor({ amount_cents: null })).toMatchObject({
+      canConfirm: false,
+      blocker: "Add the amount before confirming",
+    });
+    expect(blockerFor({ payer_member_id: null })).toMatchObject({
+      canConfirm: false,
+      blocker: "Say who paid before confirming",
+    });
+    expect(blockerFor({ proposed_allocations: [] })).toMatchObject({
+      canConfirm: false,
+      blocker: "Set how this splits before confirming",
+    });
+    expect(blockerFor({})).toMatchObject({ canConfirm: true, blocker: null });
   });
 
   it("shows a settled state without ledger entries", () => {

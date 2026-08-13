@@ -4,7 +4,10 @@ import type { GroceriesViewModel } from "@/lib/read-models/groceries";
 import type { HomeViewModel } from "@/lib/read-models/home";
 import type { MoneyViewModel } from "@/lib/read-models/money";
 import type { PlanViewModel } from "@/lib/read-models/plan";
-import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
+import {
+  formatCentimesAsFrancs,
+  formatSignedCentimesAsFrancs,
+} from "@/lib/ui/franc-display";
 import { GroceriesScreen } from "@/ui/groceries/groceries-screen";
 import { HomeScreen } from "@/ui/home/home-screen";
 import { MoneyScreen } from "@/ui/money/money-screen";
@@ -140,33 +143,41 @@ const moneyFixture: MoneyViewModel = {
     amount: formatCentimesAsFrancs(2350),
   },
   explanation: [
-    { label: "Opening balance", delta: formatCentimesAsFrancs(1500) },
-    { label: "Shared expenses", delta: formatCentimesAsFrancs(5850) },
-    { label: "Settlements", delta: formatCentimesAsFrancs(-5000) },
+    { label: "Opening balance", delta: formatSignedCentimesAsFrancs(1500) },
+    { label: "Rent · August", delta: formatSignedCentimesAsFrancs(92500) },
+    {
+      label: "Leah paid you · Twint",
+      delta: formatSignedCentimesAsFrancs(-5000),
+    },
   ],
   drafts: [
     {
       id: "money-draft-fixture",
       title: "Coop groceries",
       amount: formatCentimesAsFrancs(8430),
-      meta: "Paid by Leah · split 50/50 · does not count until confirmed",
+      meta: "Due 12 Aug 2026 · does not count until confirmed",
       source: "Shopping",
       canConfirm: false,
+      blocker: "Say who paid before confirming",
     },
   ],
   events: [
     {
       id: "settlement-fixture",
       title: "Leah paid you · Twint",
-      meta: "Settlement · Wednesday",
+      meta: "Leah paid · 12 Aug 2026",
       amount: formatCentimesAsFrancs(5000),
+      balanceDelta: formatSignedCentimesAsFrancs(-5000),
+      balanceEffect: "CHF 50.00 off what Leah owes you",
       type: "settlement",
     },
     {
       id: "rent-fixture",
       title: "Rent · August",
-      meta: "You paid · 50/50 · recurring",
+      meta: "Darius paid · 1 Aug 2026",
       amount: formatCentimesAsFrancs(185000),
+      balanceDelta: formatSignedCentimesAsFrancs(92500),
+      balanceEffect: "Leah owes you CHF 925.00 more",
       type: "expense",
     },
   ],

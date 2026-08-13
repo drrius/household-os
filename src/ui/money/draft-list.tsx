@@ -31,16 +31,16 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                       <h3 className="font-semibold">{draft.title}</h3>
                       <Badge variant="warning">{draft.source}</Badge>
                       {draft.canConfirm ? null : (
-                        <Badge
-                          id={`${draft.id}-needs-details`}
-                          variant="secondary"
-                        >
-                          Needs details
-                        </Badge>
+                        <Badge variant="secondary">Needs details</Badge>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {draft.meta}
+                    <p
+                      className="mt-1 text-sm text-muted-foreground"
+                      id={`${draft.id}-blocker`}
+                    >
+                      {draft.blocker === null
+                        ? draft.meta
+                        : `${draft.blocker}. ${draft.meta}`}
                     </p>
                   </div>
                   <p className="text-xl font-extrabold">
@@ -55,9 +55,7 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                       <input name="draftId" type="hidden" value={draft.id} />
                       <Button
                         aria-describedby={
-                          draft.canConfirm
-                            ? undefined
-                            : `${draft.id}-needs-details`
+                          draft.canConfirm ? undefined : `${draft.id}-blocker`
                         }
                         disabled={!draft.canConfirm}
                         type="submit"

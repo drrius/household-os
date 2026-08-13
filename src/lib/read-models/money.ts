@@ -81,12 +81,18 @@ export type MoneyViewModel = {
     meta: string;
     source: string;
     canConfirm: boolean;
+    /** The single requirement still missing, or null once the draft is ready. */
+    blocker: string | null;
   }>;
   events: Array<{
     id: string;
     title: string;
     meta: string;
     amount: FrancDisplay;
+    /** Signed movement this event applied to the viewer's derived balance. */
+    balanceDelta: FrancDisplay;
+    /** The same movement in words, for readers the sign alone does not serve. */
+    balanceEffect: string;
     type: string;
   }>;
 };

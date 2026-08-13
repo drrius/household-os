@@ -14,3 +14,14 @@ export function formatCentimesAsFrancs(centimes: number): FrancDisplay {
 
   return `${prefix}${francs}.${remainder}` as FrancDisplay;
 }
+
+/**
+ * Formats a signed centime delta so the direction is visible: `+CHF 9.25`,
+ * `-CHF 0.50`, `CHF 0.00`. Use it for balance movements; keep
+ * `formatCentimesAsFrancs` for absolute amounts such as the balance hero.
+ */
+export function formatSignedCentimesAsFrancs(centimes: number): FrancDisplay {
+  const formatted = formatCentimesAsFrancs(centimes);
+
+  return (centimes > 0 ? `+${formatted}` : formatted) as FrancDisplay;
+}
