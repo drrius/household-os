@@ -109,6 +109,8 @@ describe("mapTodaySnapshot meal prep", () => {
         canComplete: false,
       }),
     ]);
-    expect(view.progress).toEqual({ completedCount: 1, totalCount: 3 });
+    // Tomorrow's prep still renders, but only the completed and overdue prep
+    // are work that is due today.
+    expect(view.progress).toEqual({ completedCount: 1, totalCount: 2 });
   });
 });

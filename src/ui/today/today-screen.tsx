@@ -120,7 +120,7 @@ function ShoppingCard({ shopping }: { shopping: ShoppingGlance }) {
                 Ready
               </Badge>
               <strong>{itemCountLabel(shopping.itemCount)}</strong>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 on the shared list
               </p>
             </CardContent>
@@ -139,7 +139,7 @@ function ShoppingCard({ shopping }: { shopping: ShoppingGlance }) {
             </CardHeader>
             <CardContent className="grid gap-1">
               <strong>{shopping.shopperNames.join(" and ")}</strong>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {itemCountLabel(shopping.itemCount)} on the list
               </p>
             </CardContent>
@@ -151,6 +151,10 @@ function ShoppingCard({ shopping }: { shopping: ShoppingGlance }) {
       return exhaustiveShopping;
     }
   }
+}
+
+function draftReasonId(draftId: string): string {
+  return `${draftId}-needs-details`;
 }
 
 function DraftActions({ draft }: { draft: DraftGlance }) {
@@ -175,7 +179,14 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
     case "incomplete":
       return (
         <div className="flex flex-wrap gap-2">
-          <Button disabled>Confirm</Button>
+          <Button
+            aria-describedby={
+              draft.blocker === null ? undefined : draftReasonId(draft.draftId)
+            }
+            disabled
+          >
+            Confirm
+          </Button>
           <Link
             className={buttonVariants({
               className: "no-underline",
@@ -213,18 +224,28 @@ function MoneySection({ drafts }: { drafts: readonly DraftGlance[] }) {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-4">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     {draft.source === "shopping"
                       ? "Shopping draft"
                       : "Recurring draft"}
                   </p>
-                  {draft.amount === null ? (
-                    <strong>Amount needed</strong>
-                  ) : (
-                    <strong>
-                      <Amount value={draft.amount} />
-                    </strong>
-                  )}
+                  <div className="grid gap-1">
+                    {draft.amount === null ? (
+                      <strong>Amount needed</strong>
+                    ) : (
+                      <strong>
+                        <Amount value={draft.amount} />
+                      </strong>
+                    )}
+                    {draft.kind === "incomplete" && draft.blocker !== null ? (
+                      <p
+                        className="text-sm text-muted-foreground"
+                        id={draftReasonId(draft.draftId)}
+                      >
+                        {draft.blocker}
+                      </p>
+                    ) : null}
+                  </div>
                   <DraftActions draft={draft} />
                 </div>
               </CardContent>
@@ -245,7 +266,7 @@ export function TodayScreen({ view }: { view: TodayViewModel }) {
   return (
     <AppPage labelledBy="today-title">
       <PageHeader
-        eyebrow={`${view.dateLabel} · ${summary}`}
+        eyebrow={view.dateLabel}
         title={`Hoi ${view.greetingName}`}
         titleId="today-title"
         trailing={
@@ -257,10 +278,11 @@ export function TodayScreen({ view }: { view: TodayViewModel }) {
       {view.progress.totalCount > 0 ? (
         <ProgressMeter
           id="today-progress"
-          label="Today's routines"
+          label="Household work today"
           max={view.progress.totalCount}
           value={view.progress.completedCount}
           valueLabel={summary}
+          valueText={summary}
         />
       ) : null}
       <div className="grid gap-6 lg:grid-cols-3 lg:items-start">

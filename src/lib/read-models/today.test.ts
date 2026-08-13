@@ -162,7 +162,7 @@ describe("mapTodaySnapshot", () => {
         tone: "completed",
       }),
     ]);
-    expect(view.progress).toEqual({ completedCount: 1, totalCount: 4 });
+    expect(view.progress).toEqual({ completedCount: 1, totalCount: 6 });
     expect(view.meals).toEqual([
       expect.objectContaining({
         kind: "meal",
@@ -201,6 +201,7 @@ describe("mapTodaySnapshot", () => {
         draftId: "draft-incomplete",
         kind: "incomplete",
         amount: null,
+        blocker: "Add the amount before confirming",
       }),
     ]);
     expect(view.balancePill).toEqual({
