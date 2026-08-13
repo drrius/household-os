@@ -95,6 +95,78 @@ export async function loadMoneyFormOptions() {
   };
 }
 
+export type SettlementContext = {
+  creditorMemberId: string;
+  creditorName: string;
+  debtorMemberId: string;
+  debtorName: string;
+  outstandingCents: number;
+};
+
+/** Integer centimes only; a household is never reconciled with floats. */
+function reduceBalances(
+  memberIds: readonly string[],
+  rows: readonly { member_id: string; receivable_delta_cents: number }[],
+): Map<string, number> {
+  const balance = new Map(memberIds.map((memberId) => [memberId, 0]));
+  for (const row of rows) {
+    const current = balance.get(row.member_id);
+    if (
+      current === undefined ||
+      !Number.isSafeInteger(row.receivable_delta_cents)
+    ) {
+      throw new Error("The household balance could not be reconciled.");
+    }
+    const next = current + row.receivable_delta_cents;
+    if (!Number.isSafeInteger(next)) {
+      throw new Error("The balance is too large.");
+    }
+    balance.set(row.member_id, next);
+  }
+  return balance;
+}
+
+/** Null when the household is already settled up. */
+export async function loadSettlementContext(): Promise<SettlementContext | null> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const [membersResult, ledgerResult] = await Promise.all([
+    supabase
+      .from("household_members")
+      .select("user_id, display_name")
+      .eq("household_id", member.householdId)
+      .order("joined_at")
+      .order("user_id"),
+    supabase
+      .from("ledger_entries")
+      .select("member_id, receivable_delta_cents")
+      .eq("household_id", member.householdId),
+  ]);
+  const members = z
+    .array(memberSchema)
+    .parse(requireData("members", membersResult));
+  if (members.length !== 2) {
+    throw new Error("This household needs exactly two members.");
+  }
+  if (ledgerResult.error) {
+    throw new Error(`settlement_balance failed: ${ledgerResult.error.message}`);
+  }
+  const balance = reduceBalances(
+    members.map((row) => row.user_id),
+    ledgerResult.data ?? [],
+  );
+  const debtor = members.find((row) => (balance.get(row.user_id) ?? 0) < 0);
+  const creditor = members.find((row) => (balance.get(row.user_id) ?? 0) > 0);
+  if (debtor === undefined || creditor === undefined) return null;
+  return {
+    creditorMemberId: creditor.user_id,
+    creditorName: creditor.display_name,
+    debtorMemberId: debtor.user_id,
+    debtorName: debtor.display_name,
+    outstandingCents: Math.abs(balance.get(debtor.user_id) ?? 0),
+  };
+}
+
 export async function loadHouseholdSetup() {
   const member = await requireMemberContext();
   const supabase = await createClient();

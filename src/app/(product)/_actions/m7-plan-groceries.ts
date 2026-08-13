@@ -2,10 +2,13 @@
 
 import { redirect } from "next/navigation";
 import {
+  echoValues,
   errorHref,
   revalidateProduct,
 } from "@/app/(product)/_actions/m7-shared";
+import { errorField } from "@/lib/forms/field-error";
 import {
+  formErrorMessage,
   parseGroceryForm,
   parseMealForm,
   parsePlaceFromLibraryForm,
@@ -19,22 +22,39 @@ import {
   removeMealPlanEntry,
   updateMealPlanEntry,
 } from "@/lib/meals/commands";
+import type { FormActionResult } from "@/ui/forms/form-action";
+
+const mealEchoNames = ["title", "date", "slot", "recipeUrl", "notes"] as const;
 
 export async function createGroceryItemAction(
   formData: FormData,
-): Promise<void> {
+): Promise<FormActionResult> {
   let failure: unknown = null;
   try {
     await createGroceryItem(parseGroceryForm(formData));
   } catch (error) {
     failure = error;
   }
-  if (failure !== null) redirect(errorHref("/groceries/new", failure));
+  if (failure !== null) {
+    return {
+      error: formErrorMessage(failure),
+      field: errorField(failure),
+      values: echoValues(formData, [
+        "name",
+        "quantity",
+        "unit",
+        "categoryId",
+        "note",
+      ]),
+    };
+  }
   revalidateProduct(["/", "/groceries"]);
   redirect("/groceries");
 }
 
-export async function createMealAction(formData: FormData): Promise<void> {
+export async function createMealAction(
+  formData: FormData,
+): Promise<FormActionResult> {
   let failure: unknown = null;
   try {
     const input = parseMealForm(formData);
@@ -61,19 +81,23 @@ export async function createMealAction(formData: FormData): Promise<void> {
   } catch (error) {
     failure = error;
   }
-  if (failure !== null) redirect(errorHref("/plan/meals/new", failure));
+  if (failure !== null) {
+    return {
+      error: formErrorMessage(failure),
+      field: errorField(failure),
+      values: echoValues(formData, mealEchoNames),
+    };
+  }
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
 
 export async function placeFromLibraryAction(
   formData: FormData,
-): Promise<void> {
+): Promise<FormActionResult> {
   let failure: unknown = null;
-  let libraryId: string | null = null;
   try {
     const input = parsePlaceFromLibraryForm(formData);
-    libraryId = input.libraryId;
     await placeMeal({
       date: input.date,
       slot: input.slot,
@@ -86,16 +110,20 @@ export async function placeFromLibraryAction(
     failure = error;
   }
   if (failure !== null) {
-    const fallback =
-      libraryId === null
-        ? "/plan/meals/new"
-        : `/plan/meals/new?libraryId=${encodeURIComponent(libraryId)}`;
-    redirect(errorHref(fallback, failure));
+    return {
+      error: formErrorMessage(failure),
+      field: errorField(failure),
+      values: echoValues(formData, ["date", "slot", "notes"]),
+    };
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
 
+/**
+ * Bound to a plain `<form action>` rather than `FormFields`, and it carries no
+ * typed values, so it keeps the page-level `?error=` path.
+ */
 export async function removeMealEntryAction(formData: FormData): Promise<void> {
   let failure: unknown = null;
   let entryId: string | null = null;
@@ -118,12 +146,12 @@ export async function removeMealEntryAction(formData: FormData): Promise<void> {
   redirect("/plan");
 }
 
-export async function updateMealEntryAction(formData: FormData): Promise<void> {
+export async function updateMealEntryAction(
+  formData: FormData,
+): Promise<FormActionResult> {
   let failure: unknown = null;
-  let entryId: string | null = null;
   try {
     const input = parseUpdateMealForm(formData);
-    entryId = input.entryId;
     await updateMealPlanEntry({
       entryId: input.entryId,
       title: input.title,
@@ -137,9 +165,11 @@ export async function updateMealEntryAction(formData: FormData): Promise<void> {
     failure = error;
   }
   if (failure !== null) {
-    const fallback =
-      entryId === null ? "/plan" : `/plan/meals/${encodeURIComponent(entryId)}`;
-    redirect(errorHref(fallback, failure));
+    return {
+      error: formErrorMessage(failure),
+      field: errorField(failure),
+      values: echoValues(formData, mealEchoNames),
+    };
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");

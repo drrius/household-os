@@ -1,11 +1,16 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { FormAction } from "@/ui/forms/form-action";
 import {
   FormField,
   FormFields,
   FormSection,
   selectClassName,
 } from "@/ui/forms/form-page";
+import {
+  RoutineResponsibilityFields,
+  type AssignmentPolicy,
+} from "@/ui/forms/routine-responsibility-fields.client";
 import {
   RoutineScheduleFields,
   type ScheduleMode,
@@ -19,7 +24,7 @@ export type RoutineFormDefaults = {
   instructions?: string | null;
   areaId?: string;
   petId?: string | null;
-  assignmentPolicy?: "assigned" | "alternating" | "shared";
+  assignmentPolicy?: AssignmentPolicy;
   memberId?: string | null;
   priority?: "pet_care" | "meal_deadline" | "cleaning" | "general";
   scheduleMode?: ScheduleMode;
@@ -47,7 +52,8 @@ function RoutineDetails({
       </FormField>
       <FormField
         label="Instructions"
-        description="Optional details both members can see."
+        description="Details both members can see."
+        optional
       >
         <Textarea
           defaultValue={defaults.instructions ?? ""}
@@ -71,7 +77,8 @@ function RoutineDetails({
       </FormField>
       <FormField
         label="Pet"
-        description="Leave blank when this routine is not pet care."
+        description="Only pet care routines need one."
+        optional
       >
         <select
           className={selectClassName}
@@ -102,46 +109,6 @@ function RoutineDetails({
   );
 }
 
-function ResponsibilityFields({
-  defaults,
-  members,
-}: {
-  defaults: RoutineFormDefaults;
-  members: readonly Member[];
-}) {
-  return (
-    <FormSection legend="Responsibility">
-      <FormField label="Assignment">
-        <select
-          className={selectClassName}
-          defaultValue={defaults.assignmentPolicy ?? "shared"}
-          name="assignmentPolicy"
-        >
-          <option value="shared">Shared</option>
-          <option value="assigned">Assigned</option>
-          <option value="alternating">Alternating</option>
-        </select>
-      </FormField>
-      <FormField
-        label="Assigned member or rotation starter"
-        description="Ignored for a shared routine."
-      >
-        <select
-          className={selectClassName}
-          defaultValue={defaults.memberId ?? members[0]?.user_id}
-          name="memberId"
-        >
-          {members.map((member) => (
-            <option key={member.user_id} value={member.user_id}>
-              {member.display_name}
-            </option>
-          ))}
-        </select>
-      </FormField>
-    </FormSection>
-  );
-}
-
 export function RoutineForm({
   action,
   areas,
@@ -151,7 +118,7 @@ export function RoutineForm({
   pets,
   submitLabel,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: FormAction;
   areas: readonly Option[];
   defaultDate: string;
   defaults?: RoutineFormDefaults;
@@ -165,7 +132,11 @@ export function RoutineForm({
         <input name="routineId" type="hidden" value={defaults.routineId} />
       ) : null}
       <RoutineDetails areas={areas} defaults={defaults} pets={pets} />
-      <ResponsibilityFields defaults={defaults} members={members} />
+      <RoutineResponsibilityFields
+        defaultMemberId={defaults.memberId ?? null}
+        defaultPolicy={defaults.assignmentPolicy ?? "shared"}
+        members={members}
+      />
       <RoutineScheduleFields
         defaultDate={defaultDate}
         defaultMode={defaults.scheduleMode ?? "one_off"}

@@ -5,12 +5,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
 
+export { FormField } from "@/ui/forms/form-field.client";
+export { FormFields } from "@/ui/forms/form-fields.client";
+
 export const selectClassName =
-  "h-9 w-full min-w-0 rounded-4xl border border-input bg-input/30 px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm";
+  "h-11 w-full min-w-0 rounded-4xl border border-input bg-field/30 px-3 text-base md:h-9 md:text-sm";
 
 export function FormPage({
   backHref,
@@ -28,74 +30,36 @@ export function FormPage({
   const titleId = `form-${title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`;
   return (
     <AppPage labelledBy={titleId}>
-      <PageHeader
-        titleId={titleId}
-        title={title}
-        trailing={
-          <Link
-            className={buttonVariants({
-              className: "no-underline",
-              variant: "outline",
-            })}
-            href={backHref}
-          >
-            Cancel
-          </Link>
-        }
-      />
-      <p className="text-sm text-muted-foreground">{description}</p>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      <Card>
-        <CardContent>{children}</CardContent>
-      </Card>
+      {/* Forms cap their measure; list screens keep the full column. */}
+      <div className="flex w-full max-w-2xl flex-col gap-4">
+        <PageHeader
+          titleId={titleId}
+          title={title}
+          trailing={
+            <Link
+              className={buttonVariants({
+                className: "no-underline",
+                variant: "outline",
+              })}
+              href={backHref}
+            >
+              Cancel
+            </Link>
+          }
+        />
+        <p className="text-sm text-muted-foreground">{description}</p>
+        {/* Kept for flows that redirect with ?error= instead of using FormFields. */}
+        {error ? (
+          <Alert variant="destructive">
+            <AlertTitle>Couldn&apos;t save</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        <Card>
+          <CardContent>{children}</CardContent>
+        </Card>
+      </div>
     </AppPage>
-  );
-}
-
-export function FormFields({
-  action,
-  children,
-  submitLabel,
-}: {
-  action: (formData: FormData) => Promise<void>;
-  children: ReactNode;
-  submitLabel: string;
-}) {
-  return (
-    <form action={action} className="grid gap-5">
-      {children}
-      <button
-        className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-fit")}
-        type="submit"
-      >
-        {submitLabel}
-      </button>
-    </form>
-  );
-}
-
-export function FormField({
-  children,
-  description,
-  label,
-}: {
-  children: ReactNode;
-  description?: string;
-  label: string;
-}) {
-  return (
-    <label className="grid gap-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {description ? (
-        <span className="font-normal text-muted-foreground">{description}</span>
-      ) : null}
-    </label>
   );
 }
 
