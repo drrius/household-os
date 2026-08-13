@@ -11,6 +11,7 @@ import {
   useState,
   type FormEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -100,6 +101,33 @@ function useNativeValidation() {
   return { errors, onInput, onInvalidCapture };
 }
 
+function FormRejectionLiveRegion({
+  error,
+  liveRegionRef,
+}: {
+  error: string | undefined;
+  liveRegionRef: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      aria-live="polite"
+      className="grid gap-5"
+      ref={liveRegionRef}
+      tabIndex={-1}
+    >
+      {error === undefined ? null : (
+        <Alert variant="destructive">
+          <AlertTitle>Couldn&apos;t save</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <p className="text-sm text-muted-foreground">
+        Everything is required unless marked optional.
+      </p>
+    </div>
+  );
+}
+
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
@@ -154,22 +182,7 @@ export function FormFields({
       onInput={onInput}
       onInvalidCapture={onInvalidCapture}
     >
-      <div
-        aria-live="polite"
-        className="grid gap-5"
-        ref={alertRef}
-        tabIndex={-1}
-      >
-        {error === undefined ? null : (
-          <Alert variant="destructive">
-            <AlertTitle>Couldn&apos;t save</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <p className="text-sm text-muted-foreground">
-          Everything is required unless marked optional.
-        </p>
-      </div>
+      <FormRejectionLiveRegion error={error} liveRegionRef={alertRef} />
       <FormFieldsContext value={state}>
         <div className="grid gap-5" key={submissionId}>
           {children}

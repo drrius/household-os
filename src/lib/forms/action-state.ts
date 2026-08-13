@@ -12,6 +12,10 @@ export type FormActionState = {
 
 export const initialFormActionState: FormActionState = { submissionId: 0 };
 
+export function nextSubmissionId(previous: FormActionState): number {
+  return previous.submissionId + 1;
+}
+
 export type FormAction = (
   previous: FormActionState,
   formData: FormData,
@@ -36,7 +40,7 @@ export function formRejection(
     error: formErrorMessage(failure),
     field: errorField(failure),
     values,
-    submissionId: previous.submissionId + 1,
+    submissionId: nextSubmissionId(previous),
   };
 }
 

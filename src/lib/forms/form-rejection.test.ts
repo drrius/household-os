@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { formRejection, settleFormAction } from "./action-state";
+import { echoListSeparator } from "./echo";
 import { FormFieldError } from "./field-error";
 
 const failure = new FormFieldError("amount", "Enter an amount in francs.");
@@ -75,7 +76,7 @@ describe("settleFormAction", () => {
     expect(rejected).toEqual({
       error: "Enter an amount in francs.",
       field: "amount",
-      values: { amount: "abc", weekdays: "1\u001f5" },
+      values: { amount: "abc", weekdays: `1${echoListSeparator}5` },
       submissionId: 4,
     });
   });
