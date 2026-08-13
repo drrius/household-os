@@ -59,10 +59,11 @@ export function FirstVisitWelcome() {
 
   return (
     <Dialog
+      disablePointerDismissal
       open={!dismissed}
-      onOpenChange={(open) => {
+      onOpenChange={(open, details) => {
         if (!open) {
-          persistDismissed();
+          details.cancel();
         }
       }}
     >
