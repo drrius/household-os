@@ -1,0 +1,3632 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="An interactive, source-backed walkthrough of the Household OS architecture."
+    />
+    <link rel="preconnect" href="https://rsms.me" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <title>Household OS architecture explorer</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --canvas: oklch(0.963 0.012 79.8);
+        --ink: oklch(0.27 0.012 55.8);
+        --paper: oklch(0.994 0.006 84.6);
+        --muted: oklch(0.94 0.016 82);
+        --muted-ink: oklch(0.505 0.015 63.7);
+        --coral: oklch(0.708 0.185 30.1);
+        --coral-strong: oklch(0.558 0.166 31.6);
+        --coral-soft: oklch(0.95 0.025 32.9);
+        --green: oklch(0.48 0.13 138);
+        --green-soft: oklch(0.945 0.02 138);
+        --gold: oklch(0.66 0.11 82);
+        --gold-soft: oklch(0.966 0.04 88.2);
+        --blue: oklch(0.52 0.105 238);
+        --blue-soft: oklch(0.95 0.025 238);
+        --border: oklch(0.868 0.027 80.2);
+        --hairline: oklch(0.27 0.012 55.8 / 10%);
+        --shadow: 0 18px 50px oklch(0.27 0.012 55.8 / 8%);
+        --button-shadow: 0 8px 20px
+          color-mix(in oklch, var(--coral) 24%, transparent);
+        --radius: 14px;
+        --radius-inner: 9px;
+        --sidebar: 252px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --canvas: oklch(0.245 0.012 55.8);
+          --ink: oklch(0.963 0.012 79.8);
+          --paper: oklch(0.29 0.014 55);
+          --muted: oklch(0.33 0.02 55);
+          --muted-ink: oklch(0.78 0.02 80);
+          --coral: oklch(0.72 0.17 30.1);
+          --coral-strong: oklch(0.78 0.135 31.6);
+          --coral-soft: oklch(0.34 0.04 32);
+          --green: oklch(0.72 0.14 138);
+          --green-soft: oklch(0.31 0.05 138);
+          --gold: oklch(0.78 0.1 82);
+          --gold-soft: oklch(0.35 0.06 88);
+          --blue: oklch(0.73 0.1 238);
+          --blue-soft: oklch(0.31 0.035 238);
+          --border: oklch(1 0 0 / 12%);
+          --hairline: oklch(1 0 0 / 9%);
+          --shadow: none;
+          --button-shadow: none;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        font-family:
+          InterVariable,
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01", "ss03";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        min-width: 320px;
+        min-height: 100dvh;
+        margin: 0;
+        background:
+          radial-gradient(
+            circle at 96% 0%,
+            var(--coral-soft),
+            transparent 26rem
+          ),
+          var(--canvas);
+        color: var(--ink);
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--coral);
+        outline-offset: 3px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 100;
+        padding: 10px 14px;
+        border-radius: 9px;
+        background: var(--ink);
+        color: var(--canvas);
+        transform: translateY(-160%);
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .app {
+        isolation: isolate;
+        width: min(100%, 1600px);
+        margin: 0 auto;
+      }
+
+      .masthead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        min-height: 70px;
+        padding: 14px clamp(18px, 3vw, 42px);
+        border-bottom: 1px solid var(--hairline);
+        background: color-mix(in oklch, var(--canvas) 90%, transparent);
+        backdrop-filter: blur(16px);
+      }
+
+      .wordmark {
+        display: flex;
+        min-width: 0;
+        align-items: baseline;
+        gap: 10px;
+        text-decoration: none;
+      }
+
+      .wordmark strong {
+        font-weight: 650;
+        letter-spacing: -0.025em;
+      }
+
+      .wordmark span {
+        overflow: hidden;
+        color: var(--muted-ink);
+        font-size: 0.875rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .snapshot {
+        flex: none;
+        padding: 5px 9px;
+        border: 1px solid var(--hairline);
+        border-radius: 999px;
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        white-space: nowrap;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: var(--sidebar) minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .chapter-rail {
+        position: sticky;
+        top: 0;
+        display: grid;
+        min-height: calc(100dvh - 70px);
+        align-content: space-between;
+        gap: 28px;
+        padding: 34px 22px 26px clamp(18px, 3vw, 42px);
+        border-right: 1px solid var(--hairline);
+      }
+
+      .rail-label,
+      .eyebrow,
+      .zone-label,
+      .detail-kicker,
+      .metric-label {
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .chapter-nav {
+        display: grid;
+        gap: 5px;
+        margin-top: 12px;
+      }
+
+      .chapter-button {
+        position: relative;
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        min-height: 48px;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .chapter-button:hover {
+        background: color-mix(in oklch, var(--muted) 70%, transparent);
+      }
+
+      .chapter-button[aria-selected="true"] {
+        background: var(--coral-soft);
+        color: var(--coral-strong);
+      }
+
+      .chapter-number {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .chapter-name {
+        overflow: hidden;
+        font-size: 0.875rem;
+        font-weight: 550;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .rail-note {
+        max-width: 22ch;
+        color: var(--muted-ink);
+        font-size: 0.8125rem;
+        line-height: 1.5;
+      }
+
+      .main {
+        min-width: 0;
+        padding: clamp(32px, 5vw, 72px) clamp(18px, 5vw, 72px) 80px;
+      }
+
+      .chapter {
+        animation: chapter-in 260ms ease-out both;
+      }
+
+      @keyframes chapter-in {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.8fr);
+        align-items: end;
+        gap: 36px;
+        padding-bottom: 40px;
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .eyebrow {
+        color: var(--coral-strong);
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        text-wrap: balance;
+      }
+
+      h1 {
+        max-width: 18ch;
+        margin-top: 12px;
+        font-size: clamp(2.5rem, 6vw, 5.5rem);
+        font-weight: 620;
+        letter-spacing: -0.055em;
+        line-height: 0.98;
+      }
+
+      .hero-copy {
+        max-width: 62ch;
+        margin-top: 22px;
+        color: var(--muted-ink);
+        font-size: clamp(1.05rem, 1.7vw, 1.25rem);
+        line-height: 1.6;
+        text-wrap: pretty;
+      }
+
+      .hero-side {
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero-side p {
+        color: var(--muted-ink);
+        font-size: 0.875rem;
+        line-height: 1.6;
+        text-wrap: pretty;
+      }
+
+      .primary-action,
+      .secondary-action {
+        position: relative;
+        display: inline-flex;
+        min-height: 38px;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        padding: 8px 13px;
+        border-radius: 9px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .primary-action::after,
+      .secondary-action::after,
+      .iconless-button::after,
+      .filter-button::after {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: max(100%, 48px);
+        height: max(100%, 48px);
+        content: "";
+        transform: translate(-50%, -50%);
+      }
+
+      .primary-action {
+        border: 1px solid var(--coral);
+        background: var(--coral);
+        color: oklch(0.22 0.02 45);
+        box-shadow: var(--button-shadow);
+      }
+
+      .secondary-action,
+      .iconless-button,
+      .filter-button {
+        border: 1px solid var(--hairline);
+        background: var(--paper);
+      }
+
+      .primary-action:active,
+      .secondary-action:active,
+      .iconless-button:active,
+      .filter-button:active {
+        transform: translateY(1px);
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 0;
+        padding: 28px 0 0;
+      }
+
+      .fact {
+        min-width: 0;
+        padding: 0 20px;
+        border-left: 1px solid var(--hairline);
+      }
+
+      .fact:first-child {
+        padding-left: 0;
+        border-left: 0;
+      }
+
+      .fact:last-child {
+        padding-right: 0;
+      }
+
+      .fact dt {
+        overflow: hidden;
+        color: var(--muted-ink);
+        font-size: 0.8125rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .fact dd {
+        margin: 4px 0 0;
+        font-size: clamp(1.35rem, 3vw, 2.1rem);
+        font-weight: 620;
+        letter-spacing: -0.04em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .section-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr);
+        gap: 32px;
+        align-items: end;
+        padding: 62px 0 24px;
+      }
+
+      .section-heading h2 {
+        max-width: 22ch;
+        font-size: clamp(1.75rem, 3vw, 2.5rem);
+        font-weight: 620;
+        letter-spacing: -0.04em;
+      }
+
+      .section-heading p {
+        max-width: 60ch;
+        color: var(--muted-ink);
+        font-size: 0.9375rem;
+        line-height: 1.65;
+        text-wrap: pretty;
+      }
+
+      .map-shell,
+      .journey-shell,
+      .detail-panel,
+      .scenario-result,
+      .test-panel,
+      .code-browser {
+        --outer-radius: 18px;
+        --panel-padding: 10px;
+        border: 1px solid var(--hairline);
+        border-radius: var(--outer-radius);
+        background: color-mix(in oklch, var(--paper) 76%, transparent);
+        box-shadow: var(--shadow);
+      }
+
+      .system-map {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 10px;
+      }
+
+      .zone {
+        display: grid;
+        align-content: start;
+        gap: 9px;
+        min-width: 0;
+        padding: 16px;
+        border-radius: calc(var(--outer-radius) - var(--panel-padding));
+        background: var(--muted);
+      }
+
+      .zone-label {
+        padding-bottom: 4px;
+      }
+
+      .map-node {
+        position: relative;
+        display: grid;
+        gap: 4px;
+        width: 100%;
+        min-height: 74px;
+        padding: 13px;
+        border: 1px solid var(--hairline);
+        border-radius: 9px;
+        background: var(--paper);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .map-node:hover {
+        border-color: color-mix(in oklch, var(--coral) 45%, var(--hairline));
+      }
+
+      .map-node[aria-pressed="true"] {
+        border-color: var(--coral);
+        outline: 2px solid color-mix(in oklch, var(--coral) 25%, transparent);
+        outline-offset: 1px;
+      }
+
+      .map-node strong {
+        overflow: hidden;
+        font-size: 0.875rem;
+        font-weight: 620;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .map-node span {
+        color: var(--muted-ink);
+        font-size: 0.75rem;
+        line-height: 1.45;
+      }
+
+      .flow-marker {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.6875rem;
+        letter-spacing: 0.04em;
+      }
+
+      .flow-marker::before,
+      .flow-marker::after {
+        height: 1px;
+        background: var(--hairline);
+        content: "";
+      }
+
+      .map-detail {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.75fr);
+        gap: 28px;
+        padding: 24px 26px 26px;
+        border-top: 1px solid var(--hairline);
+      }
+
+      .map-detail h3,
+      .journey-detail h3,
+      .domain-detail h3,
+      .scenario-result h3,
+      .test-panel h3 {
+        margin-top: 7px;
+        font-size: 1.35rem;
+        font-weight: 620;
+        letter-spacing: -0.025em;
+      }
+
+      .map-detail p,
+      .journey-detail p,
+      .domain-detail p,
+      .scenario-result p,
+      .test-panel p {
+        margin-top: 10px;
+        color: var(--muted-ink);
+        line-height: 1.65;
+        text-wrap: pretty;
+      }
+
+      .source-list,
+      .plain-list,
+      .guarantee-list {
+        display: grid;
+        min-width: 0;
+        gap: 8px;
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .source-link {
+        display: inline-flex;
+        min-width: 0;
+        max-width: 100%;
+        align-items: center;
+        gap: 8px;
+        color: var(--coral-strong);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        text-decoration: none;
+      }
+
+      .source-link::before {
+        flex: none;
+        width: 13px;
+        height: 1px;
+        background: currentColor;
+        content: "";
+      }
+
+      .source-link span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .source-link:hover span {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .guarantee-list li,
+      .plain-list li {
+        position: relative;
+        padding-left: 18px;
+        color: var(--muted-ink);
+        font-size: 0.875rem;
+        line-height: 1.55;
+      }
+
+      .guarantee-list li::before,
+      .plain-list li::before {
+        position: absolute;
+        top: 0.65em;
+        left: 1px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        content: "";
+      }
+
+      .chapter-intro {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.65fr);
+        gap: 36px;
+        padding-bottom: 34px;
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .chapter-intro h1 {
+        font-size: clamp(2.35rem, 5vw, 4.6rem);
+      }
+
+      .chapter-intro aside {
+        align-self: end;
+        padding: 16px 0 2px 20px;
+        border-left: 2px solid var(--coral);
+        color: var(--muted-ink);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .journey-switcher,
+      .filter-row,
+      .scenario-grid,
+      .test-tabs {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 2px 2px 10px;
+        scrollbar-width: thin;
+      }
+
+      .journey-choice,
+      .filter-button,
+      .scenario-button,
+      .test-tab {
+        position: relative;
+        flex: none;
+        min-height: 38px;
+        padding: 8px 12px;
+        border: 1px solid var(--hairline);
+        border-radius: 9px;
+        background: var(--paper);
+        font-size: 0.8125rem;
+        font-weight: 560;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .journey-choice[aria-pressed="true"],
+      .filter-button[aria-pressed="true"],
+      .scenario-button[aria-pressed="true"],
+      .test-tab[aria-selected="true"] {
+        border-color: transparent;
+        background: var(--coral-soft);
+        color: var(--coral-strong);
+      }
+
+      .journey-shell {
+        margin-top: 18px;
+        overflow: hidden;
+      }
+
+      .journey-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 24px 26px 18px;
+      }
+
+      .journey-header h2 {
+        margin-top: 7px;
+        font-size: 1.6rem;
+        font-weight: 620;
+        letter-spacing: -0.035em;
+      }
+
+      .journey-progress {
+        flex: 0 1 270px;
+      }
+
+      .progress-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.6875rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .progress-track {
+        height: 4px;
+        margin-top: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--muted);
+      }
+
+      .progress-bar {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--coral);
+        transform-origin: left;
+        transition: width 220ms ease;
+      }
+
+      .step-strip {
+        display: grid;
+        grid-auto-columns: minmax(150px, 1fr);
+        grid-auto-flow: column;
+        gap: 0;
+        margin: 0;
+        padding: 0 26px 18px;
+        overflow-x: auto;
+        list-style: none;
+      }
+
+      .step-button {
+        position: relative;
+        display: grid;
+        grid-template-rows: 18px auto;
+        gap: 10px;
+        width: 100%;
+        min-height: 82px;
+        padding: 0 12px 10px 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .step-button::before {
+        position: absolute;
+        top: 8px;
+        left: 16px;
+        right: 0;
+        height: 1px;
+        background: var(--hairline);
+        content: "";
+      }
+
+      .step-dot {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        width: 17px;
+        height: 17px;
+        place-items: center;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        background: var(--paper);
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.625rem;
+      }
+
+      .step-button[data-state="past"] .step-dot,
+      .step-button[data-state="current"] .step-dot {
+        border-color: var(--coral);
+        background: var(--coral);
+        color: oklch(0.22 0.02 45);
+      }
+
+      .step-button[data-state="current"] .step-dot {
+        outline: 4px solid color-mix(in oklch, var(--coral) 22%, transparent);
+      }
+
+      .step-title {
+        max-width: 18ch;
+        font-size: 0.75rem;
+        font-weight: 560;
+        line-height: 1.35;
+      }
+
+      .journey-detail {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.65fr);
+        gap: 34px;
+        min-height: 250px;
+        padding: 28px 26px;
+        border-top: 1px solid var(--hairline);
+        background: var(--paper);
+      }
+
+      .detail-side {
+        display: grid;
+        align-content: start;
+        gap: 18px;
+        padding-left: 22px;
+        border-left: 1px solid var(--hairline);
+      }
+
+      .data-chip-row,
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 12px;
+      }
+
+      .data-chip,
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--muted);
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.6875rem;
+      }
+
+      .data-chip[data-tone="write"] {
+        background: var(--coral-soft);
+        color: var(--coral-strong);
+      }
+
+      .data-chip[data-tone="guard"] {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .journey-controls {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 26px 22px;
+        border-top: 1px solid var(--hairline);
+      }
+
+      .iconless-button {
+        position: relative;
+        min-height: 36px;
+        padding: 7px 12px;
+        border-radius: 9px;
+        font-size: 0.8125rem;
+        font-weight: 560;
+        cursor: pointer;
+      }
+
+      .iconless-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+      }
+
+      .domain-layout {
+        display: grid;
+        grid-template-columns: minmax(250px, 0.72fr) minmax(0, 1.28fr);
+        gap: 18px;
+        margin-top: 20px;
+      }
+
+      .domain-list {
+        display: grid;
+        align-content: start;
+        gap: 8px;
+      }
+
+      .domain-button {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 58px;
+        padding: 12px 14px;
+        border: 1px solid var(--hairline);
+        border-radius: 10px;
+        background: var(--paper);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .domain-button:hover {
+        border-color: color-mix(in oklch, var(--coral) 45%, var(--hairline));
+      }
+
+      .domain-button[aria-pressed="true"] {
+        border-color: var(--coral);
+        background: var(--coral-soft);
+      }
+
+      .domain-button strong {
+        overflow: hidden;
+        font-size: 0.875rem;
+        font-weight: 620;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .domain-button span {
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.6875rem;
+      }
+
+      .domain-detail {
+        min-height: 420px;
+        padding: 28px;
+      }
+
+      .domain-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        margin-top: 26px;
+        padding-top: 24px;
+        border-top: 1px solid var(--hairline);
+      }
+
+      .domain-detail-grid > section,
+      .source-list > li {
+        min-width: 0;
+      }
+
+      .domain-detail-grid h4,
+      .trust-boundary h3,
+      .code-group-title {
+        font-size: 0.875rem;
+        font-weight: 620;
+      }
+
+      .relationship {
+        margin-top: 8px;
+        color: var(--muted-ink);
+        font-size: 0.8125rem;
+        line-height: 1.55;
+      }
+
+      .relationship strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .boundary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        margin-top: 18px;
+        padding: 26px 0;
+        border-top: 1px solid var(--hairline);
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .trust-boundary {
+        padding: 0 26px;
+        border-left: 1px solid var(--hairline);
+      }
+
+      .trust-boundary:first-child {
+        padding-left: 0;
+        border-left: 0;
+      }
+
+      .trust-boundary:last-child {
+        padding-right: 0;
+      }
+
+      .trust-boundary p {
+        margin-top: 8px;
+        color: var(--muted-ink);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .scenario-grid {
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      .scenario-button {
+        white-space: normal;
+      }
+
+      .scenario-result {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(200px, 0.7fr);
+        gap: 28px;
+        min-height: 230px;
+        margin-top: 12px;
+        padding: 26px;
+      }
+
+      .rejection-path {
+        display: grid;
+        align-content: start;
+        gap: 8px;
+      }
+
+      .rejection-step {
+        padding: 10px 12px;
+        border-left: 3px solid var(--border);
+        background: var(--muted);
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        line-height: 1.45;
+      }
+
+      .rejection-step[data-state="stop"] {
+        border-left-color: var(--green);
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .test-tabs {
+        margin-top: 18px;
+      }
+
+      .test-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.7fr);
+        gap: 28px;
+        min-height: 260px;
+        margin-top: 12px;
+        padding: 26px;
+      }
+
+      .command {
+        display: block;
+        width: 100%;
+        margin-top: 14px;
+        padding: 14px;
+        overflow-x: auto;
+        border-radius: 9px;
+        background: oklch(0.22 0.012 55.8);
+        color: oklch(0.94 0.016 82);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        line-height: 1.6;
+        white-space: nowrap;
+      }
+
+      .code-browser {
+        margin-top: 18px;
+        overflow: hidden;
+      }
+
+      .code-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        padding: 18px;
+        border-bottom: 1px solid var(--hairline);
+      }
+
+      .search-wrap {
+        min-width: 0;
+      }
+
+      .search-label {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--muted-ink);
+        font-size: 0.75rem;
+        font-weight: 560;
+      }
+
+      .search-input {
+        width: 100%;
+        min-height: 42px;
+        padding: 10px 12px;
+        border: 0;
+        border-radius: 9px;
+        outline: 1px solid var(--hairline);
+        outline-offset: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 1rem;
+      }
+
+      .search-input:focus-visible {
+        outline: 2px solid var(--coral);
+        outline-offset: -1px;
+      }
+
+      .result-count {
+        align-self: end;
+        padding-bottom: 10px;
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .code-list {
+        margin: 0;
+        padding: 0 20px;
+      }
+
+      .code-row {
+        display: grid;
+        grid-template-columns: minmax(230px, 0.9fr) minmax(0, 1.1fr) 100px;
+        gap: 22px;
+        align-items: center;
+        padding: 18px 0;
+        border-top: 1px solid var(--hairline);
+      }
+
+      .code-row:first-child {
+        border-top: 0;
+      }
+
+      .code-row dt,
+      .code-row dd {
+        min-width: 0;
+        margin: 0;
+      }
+
+      .code-path {
+        overflow: hidden;
+        color: var(--coral-strong);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        text-decoration: none;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .code-path:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .code-role {
+        color: var(--muted-ink);
+        font-size: 0.875rem;
+        line-height: 1.55;
+      }
+
+      .code-kind {
+        justify-self: end;
+        color: var(--muted-ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.6875rem;
+        text-align: right;
+      }
+
+      .empty-results {
+        padding: 32px 20px;
+        color: var(--muted-ink);
+        text-align: center;
+      }
+
+      .footer-note {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        margin-top: 54px;
+        padding-top: 20px;
+        border-top: 1px solid var(--hairline);
+        color: var(--muted-ink);
+        font-size: 0.75rem;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 980px) {
+        .masthead {
+          min-height: 62px;
+        }
+
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .chapter-rail {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          display: block;
+          min-height: 0;
+          padding: 8px 16px;
+          overflow-x: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--hairline);
+          background: color-mix(in oklch, var(--canvas) 92%, transparent);
+          backdrop-filter: blur(16px);
+        }
+
+        .rail-label,
+        .rail-note {
+          display: none;
+        }
+
+        .chapter-nav {
+          display: flex;
+          width: max-content;
+          margin: 0;
+        }
+
+        .chapter-button {
+          grid-template-columns: auto auto;
+          width: auto;
+          padding: 8px 12px;
+        }
+
+        .main {
+          padding-top: 42px;
+        }
+
+        .hero,
+        .chapter-intro,
+        .section-heading,
+        .map-detail,
+        .journey-detail,
+        .scenario-result,
+        .test-panel {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-side,
+        .chapter-intro aside {
+          max-width: 60ch;
+        }
+
+        .system-map {
+          grid-template-columns: 1fr;
+        }
+
+        .zone {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .zone-label,
+        .flow-marker {
+          grid-column: 1 / -1;
+        }
+
+        .domain-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .domain-list {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .domain-button {
+          grid-template-columns: 1fr;
+          align-content: center;
+        }
+
+        .boundary-grid {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        .trust-boundary,
+        .trust-boundary:first-child,
+        .trust-boundary:last-child {
+          padding: 20px 0 0;
+          border-top: 1px solid var(--hairline);
+          border-left: 0;
+        }
+
+        .trust-boundary:first-child {
+          padding-top: 0;
+          border-top: 0;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .masthead {
+          padding-inline: 16px;
+        }
+
+        .wordmark span,
+        .snapshot {
+          display: none;
+        }
+
+        .main {
+          padding: 32px 16px 56px;
+        }
+
+        h1 {
+          font-size: clamp(2.4rem, 13vw, 3.6rem);
+        }
+
+        .hero {
+          gap: 28px;
+          padding-bottom: 30px;
+        }
+
+        .hero-copy,
+        .section-heading p,
+        .chapter-intro aside,
+        .map-detail p,
+        .journey-detail p,
+        .domain-detail p,
+        .scenario-result p,
+        .test-panel p,
+        .code-role,
+        .trust-boundary p {
+          font-size: 1rem;
+        }
+
+        .primary-action,
+        .secondary-action,
+        .journey-choice,
+        .scenario-button,
+        .test-tab,
+        .iconless-button,
+        .filter-button {
+          min-height: 44px;
+          font-size: 0.9375rem;
+        }
+
+        .facts {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0;
+        }
+
+        .fact {
+          padding: 18px 0;
+          border-top: 1px solid var(--hairline);
+          border-left: 0;
+        }
+
+        .fact:nth-child(odd) {
+          padding-right: 14px;
+        }
+
+        .fact:nth-child(even) {
+          padding-left: 14px;
+          border-left: 1px solid var(--hairline);
+        }
+
+        .section-heading {
+          gap: 12px;
+          padding-top: 46px;
+        }
+
+        .zone {
+          grid-template-columns: 1fr;
+        }
+
+        .map-node {
+          min-height: 82px;
+        }
+
+        .map-detail,
+        .journey-header,
+        .journey-detail,
+        .journey-controls,
+        .domain-detail,
+        .scenario-result,
+        .test-panel {
+          padding-inline: 18px;
+        }
+
+        .journey-header {
+          display: grid;
+        }
+
+        .journey-progress {
+          width: 100%;
+        }
+
+        .step-strip {
+          padding-inline: 18px;
+        }
+
+        .detail-side {
+          padding-top: 20px;
+          padding-left: 0;
+          border-top: 1px solid var(--hairline);
+          border-left: 0;
+        }
+
+        .domain-list {
+          display: flex;
+          overflow-x: auto;
+          padding-bottom: 8px;
+        }
+
+        .domain-button {
+          flex: 0 0 154px;
+          min-height: 66px;
+        }
+
+        .domain-detail-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .code-toolbar {
+          grid-template-columns: 1fr;
+        }
+
+        .result-count {
+          padding: 0;
+        }
+
+        .code-row {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .code-kind {
+          justify-self: start;
+          text-align: left;
+        }
+
+        .footer-note {
+          display: grid;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="app">
+      <header class="masthead">
+        <a
+          class="wordmark"
+          href="#overview"
+          aria-label="Architecture explorer home"
+        >
+          <strong>Household OS</strong>
+          <span>Architecture explorer</span>
+        </a>
+        <span class="snapshot">snapshot 4bf8e4b</span>
+      </header>
+
+      <div class="layout">
+        <aside class="chapter-rail" aria-label="Explorer chapters">
+          <div>
+            <span class="rail-label">Chapters</span>
+            <nav
+              class="chapter-nav"
+              role="tablist"
+              aria-label="Architecture chapters"
+            >
+              <button
+                class="chapter-button"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="overview"
+                data-chapter="overview"
+              >
+                <span class="chapter-number">01</span
+                ><span class="chapter-name">System map</span>
+              </button>
+              <button
+                class="chapter-button"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="journeys"
+                data-chapter="journeys"
+              >
+                <span class="chapter-number">02</span
+                ><span class="chapter-name">Request journeys</span>
+              </button>
+              <button
+                class="chapter-button"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="domains"
+                data-chapter="domains"
+              >
+                <span class="chapter-number">03</span
+                ><span class="chapter-name">Domain ownership</span>
+              </button>
+              <button
+                class="chapter-button"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="trust"
+                data-chapter="trust"
+              >
+                <span class="chapter-number">04</span
+                ><span class="chapter-name">Trust boundaries</span>
+              </button>
+              <button
+                class="chapter-button"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="code"
+                data-chapter="code"
+              >
+                <span class="chapter-number">05</span
+                ><span class="chapter-name">Code and tests</span>
+              </button>
+            </nav>
+          </div>
+          <p class="rail-note">
+            Click any system block, journey step, domain, or failure scenario.
+            Every source path opens the corresponding file in this worktree.
+          </p>
+        </aside>
+
+        <main class="main" id="main-content">
+          <section
+            class="chapter"
+            id="overview"
+            role="tabpanel"
+            aria-label="System map"
+          >
+            <div class="hero">
+              <div>
+                <p class="eyebrow">A source-backed mental model</p>
+                <h1>From a tap to durable household truth.</h1>
+                <p class="hero-copy">
+                  The browser presents and reacts, Next.js composes and
+                  coordinates, and Postgres commits the truth. Pure TypeScript
+                  rules make the behavior understandable and testable, while
+                  database functions enforce the invariants that must survive
+                  retries and two people acting at once.
+                </p>
+              </div>
+              <div class="hero-side">
+                <p>
+                  This walkthrough is based on the current worktree at commit
+                  <strong>4bf8e4b</strong>. It describes implemented code, and
+                  it calls out boundaries that are architectural intent rather
+                  than pretending every planned service is complete.
+                </p>
+                <button class="primary-action" id="start-tour" type="button">
+                  Follow a request
+                </button>
+              </div>
+            </div>
+
+            <dl class="facts">
+              <div class="fact">
+                <dt>Product destinations</dt>
+                <dd>5</dd>
+              </div>
+              <div class="fact">
+                <dt>Household members</dt>
+                <dd>2</dd>
+              </div>
+              <div class="fact">
+                <dt>Operating currencies</dt>
+                <dd>1</dd>
+              </div>
+              <div class="fact">
+                <dt>Sources of ledger truth</dt>
+                <dd>1</dd>
+              </div>
+            </dl>
+
+            <div class="section-heading">
+              <h2>One application, three runtime zones.</h2>
+              <p>
+                The lines are intentionally simple: this is not a mesh of
+                services. Most product work is a short path from one Next.js app
+                into one Supabase project.
+              </p>
+            </div>
+
+            <div class="map-shell">
+              <div class="system-map" aria-label="Interactive architecture map">
+                <section class="zone" aria-labelledby="browser-zone">
+                  <h3 class="zone-label" id="browser-zone">Member devices</h3>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="browser"
+                    aria-pressed="true"
+                  >
+                    <strong>Browser UI</strong
+                    ><span
+                      >Rendered screens, forms, optimistic interactions.</span
+                    >
+                  </button>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="client"
+                    aria-pressed="false"
+                  >
+                    <strong>Client islands</strong
+                    ><span
+                      >Passkeys, realtime subscriptions, small interactive
+                      controls.</span
+                    >
+                  </button>
+                  <div class="flow-marker">HTTPS + session cookie</div>
+                </section>
+
+                <section class="zone" aria-labelledby="next-zone">
+                  <h3 class="zone-label" id="next-zone">Vercel / Next.js</h3>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="proxy"
+                    aria-pressed="false"
+                  >
+                    <strong>Auth proxy</strong
+                    ><span
+                      >Refreshes auth and redirects anonymous requests.</span
+                    >
+                  </button>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="app"
+                    aria-pressed="false"
+                  >
+                    <strong>Routes and actions</strong
+                    ><span
+                      >Server Components, forms, redirects, revalidation.</span
+                    >
+                  </button>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="lib"
+                    aria-pressed="false"
+                  >
+                    <strong>Integration layer</strong
+                    ><span>Read models, member context, command adapters.</span>
+                  </button>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="domain"
+                    aria-pressed="false"
+                  >
+                    <strong>Pure domain rules</strong
+                    ><span
+                      >Deterministic TypeScript with no React, browser, or
+                      database.</span
+                    >
+                  </button>
+                  <div class="flow-marker">publishable key + user JWT</div>
+                </section>
+
+                <section class="zone" aria-labelledby="supabase-zone">
+                  <h3 class="zone-label" id="supabase-zone">
+                    Supabase / Frankfurt
+                  </h3>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="auth"
+                    aria-pressed="false"
+                  >
+                    <strong>Auth and passkeys</strong
+                    ><span>WebAuthn identity and session claims.</span>
+                  </button>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="postgres"
+                    aria-pressed="false"
+                  >
+                    <strong>Postgres + RLS</strong
+                    ><span
+                      >Tenant data, transactions, locks, append-only
+                      ledger.</span
+                    >
+                  </button>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="realtime"
+                    aria-pressed="false"
+                  >
+                    <strong>Realtime</strong
+                    ><span
+                      >Change signals that trigger fresh server reads.</span
+                    >
+                  </button>
+                  <button
+                    class="map-node"
+                    type="button"
+                    data-node="jobs"
+                    aria-pressed="false"
+                  >
+                    <strong>Jobs and push</strong
+                    ><span
+                      >Database schedules, outbox, Edge Function
+                      dispatcher.</span
+                    >
+                  </button>
+                </section>
+              </div>
+
+              <div class="map-detail" aria-live="polite">
+                <div>
+                  <p class="detail-kicker" id="map-detail-kicker">
+                    Member devices
+                  </p>
+                  <h3 id="map-detail-title">Browser UI</h3>
+                  <p id="map-detail-copy"></p>
+                  <ul
+                    class="guarantee-list"
+                    id="map-detail-guarantees"
+                    role="list"
+                  ></ul>
+                </div>
+                <div>
+                  <p class="detail-kicker">Open the source</p>
+                  <ul
+                    class="source-list"
+                    id="map-detail-files"
+                    role="list"
+                  ></ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-note">
+              <span
+                >Core references: docs/architecture.md, docs/domain-model.md,
+                ADR 0018, ADR 0022, and ADR 0024.</span
+              >
+              <span>Standalone artifact; the product UI is unchanged.</span>
+            </div>
+          </section>
+
+          <section
+            class="chapter"
+            id="journeys"
+            role="tabpanel"
+            aria-label="Request journeys"
+            hidden
+          >
+            <header class="chapter-intro">
+              <div>
+                <p class="eyebrow">Trace the execution</p>
+                <h1>Follow real requests through the stack.</h1>
+                <p class="hero-copy">
+                  Choose a journey, then step through it. The “payload” labels
+                  show what crosses each boundary, and the source links take you
+                  to the actual implementation.
+                </p>
+              </div>
+              <aside>
+                The important distinction is between a read model, which can be
+                rebuilt at any time, and a command, which changes durable state
+                and therefore needs authorization, idempotency, and a
+                transaction.
+              </aside>
+            </header>
+
+            <div class="section-heading">
+              <h2>Pick an interaction you already know from the UI.</h2>
+              <p>
+                The same surface can contain server-rendered content and
+                hydrated controls. “Server Component” and “Client Component”
+                describe execution boundaries, not two separate applications.
+              </p>
+            </div>
+
+            <div
+              class="journey-switcher"
+              id="journey-switcher"
+              aria-label="Choose a request journey"
+            ></div>
+            <div class="journey-shell">
+              <div class="journey-header">
+                <div>
+                  <p class="detail-kicker" id="journey-kind">Read path</p>
+                  <h2 id="journey-title">Open Today</h2>
+                </div>
+                <div class="journey-progress" aria-label="Journey progress">
+                  <div class="progress-meta">
+                    <span id="journey-position">Step 1 of 6</span
+                    ><span id="journey-runtime">Browser</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-bar" id="journey-progress-bar"></div>
+                  </div>
+                </div>
+              </div>
+
+              <ol
+                class="step-strip"
+                id="journey-steps"
+                aria-label="Journey steps"
+              ></ol>
+
+              <div class="journey-detail" aria-live="polite">
+                <div>
+                  <p class="detail-kicker" id="step-location">Browser</p>
+                  <h3 id="step-title"></h3>
+                  <p id="step-copy"></p>
+                  <div class="data-chip-row" id="step-payloads"></div>
+                </div>
+                <div class="detail-side">
+                  <div>
+                    <p class="detail-kicker">Why here</p>
+                    <p id="step-why"></p>
+                  </div>
+                  <div>
+                    <p class="detail-kicker">Source</p>
+                    <ul class="source-list" id="step-files" role="list"></ul>
+                  </div>
+                </div>
+              </div>
+
+              <div class="journey-controls">
+                <button
+                  class="iconless-button"
+                  id="previous-step"
+                  type="button"
+                >
+                  Previous step
+                </button>
+                <button class="iconless-button" id="next-step" type="button">
+                  Next step
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="chapter"
+            id="domains"
+            role="tabpanel"
+            aria-label="Domain ownership"
+            hidden
+          >
+            <header class="chapter-intro">
+              <div>
+                <p class="eyebrow">Business boundaries</p>
+                <h1>Each domain owns one kind of truth.</h1>
+                <p class="hero-copy">
+                  The domains collaborate through explicit handoffs. Meals can
+                  create grocery intent, shopping can create an expense draft,
+                  and only Money can turn that draft into ledger history.
+                </p>
+              </div>
+              <aside>
+                The most important wall is between household work and financial
+                obligations. Completing a chore never changes who owes whom.
+              </aside>
+            </header>
+
+            <div class="section-heading">
+              <h2>Click a domain to see what it owns and where it stops.</h2>
+              <p>
+                A domain appears in TypeScript and SQL because the
+                responsibilities differ: TypeScript makes rules reusable and
+                testable, while Postgres protects stored state under
+                concurrency.
+              </p>
+            </div>
+
+            <div class="domain-layout">
+              <div
+                class="domain-list"
+                id="domain-list"
+                aria-label="Domains"
+              ></div>
+              <article class="detail-panel domain-detail" aria-live="polite">
+                <p class="detail-kicker" id="domain-kicker">Core domain</p>
+                <h3 id="domain-title"></h3>
+                <p id="domain-copy"></p>
+                <div class="badge-row" id="domain-entities"></div>
+                <div class="domain-detail-grid">
+                  <section>
+                    <h4>Invariants it owns</h4>
+                    <ul
+                      class="guarantee-list"
+                      id="domain-invariants"
+                      role="list"
+                    ></ul>
+                  </section>
+                  <section>
+                    <h4>Handoffs to other domains</h4>
+                    <div id="domain-relations"></div>
+                  </section>
+                </div>
+                <div class="domain-detail-grid">
+                  <section>
+                    <h4>Pure rules</h4>
+                    <ul
+                      class="source-list"
+                      id="domain-ts-files"
+                      role="list"
+                    ></ul>
+                  </section>
+                  <section>
+                    <h4>Durable enforcement</h4>
+                    <ul
+                      class="source-list"
+                      id="domain-db-files"
+                      role="list"
+                    ></ul>
+                  </section>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section
+            class="chapter"
+            id="trust"
+            role="tabpanel"
+            aria-label="Trust boundaries"
+            hidden
+          >
+            <header class="chapter-intro">
+              <div>
+                <p class="eyebrow">Security and consistency</p>
+                <h1>Assume every mutation is a public API call.</h1>
+                <p class="hero-copy">
+                  A hidden button is not authorization. The server establishes
+                  the member context, RLS scopes every tenant row, and sensitive
+                  database functions validate the caller again inside the
+                  transaction.
+                </p>
+              </div>
+              <aside>
+                The browser receives a publishable key and a member session. The
+                Supabase administrator secret stays in local enrollment
+                commands, while Edge-only service credentials live in Edge
+                secrets.
+              </aside>
+            </header>
+
+            <div class="section-heading">
+              <h2>Three checks protect one mutation.</h2>
+              <p>
+                Each boundary assumes the previous one can be bypassed. That
+                duplication is deliberate because a direct network call can skip
+                the UI and race conditions can invalidate an earlier read.
+              </p>
+            </div>
+
+            <div class="boundary-grid">
+              <section class="trust-boundary">
+                <p class="detail-kicker">Boundary 1</p>
+                <h3>Identity</h3>
+                <p>
+                  Supabase Auth proves which user controls the session through a
+                  passkey. It does not grant household access by itself.
+                </p>
+              </section>
+              <section class="trust-boundary">
+                <p class="detail-kicker">Boundary 2</p>
+                <h3>Membership</h3>
+                <p>
+                  <code>requireMemberContext()</code> maps the authenticated
+                  user to one household and redirects authenticated outsiders to
+                  Access Denied.
+                </p>
+              </section>
+              <section class="trust-boundary">
+                <p class="detail-kicker">Boundary 3</p>
+                <h3>Database authority</h3>
+                <p>
+                  RLS and transactional RPCs recheck membership, validate
+                  invariants, acquire locks where needed, and reject unsafe
+                  state transitions.
+                </p>
+              </section>
+            </div>
+
+            <div class="section-heading">
+              <h2>Try to break the model.</h2>
+              <p>
+                These scenarios show which layer stops the attempt. Choose one
+                to inspect the rejection path.
+              </p>
+            </div>
+            <div
+              class="scenario-grid"
+              id="scenario-grid"
+              aria-label="Failure scenarios"
+            ></div>
+            <article class="scenario-result" aria-live="polite">
+              <div>
+                <p class="detail-kicker" id="scenario-kicker">
+                  Cross-household request
+                </p>
+                <h3 id="scenario-title"></h3>
+                <p id="scenario-copy"></p>
+                <ul class="source-list" id="scenario-files" role="list"></ul>
+              </div>
+              <div
+                class="rejection-path"
+                id="scenario-path"
+                aria-label="Rejection path"
+              ></div>
+            </article>
+          </section>
+
+          <section
+            class="chapter"
+            id="code"
+            role="tabpanel"
+            aria-label="Code and tests"
+            hidden
+          >
+            <header class="chapter-intro">
+              <div>
+                <p class="eyebrow">Orientation guide</p>
+                <h1>Know where to look before reading everything.</h1>
+                <p class="hero-copy">
+                  Start at the route for the screen, follow its read model or
+                  server action into <code>src/lib</code>, then open the RPC
+                  definition in the matching migration when durable state
+                  changes.
+                </p>
+              </div>
+              <aside>
+                The repository is one root Next.js app on purpose. Folder
+                boundaries create separation without package manifests,
+                cross-package builds, or a second deployment.
+              </aside>
+            </header>
+
+            <div class="section-heading">
+              <h2>The safety net has three distinct jobs.</h2>
+              <p>
+                Fast TypeScript tests explain rules, pgTAP attacks database
+                guarantees, and Playwright proves selected user journeys across
+                the browser/server boundary.
+              </p>
+            </div>
+            <div
+              class="test-tabs"
+              id="test-tabs"
+              role="tablist"
+              aria-label="Test layers"
+            ></div>
+            <article class="test-panel" aria-live="polite">
+              <div>
+                <p class="detail-kicker" id="test-kicker">Fast feedback</p>
+                <h3 id="test-title"></h3>
+                <p id="test-copy"></p>
+                <code class="command" id="test-command"></code>
+              </div>
+              <div>
+                <p class="detail-kicker">What a failure means</p>
+                <ul class="guarantee-list" id="test-signals" role="list"></ul>
+                <ul class="source-list" id="test-files" role="list"></ul>
+              </div>
+            </article>
+
+            <div class="section-heading">
+              <h2>A searchable map of the repository.</h2>
+              <p>
+                Search by feature, responsibility, or path. Each result opens
+                the local source file or directory entry point.
+              </p>
+            </div>
+            <div
+              class="filter-row"
+              id="code-filters"
+              aria-label="Filter code areas"
+            ></div>
+            <div class="code-browser">
+              <div class="code-toolbar">
+                <div class="search-wrap">
+                  <label class="search-label" for="code-search"
+                    >Search paths and responsibilities</label
+                  >
+                  <input
+                    class="search-input"
+                    id="code-search"
+                    name="code-search"
+                    type="search"
+                    placeholder="Try “money”, “auth”, or “read model”"
+                    autocomplete="off"
+                  />
+                </div>
+                <div
+                  class="result-count"
+                  id="result-count"
+                  aria-live="polite"
+                ></div>
+              </div>
+              <dl class="code-list" id="code-list"></dl>
+              <p class="empty-results" id="empty-results" hidden>
+                No matching architecture area.
+              </p>
+            </div>
+
+            <div class="footer-note">
+              <span
+                >Primary commands: pnpm verify, pnpm db:test, and pnpm
+                test:e2e.</span
+              >
+              <span
+                >Database and browser checks require their respective local
+                services.</span
+              >
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const architectureNodes = {
+        browser: {
+          zone: "Member devices",
+          title: "Browser UI",
+          copy: "The browser receives rendered UI and owns the immediate interaction state. It can submit forms and call Supabase with the publishable key under the member session, but it is never trusted to calculate an authoritative financial result.",
+          guarantees: [
+            "No administrator secret is shipped to the browser.",
+            "A failed online mutation remains visibly unsaved.",
+            "Money responses come back from the database as authority.",
+          ],
+          files: [
+            "src/ui/shell/app-shell.tsx",
+            "src/ui/today/today-screen.tsx",
+            "src/ui/money/money-screen.tsx",
+          ],
+        },
+        client: {
+          zone: "Member devices",
+          title: "Client islands",
+          copy: "Small Client Components hydrate only where browser APIs or local interaction state are required. Passkey controls call WebAuthn, routine completion can render optimistically, and the realtime subscriber requests a fresh server render when watched tables change.",
+          guarantees: [
+            "Optimism improves feel without becoming stored truth.",
+            "Realtime transports invalidation, not a second domain model.",
+            "Browser-only code is marked with the client boundary.",
+          ],
+          files: [
+            "src/ui/today/routine-complete-control.client.tsx",
+            "src/ui/realtime/surface-refresh.client.tsx",
+            "src/app/sign-in/sign-in-form.tsx",
+          ],
+        },
+        proxy: {
+          zone: "Vercel / Next.js",
+          title: "Authentication proxy",
+          copy: "The proxy refreshes Supabase session cookies and checks authentication claims before protected routes render. It deliberately does not query household membership; the server-side member context performs that database-backed authorization closer to the data load.",
+          guarantees: [
+            "Anonymous requests to member routes go to Sign In.",
+            "Fixture routes bypass the gate only under the explicit E2E environment flag.",
+            "Session cookies are forwarded across redirects.",
+          ],
+          files: ["src/proxy.ts", "src/lib/auth/paths.ts"],
+        },
+        app: {
+          zone: "Vercel / Next.js",
+          title: "Routes, Server Components, and actions",
+          copy: "Routes decide what screen to render. Server Components load authenticated view models, while Server Actions parse form data, call one application command, revalidate affected paths, and redirect to the resulting surface.",
+          guarantees: [
+            "Routes compose rather than own business invariants.",
+            "Form actions validate untrusted FormData before mutation.",
+            "Revalidation makes subsequent reads rebuild from stored state.",
+          ],
+          files: [
+            "src/app/(product)/page.tsx",
+            "src/app/(product)/layout.tsx",
+            "src/app/(product)/_actions/m7-money.ts",
+          ],
+        },
+        lib: {
+          zone: "Vercel / Next.js",
+          title: "Application integration layer",
+          copy: "The integration layer translates between framework-shaped inputs, domain-shaped values, and Supabase-shaped rows. Read models query and map data for a screen; command adapters authenticate and invoke RLS-protected tables or transactional RPCs.",
+          guarantees: [
+            "Server-only modules cannot leak into client bundles.",
+            "Read models can be rebuilt without mutating durable state.",
+            "Command adapters keep SQL function names and payloads out of presentation code.",
+          ],
+          files: [
+            "src/lib/auth/member-context.ts",
+            "src/lib/read-models/today.ts",
+            "src/lib/money/commands.ts",
+          ],
+        },
+        domain: {
+          zone: "Vercel / Next.js",
+          title: "Pure domain rules",
+          copy: "The domain folder is a library inside the single app, not another runtime service. It contains deterministic scheduling, allocation, balance, grocery, and notification rules with no React, Supabase, browser globals, clock, or network dependency.",
+          guarantees: [
+            "A DOM-free TypeScript build enforces the boundary.",
+            "Property tests can explore large input spaces cheaply.",
+            "Stored-state transitions still receive database enforcement.",
+          ],
+          files: [
+            "src/domain/money/balances.ts",
+            "src/domain/routines/schedule.ts",
+            "tsconfig.domain.json",
+          ],
+        },
+        auth: {
+          zone: "Supabase / Frankfurt",
+          title: "Supabase Auth and passkeys",
+          copy: "Supabase Auth establishes user identity through its pinned experimental passkey API. A local administrator creates one-time enrollment or recovery links; after that, normal sign-in is WebAuthn passkey-only.",
+          guarantees: [
+            "Authentication identity is separate from household membership.",
+            "The production relying-party hostname must remain stable.",
+            "Administrator credentials enter only local admin or Edge environments.",
+          ],
+          files: [
+            "src/app/auth/consume/route.ts",
+            "src/app/security/passkey-manager.tsx",
+            "scripts/identity-admin.mts",
+          ],
+        },
+        postgres: {
+          zone: "Supabase / Frankfurt",
+          title: "Postgres, RLS, and transactional commands",
+          copy: "Postgres is the durable source of truth. Tenant rows carry or derive household_id, RLS checks membership, and sensitive commands run as SQL functions that re-authorize, lock, validate, write related rows atomically, and record idempotency receipts.",
+          guarantees: [
+            "Cross-household access is denied at the data boundary.",
+            "Financial history cannot be updated or deleted.",
+            "Every financial event produces ledger deltas that sum to zero.",
+          ],
+          files: [
+            "supabase/migrations/20260809190100_harden_core_tenancy.sql",
+            "supabase/migrations/20260811200000_chf_ledger.sql",
+            "supabase/migrations/20260812202316_share_ledger_lock.sql",
+          ],
+        },
+        realtime: {
+          zone: "Supabase / Frankfurt",
+          title: "Realtime invalidation",
+          copy: "The browser subscribes to household-filtered changes on a small table allowlist. A changed table maps to affected product surfaces, events are debounced for 50 milliseconds, and router.refresh() asks the server to rebuild the current view model.",
+          guarantees: [
+            "No client-side replica competes with Postgres.",
+            "Only affected surfaces refresh.",
+            "Returning to a visible tab triggers a conservative refresh.",
+          ],
+          files: [
+            "src/lib/realtime/surfaces.ts",
+            "src/domain/notifications/surfaces.ts",
+            "src/ui/realtime/surface-refresh.client.tsx",
+          ],
+        },
+        jobs: {
+          zone: "Supabase / Frankfurt",
+          title: "Scheduled work and push outbox",
+          copy: "Scheduled database work generates due occurrences, drafts, reminder or digest candidates, and retention cleanup using stable job identities. Partner activity can enqueue push work; the Edge Function drains bounded outbox batches with credentials held in Edge secrets.",
+          guarantees: [
+            "Scheduled work is idempotent and batch-bounded.",
+            "A missing push transport never removes the durable inbox.",
+            "Background work never silently posts a financial draft.",
+          ],
+          files: [
+            "src/domain/notifications/job-identity.ts",
+            "supabase/migrations/20260812090000_notifications_realtime.sql",
+            "supabase/functions/push-dispatch/index.ts",
+          ],
+        },
+      };
+
+      const journeys = {
+        today: {
+          label: "Open Today",
+          kind: "Read path",
+          steps: [
+            {
+              location: "Browser",
+              title: "Request the home route",
+              copy: "A signed-in member opens /. The request includes the Supabase session cookie managed by the SSR client.",
+              why: "The browser starts the request but does not know which household rows it may read.",
+              payloads: [
+                ["GET /", "read"],
+                ["session cookie", "guard"],
+              ],
+              files: ["src/app/(product)/page.tsx"],
+            },
+            {
+              location: "Next.js proxy",
+              title: "Check authentication claims",
+              copy: "The proxy refreshes the session if needed, calls getClaims(), classifies the path, and redirects anonymous visitors to /sign-in.",
+              why: "This cheap gate prevents protected pages from rendering for anonymous users while keeping membership authorization closer to the query.",
+              payloads: [
+                ["user claim", "guard"],
+                ["refreshed cookies", "read"],
+              ],
+              files: ["src/proxy.ts", "src/lib/auth/paths.ts"],
+            },
+            {
+              location: "Product layout",
+              title: "Resolve household membership",
+              copy: "requireMemberContext() verifies the identity, looks up household_members by user_id, and returns the household ID and display name. An authenticated non-member goes to Access Denied.",
+              why: "Auth proves who the user is; the relational membership row proves which tenant data they can access.",
+              payloads: [
+                ["userId", "guard"],
+                ["householdId", "guard"],
+                ["displayName", "read"],
+              ],
+              files: [
+                "src/app/(product)/layout.tsx",
+                "src/lib/auth/member-context.ts",
+              ],
+            },
+            {
+              location: "Server read model",
+              title: "Load the Today snapshot in parallel",
+              copy: "The read model queries members, open and completed routines, today and tomorrow meals, grocery and shopping state, pending drafts, and ledger entries concurrently under RLS.",
+              why: "Today is a composition surface. Its loader gathers each domain's rows without turning the UI component into a data-access layer.",
+              payloads: [
+                ["Promise.all queries", "read"],
+                ["RLS-scoped rows", "guard"],
+              ],
+              files: ["src/lib/read-models/today.ts"],
+            },
+            {
+              location: "Pure mapping",
+              title: "Derive a screen-shaped view model",
+              copy: "mapTodaySnapshot sorts work, creates sections, and derives the viewer's money balance from ledger entries. The result contains exactly what TodayScreen needs.",
+              why: "Pure mapping makes presentation logic deterministic, testable, and independent of the database client.",
+              payloads: [
+                ["TodayReadSnapshot", "read"],
+                ["TodayViewModel", "read"],
+              ],
+              files: [
+                "src/ui/today/map-today-snapshot.ts",
+                "src/domain/money/balances.ts",
+              ],
+            },
+            {
+              location: "Server render + client islands",
+              title: "Render, then subscribe for changes",
+              copy: "TodayScreen renders the view model on the server. Interactive controls hydrate in the browser, and SurfaceRefresh listens for watched household table changes.",
+              why: "The initial screen arrives complete, while only the controls that need browser state pay the client-side cost.",
+              payloads: [
+                ["server HTML", "read"],
+                ["hydrated controls", "read"],
+                ["realtime subscription", "guard"],
+              ],
+              files: [
+                "src/ui/today/today-screen.tsx",
+                "src/ui/realtime/surface-refresh.client.tsx",
+              ],
+            },
+          ],
+        },
+        expense: {
+          label: "Add an expense",
+          kind: "Financial write path",
+          steps: [
+            {
+              location: "Expense form",
+              title: "Submit untrusted FormData",
+              copy: "The form sends description, CHF amount, payer, allocation mode, date, and an idempotency key to createExpenseAction().",
+              why: "Form data is convenient transport, but every field remains untrusted until parsed on the server.",
+              payloads: [
+                ["FormData", "write"],
+                ["idempotency key", "guard"],
+              ],
+              files: [
+                "src/ui/forms/expense-form.tsx",
+                "src/app/(product)/_actions/m7-money.ts",
+              ],
+            },
+            {
+              location: "Server action",
+              title: "Parse exact centimes and allocations",
+              copy: "parseExpenseForm() uses Zod and domain allocation rules to turn the strings into safe integer centimes and exactly two member allocations.",
+              why: "The UI can format francs, but the command contract must receive integers and reject rounding or member-shape errors before the database call.",
+              payloads: [
+                ["amountCents", "write"],
+                ["two allocations", "guard"],
+              ],
+              files: ["src/lib/forms/m7.ts", "src/domain/money/allocations.ts"],
+            },
+            {
+              location: "Application command",
+              title: "Authenticate and invoke one RPC",
+              copy: "postManualExpense() resolves the member context, creates a server Supabase client using the publishable key plus session cookie, and calls post_manual_expense.",
+              why: "The adapter keeps framework concerns out of SQL and keeps database function details out of the form component.",
+              payloads: [
+                ["member session", "guard"],
+                ["RPC payload", "write"],
+              ],
+              files: [
+                "src/lib/money/commands.ts",
+                "src/lib/supabase/server.ts",
+              ],
+            },
+            {
+              location: "Postgres transaction",
+              title: "Re-authorize and lock the household ledger",
+              copy: "The SQL command checks auth.uid() membership and takes the shared household advisory transaction lock used by every financial writer.",
+              why: "An earlier read can become stale. Authorization and serialization must happen inside the transaction that commits the money event.",
+              payloads: [
+                ["auth.uid()", "guard"],
+                ["household advisory lock", "guard"],
+              ],
+              files: [
+                "supabase/migrations/20260812202316_share_ledger_lock.sql",
+              ],
+            },
+            {
+              location: "Postgres transaction",
+              title: "Write event, allocations, and two ledger rows",
+              copy: "The command validates the amount and allocation sum, inserts an immutable financial event, records both allocations, and writes equal-and-opposite receivable deltas.",
+              why: "One transaction prevents a half-written event. A statement-level trigger rejects any event whose ledger rows do not sum to zero.",
+              payloads: [
+                ["financial_event", "write"],
+                ["2 allocations", "write"],
+                ["2 ledger entries", "write"],
+                ["sum = 0", "guard"],
+              ],
+              files: [
+                "supabase/migrations/20260811200000_chf_ledger.sql",
+                "supabase/migrations/20260812202316_share_ledger_lock.sql",
+              ],
+            },
+            {
+              location: "Activity and notification",
+              title: "Record meaningful activity",
+              copy: "The same transaction writes an activity event and delivers a durable partner notice. The actor is excluded from their own partner notification.",
+              why: "The notification describes an already-committed domain event; it does not become a second source of financial truth.",
+              payloads: [
+                ["activity_event", "write"],
+                ["partner notice", "write"],
+              ],
+              files: [
+                "supabase/migrations/20260812090000_notifications_realtime.sql",
+              ],
+            },
+            {
+              location: "Next.js + both browsers",
+              title: "Revalidate and refresh affected surfaces",
+              copy: "The action revalidates Today, Money, and Home, then redirects the actor to Money. Realtime change signals prompt the partner's relevant open surface to call router.refresh().",
+              why: "Both members converge by reading the authoritative database state again instead of merging client guesses.",
+              payloads: [
+                ["revalidatePath", "read"],
+                ["redirect /money", "read"],
+                ["postgres_changes", "read"],
+              ],
+              files: [
+                "src/app/(product)/_actions/m7-money.ts",
+                "src/lib/realtime/surfaces.ts",
+              ],
+            },
+          ],
+        },
+        routine: {
+          label: "Complete a routine",
+          kind: "Optimistic write path",
+          steps: [
+            {
+              location: "Today client control",
+              title: "Show completion immediately",
+              copy: "useOptimistic() marks the row complete as the form action begins, so the interaction feels instant.",
+              why: "Routine completion is safe to present optimistically because the UI can reconcile with the server response if the command fails.",
+              payloads: [
+                ["occurrenceId", "write"],
+                ["optimistic true", "read"],
+              ],
+              files: ["src/ui/today/routine-complete-control.client.tsx"],
+            },
+            {
+              location: "Server action",
+              title: "Create a stable retry identity",
+              copy: "completeRoutineOccurrence() validates the UUID and derives complete-occurrence:<id> as the idempotency key for this one-tap path.",
+              why: "A retry from a double tap or uncertain network response must describe the same intent, not create a second completion.",
+              payloads: [
+                ["validated UUID", "guard"],
+                ["stable idempotency key", "guard"],
+              ],
+              files: ["src/app/(product)/_actions/routines.ts"],
+            },
+            {
+              location: "Application command",
+              title: "Call complete_occurrence",
+              copy: "The command requires membership and passes occurrence ID, idempotency key, Zurich civil date, and optional note or photo path into the database function.",
+              why: "The application supplies intent and context; it does not close rows or calculate the next stored occurrence itself.",
+              payloads: [
+                ["completedOn", "write"],
+                ["member session", "guard"],
+              ],
+              files: [
+                "src/lib/routines/commands.ts",
+                "src/lib/ui/zurich-date.ts",
+              ],
+            },
+            {
+              location: "Postgres transaction",
+              title: "Close once and advance recurrence",
+              copy: "The database validates the current occurrence, records the actual completer, closes it, writes activity, and creates the next actionable occurrence when the schedule requires one.",
+              why: "The transition touches several rows and can race with another member, so it must be atomic and idempotent at the durable boundary.",
+              payloads: [
+                ["completion row", "write"],
+                ["closed occurrence", "write"],
+                ["next occurrence", "write"],
+                ["command receipt", "guard"],
+              ],
+              files: ["supabase/migrations/20260809210000_routine_engine.sql"],
+            },
+            {
+              location: "Next.js",
+              title: "Revalidate Today",
+              copy: "After the RPC succeeds, the server action revalidates / so the actor's next server payload reflects the stored completion and any newly generated occurrence.",
+              why: "The optimistic state is temporary; the refreshed read model is the reconciliation point.",
+              payloads: [["revalidatePath('/')", "read"]],
+              files: ["src/app/(product)/_actions/routines.ts"],
+            },
+            {
+              location: "Partner browser",
+              title: "React to the table change",
+              copy: "Realtime marks Today dirty when routine_occurrences changes, debounces related events, and asks the partner's router to refresh if they are viewing an affected surface.",
+              why: "The other device receives a signal to reread, not a hand-built completion object that could diverge from the server model.",
+              payloads: [
+                ["routine_occurrences change", "read"],
+                ["router.refresh()", "read"],
+              ],
+              files: [
+                "src/domain/notifications/surfaces.ts",
+                "src/ui/realtime/surface-refresh.client.tsx",
+              ],
+            },
+          ],
+        },
+        realtime: {
+          label: "See a partner's change",
+          kind: "Synchronization path",
+          steps: [
+            {
+              location: "Postgres",
+              title: "Commit a watched table change",
+              copy: "A command changes a table such as grocery_items, routine_occurrences, expense_drafts, or financial_events.",
+              why: "Only committed database state should trigger convergence on the other device.",
+              payloads: [["committed row change", "write"]],
+              files: ["src/domain/notifications/surfaces.ts"],
+            },
+            {
+              location: "Supabase Realtime",
+              title: "Emit a household-filtered signal",
+              copy: "The active channel subscribes to postgres_changes for each watched table with household_id equal to the current household.",
+              why: "The filter narrows traffic, while RLS and authenticated access remain the security boundary.",
+              payloads: [
+                ["table name", "read"],
+                ["household filter", "guard"],
+              ],
+              files: ["src/lib/realtime/surfaces.ts"],
+            },
+            {
+              location: "Client subscriber",
+              title: "Map the table to affected surfaces",
+              copy: "SURFACE_INVALIDATION_MAP turns a table name into Today, Plan, Groceries, Money, Home, or Inbox dirtiness and coalesces rapid events for 50 milliseconds.",
+              why: "One domain mutation can affect several screens, but an unrelated current screen should not refresh.",
+              payloads: [
+                ["Set<AppSurface>", "read"],
+                ["50 ms debounce", "guard"],
+              ],
+              files: [
+                "src/domain/notifications/surfaces.ts",
+                "src/lib/realtime/surfaces.ts",
+              ],
+            },
+            {
+              location: "Current route",
+              title: "Refresh only when relevant",
+              copy: "SurfaceRefresh maps the pathname to its surface and calls router.refresh() only when that surface appears in the dirty set.",
+              why: "The subscriber stays global in the product layout without turning every change into a full application refresh.",
+              payloads: [
+                ["current surface", "read"],
+                ["router.refresh()", "read"],
+              ],
+              files: [
+                "src/ui/realtime/surface-refresh.client.tsx",
+                "src/app/(product)/layout.tsx",
+              ],
+            },
+            {
+              location: "Server read model",
+              title: "Rebuild from authoritative rows",
+              copy: "The page's Server Component runs again, loads fresh RLS-scoped data, maps a new view model, and streams the updated server payload into the existing route.",
+              why: "Synchronization converges on Postgres rather than replaying events into a fragile browser-side replica.",
+              payloads: [
+                ["fresh queries", "read"],
+                ["new server payload", "read"],
+              ],
+              files: [
+                "src/lib/read-models/today.ts",
+                "src/lib/read-models/groceries.ts",
+                "src/lib/read-models/plan.ts",
+              ],
+            },
+          ],
+        },
+        auth: {
+          label: "Enroll and sign in",
+          kind: "Identity path",
+          steps: [
+            {
+              location: "Local administrator",
+              title: "Provision exactly two users",
+              copy: "The administrator script reads the Supabase secret from standard input, creates or resolves the household members, and prints one-time enrollment links for private transfer.",
+              why: "Version one has no public registration, email delivery, or invite UI, so privileged provisioning stays outside the web runtime.",
+              payloads: [
+                ["secret via stdin", "guard"],
+                ["one-time links", "write"],
+              ],
+              files: ["scripts/identity-admin.mts", "README.md"],
+            },
+            {
+              location: "Next.js route handler",
+              title: "Consume the one-time token",
+              copy: "The /auth/consume route verifies the magic-link token hash through Supabase Auth and redirects the authenticated session to Security.",
+              why: "The temporary link creates the session required to register the first passkey without adding password authentication.",
+              payloads: [
+                ["token_hash", "guard"],
+                ["auth session", "guard"],
+              ],
+              files: ["src/app/auth/consume/route.ts"],
+            },
+            {
+              location: "Security client",
+              title: "Register a passkey on the device",
+              copy: "The Passkey Manager calls supabase.auth.registerPasskey(), which runs the WebAuthn ceremony bound to localhost in development or the chosen stable production hostname.",
+              why: "WebAuthn needs direct browser access to the platform authenticator and relying-party origin.",
+              payloads: [
+                ["WebAuthn challenge", "guard"],
+                ["public-key credential", "write"],
+              ],
+              files: [
+                "src/app/security/passkey-manager.tsx",
+                "supabase/config.toml",
+              ],
+            },
+            {
+              location: "Sign-in client",
+              title: "Authenticate with a discoverable passkey",
+              copy: "Normal sign-in calls signInWithPasskey(), then replaces the route with / and refreshes the application.",
+              why: "The member selects their platform or password-manager credential without entering an email or password.",
+              payloads: [
+                ["passkey assertion", "guard"],
+                ["session cookie", "guard"],
+              ],
+              files: [
+                "src/app/sign-in/sign-in-form.tsx",
+                "src/lib/supabase/client.ts",
+              ],
+            },
+            {
+              location: "Next.js + Postgres",
+              title: "Separate identity from tenancy",
+              copy: "The proxy accepts the authenticated session, then requireMemberContext() separately checks for a household_members row before any product layout renders.",
+              why: "A valid Supabase user who is not one of the two household members must still see no household data.",
+              payloads: [
+                ["auth user", "guard"],
+                ["membership row", "guard"],
+                ["household context", "read"],
+              ],
+              files: ["src/proxy.ts", "src/lib/auth/member-context.ts"],
+            },
+          ],
+        },
+      };
+
+      const domains = {
+        identity: {
+          label: "Identity and tenancy",
+          count: "2 members",
+          kicker: "Access domain",
+          copy: "Supabase Auth identifies a user; household_members authorizes that user for exactly one household. This separation keeps editable identity metadata out of the tenant authorization decision.",
+          entities: ["Household", "HouseholdMember", "Passkey"],
+          invariants: [
+            "Public membership creation is impossible.",
+            "The household is capped at exactly two active members.",
+            "Both members have equal product authority.",
+          ],
+          relations: [
+            [
+              "All domains",
+              "Provides the household and member context every tenant read or command needs.",
+            ],
+            [
+              "Notifications",
+              "Identifies the partner recipient while excluding the actor.",
+            ],
+          ],
+          ts: ["src/lib/auth/member-context.ts", "src/domain/identity.ts"],
+          db: [
+            "supabase/migrations/20260809190100_harden_core_tenancy.sql",
+            "supabase/migrations/20260809202000_serialize_household_member_cap.sql",
+          ],
+        },
+        routines: {
+          label: "Routines",
+          count: "work",
+          kicker: "Household work domain",
+          copy: "Routines define recurring or one-off household work. Occurrences preserve the planned schedule, and completions record who actually did the work without changing financial obligations.",
+          entities: [
+            "Routine",
+            "RoutineOccurrence",
+            "Completion",
+            "Area",
+            "Pet",
+          ],
+          invariants: [
+            "One routine has one actionable current occurrence and one preview.",
+            "Calendar and after-completion recurrence use different anchors.",
+            "Completion, skip, reschedule, pause, and archive preserve history.",
+          ],
+          relations: [
+            [
+              "Meals",
+              "Meal preparation can create a linked one-off routine occurrence.",
+            ],
+            [
+              "Notifications",
+              "Assignments, schedule changes, and completions produce activity or partner notices.",
+            ],
+            [
+              "Money",
+              "No handoff exists: routine completion never changes the ledger.",
+            ],
+          ],
+          ts: [
+            "src/domain/routines/schedule.ts",
+            "src/domain/routines/closure.ts",
+            "src/domain/routines/assignment.ts",
+          ],
+          db: ["supabase/migrations/20260809210000_routine_engine.sql"],
+        },
+        meals: {
+          label: "Meals",
+          count: "plan",
+          kicker: "Planning domain",
+          copy: "The meal library stores reusable definitions, while plan entries snapshot what is placed into a Monday-to-Sunday slot. Leftovers refer backward and do not add default groceries twice.",
+          entities: ["MealDefinition", "MealPlanEntry", "MealGroceryTemplate"],
+          invariants: [
+            "A date and slot have at most one active meal.",
+            "Leftovers reference an earlier entry.",
+            "Save-to-library and place is atomic and idempotent.",
+          ],
+          relations: [
+            [
+              "Groceries",
+              "Placing a meal can intentionally add grocery templates with provenance.",
+            ],
+            ["Routines", "A planned meal can create linked preparation work."],
+            [
+              "Today",
+              "Today and tomorrow meal snapshots are composed into the daily view.",
+            ],
+          ],
+          ts: ["src/domain/meals/placement.ts", "src/domain/meals/board.ts"],
+          db: [
+            "supabase/migrations/20260811180000_meals_groceries.sql",
+            "supabase/migrations/20260812193000_m7_atomic_meal_library.sql",
+          ],
+        },
+        groceries: {
+          label: "Groceries and shopping",
+          count: "intent",
+          kicker: "Shared list domain",
+          copy: "Groceries track shared shopping intent and explicit concurrent sessions. Claimed items remain visible, and duplicate suggestions never silently merge quantities or units.",
+          entities: [
+            "GroceryItem",
+            "GroceryCategory",
+            "ShoppingSession",
+            "ShoppingSessionItem",
+          ],
+          invariants: [
+            "A member has at most one active shopping session.",
+            "An active item can be claimed by only one live session.",
+            "Finishing shopping changes items and may create one draft, never a ledger event.",
+          ],
+          relations: [
+            [
+              "Meals",
+              "Items can retain the meal-plan entry that originated them.",
+            ],
+            [
+              "Money",
+              "A finished session may create an editable expense draft for later confirmation.",
+            ],
+            [
+              "Realtime",
+              "Claims and purchases invalidate Groceries and Today.",
+            ],
+          ],
+          ts: [
+            "src/domain/groceries/item-state.ts",
+            "src/domain/groceries/duplicates.ts",
+          ],
+          db: ["supabase/migrations/20260811180000_meals_groceries.sql"],
+        },
+        money: {
+          label: "Money",
+          count: "CHF",
+          kicker: "Financial domain",
+          copy: "Money records immutable financial events and derives each member's receivable balance from equal-and-opposite ledger entries. Drafts are mutable proposals and do not affect balances until confirmed.",
+          entities: [
+            "FinancialEvent",
+            "FinancialAllocation",
+            "LedgerEntry",
+            "ExpenseDraft",
+          ],
+          invariants: [
+            "Every amount is an integer CHF centime.",
+            "Each event's ledger deltas sum to zero.",
+            "Corrections append reversal and replacement events instead of editing history.",
+            "Every financial writer shares the household ledger lock.",
+          ],
+          relations: [
+            [
+              "Groceries",
+              "Confirms a shopping draft into an authoritative financial event.",
+            ],
+            [
+              "Notifications",
+              "Every financial mutation records activity and notifies the partner.",
+            ],
+            [
+              "Today",
+              "Pending drafts and a derived balance summary appear in the daily composition.",
+            ],
+          ],
+          ts: [
+            "src/domain/money/allocations.ts",
+            "src/domain/money/balances.ts",
+            "src/domain/money/settlements.ts",
+          ],
+          db: [
+            "supabase/migrations/20260811200000_chf_ledger.sql",
+            "supabase/migrations/20260812202316_share_ledger_lock.sql",
+          ],
+        },
+        notifications: {
+          label: "Notifications and sync",
+          count: "signals",
+          kicker: "Collaboration domain",
+          copy: "Activity is the durable record of meaningful household change. Inbox notifications target one member, optional push mirrors the notice, and realtime tells open surfaces when to rebuild.",
+          entities: [
+            "ActivityEvent",
+            "InboxNotification",
+            "PushSubscription",
+            "DigestPreference",
+          ],
+          invariants: [
+            "Actors are not notified of their own actions.",
+            "The digest excludes the owed balance.",
+            "Missing or declined push never disables the in-app inbox.",
+          ],
+          relations: [
+            [
+              "All write domains",
+              "Observes committed meaningful events and delivers partner-facing consequences.",
+            ],
+            [
+              "Realtime",
+              "Maps watched table changes to only the affected product surfaces.",
+            ],
+            [
+              "Jobs",
+              "Stable job identities prevent duplicate scheduled delivery work.",
+            ],
+          ],
+          ts: [
+            "src/domain/notifications/policy.ts",
+            "src/domain/notifications/surfaces.ts",
+            "src/domain/notifications/job-identity.ts",
+          ],
+          db: [
+            "supabase/migrations/20260812090000_notifications_realtime.sql",
+            "supabase/functions/push-dispatch/index.ts",
+          ],
+        },
+      };
+
+      const scenarios = {
+        tenant: {
+          label: "Forge another household ID",
+          kicker: "Cross-household request",
+          title: "The row never becomes visible or writable.",
+          copy: "Changing household_id in a browser request does not grant access. Read policies require an indexed membership match, direct writes have narrow grants, and sensitive functions call an internal membership check using auth.uid().",
+          path: [
+            ["Browser sends forged household_id", "pass"],
+            ["Server action resolves real member context", "pass"],
+            ["RLS / require_*_actor finds no membership", "stop"],
+          ],
+          files: [
+            "src/lib/auth/member-context.ts",
+            "supabase/migrations/20260809190100_harden_core_tenancy.sql",
+            "supabase/tests/database/001_core_tenancy.test.sql",
+          ],
+        },
+        duplicate: {
+          label: "Double-submit a command",
+          kicker: "Retry and double tap",
+          title: "The second intent resolves to the first result.",
+          copy: "Sensitive commands carry an idempotency key and store command receipts. Repeating the same logical action with the same key cannot create a second completion, shopping finish, meal placement, or financial event.",
+          path: [
+            ["Two requests carry the same key", "pass"],
+            ["First transaction stores receipt", "pass"],
+            ["Second transaction returns existing result", "stop"],
+          ],
+          files: [
+            "src/app/(product)/_actions/routines.ts",
+            "supabase/migrations/20260809210000_routine_engine.sql",
+            "supabase/tests/database/004_chf_ledger.test.sql",
+          ],
+        },
+        balance: {
+          label: "Edit the displayed balance",
+          kicker: "Derived financial state",
+          title: "There is no balance row to edit.",
+          copy: "The Money screen sums immutable ledger entries for the viewer. Financial events, allocations, and ledger entries reject update or delete operations, so a correction must append a reversal and optional replacement.",
+          path: [
+            ["Client proposes a new balance", "pass"],
+            ["No balance mutation endpoint exists", "pass"],
+            ["Append-only triggers reject history edits", "stop"],
+          ],
+          files: [
+            "src/domain/money/balances.ts",
+            "src/lib/read-models/money-map.ts",
+            "supabase/migrations/20260811200000_chf_ledger.sql",
+          ],
+        },
+        settlement: {
+          label: "Settle concurrently",
+          kicker: "Concurrent financial writers",
+          title: "One household ledger transaction goes first.",
+          copy: "Every financial writer takes the same household advisory transaction lock. Full settlement derives the outstanding amount inside the locked transaction, so another expense or settlement cannot slip between the balance read and the posted event.",
+          path: [
+            ["Two writers request the ledger lock", "pass"],
+            ["One transaction acquires; the other waits", "pass"],
+            ["Second writer re-derives current balance", "stop"],
+          ],
+          files: [
+            "supabase/migrations/20260812201042_atomic_settlement.sql",
+            "supabase/migrations/20260812202316_share_ledger_lock.sql",
+            "supabase/tests/database/006_settlement_lock.test.sql",
+          ],
+        },
+        secret: {
+          label: "Look for an admin key in the app",
+          kicker: "Credential boundary",
+          title: "The web runtime is designed not to have it.",
+          copy: "Browser and Next.js clients use the publishable key under the member session. The administrator secret is read from standard input by local identity commands; the push dispatcher reads its service role credential only from Supabase Edge secrets.",
+          path: [
+            ["Inspect browser bundle and public env", "pass"],
+            ["Only publishable Supabase configuration exists", "pass"],
+            ["Admin capability remains outside Vercel runtime", "stop"],
+          ],
+          files: [
+            "src/lib/env.ts",
+            "src/lib/supabase/client.ts",
+            "scripts/identity-admin.mts",
+            "supabase/functions/push-dispatch/index.ts",
+          ],
+        },
+        realtime: {
+          label: "Miss a realtime event",
+          kicker: "Event delivery gap",
+          title: "The client refreshes state, not an event log.",
+          copy: "Realtime is an invalidation hint. Subscribing refreshes all watched surfaces, returning to a visible tab refreshes again, and every actual refresh reloads current rows from Postgres, so correctness does not depend on replaying every event payload.",
+          path: [
+            ["A table event is missed", "pass"],
+            ["Tab becomes visible or channel subscribes", "pass"],
+            ["Fresh server read restores current state", "stop"],
+          ],
+          files: [
+            "src/lib/realtime/surfaces.ts",
+            "src/ui/realtime/surface-refresh.client.tsx",
+          ],
+        },
+      };
+
+      const testLayers = {
+        verify: {
+          label: "Application checks",
+          kicker: "Fast feedback",
+          title:
+            "TypeScript, lint, unit and property tests, config checks, and build.",
+          copy: "The default verification pipeline formats, lints, generates Next types, type-checks both the application and the DOM-free domain boundary, runs Vitest, checks WebAuthn configuration, and builds the production bundle.",
+          command: "pnpm verify",
+          signals: [
+            "A pure rule or mapper changed behavior.",
+            "A domain file imported UI, Supabase, or browser APIs.",
+            "A route or component no longer type-checks or builds.",
+          ],
+          files: [
+            "package.json",
+            "vitest.config.mts",
+            "tsconfig.domain.json",
+            "eslint.config.mjs",
+          ],
+        },
+        database: {
+          label: "Database checks",
+          kicker: "Durable guarantees",
+          title:
+            "RLS, transactions, locks, triggers, and cross-row invariants.",
+          copy: "Six pgTAP suites run against the local Supabase database. They exercise member and non-member access, recurrence transitions, shopping concurrency, zero-sum ledger behavior, notifications, realtime contracts, and settlement races.",
+          command: "pnpm db:test",
+          signals: [
+            "A policy exposes another household's row.",
+            "A retry or concurrent command can create duplicate durable state.",
+            "A trigger, grant, or SQL function violates the domain contract.",
+          ],
+          files: [
+            "supabase/tests/database/001_core_tenancy.test.sql",
+            "supabase/tests/database/004_chf_ledger.test.sql",
+            "supabase/tests/database/006_settlement_lock.test.sql",
+          ],
+        },
+        browser: {
+          label: "Browser checks",
+          kicker: "Cross-boundary proof",
+          title:
+            "Selected flows through rendered UI, Server Actions, and responsive layouts.",
+          copy: "Playwright covers foundation routing and fixture-backed M6/M7 product flows. It proves that the browser can reach and operate critical surfaces, but it complements rather than replaces authenticated manual acceptance and database tests.",
+          command: "pnpm test:e2e",
+          signals: [
+            "A user-visible route, form, or navigation flow is broken.",
+            "Desktop or mobile composition regressed.",
+            "The browser/server wiring disagrees with isolated unit tests.",
+          ],
+          files: [
+            "tests/e2e/foundation.spec.ts",
+            "tests/e2e/m6-surfaces.spec.ts",
+            "tests/e2e/m7-forms.spec.ts",
+          ],
+        },
+      };
+
+      const codeAreas = [
+        {
+          path: "src/app/(product)/page.tsx",
+          kind: "routes",
+          role: "Today route: loads its view model and renders TodayScreen.",
+          tags: "today server component route read",
+        },
+        {
+          path: "src/app/(product)/_actions/m7-money.ts",
+          kind: "routes",
+          role: "Financial Server Actions: parse forms, call commands, revalidate, and redirect.",
+          tags: "money expense settlement opening balance actions write",
+        },
+        {
+          path: "src/app/(product)/_actions/routines.ts",
+          kind: "routes",
+          role: "One-tap routine and Today draft actions with stable retry identities.",
+          tags: "routine completion action idempotency",
+        },
+        {
+          path: "src/proxy.ts",
+          kind: "auth",
+          role: "Session refresh and anonymous-route redirect before protected rendering.",
+          tags: "authentication session proxy claims",
+        },
+        {
+          path: "src/ui/shell/app-shell.tsx",
+          kind: "ui",
+          role: "Shared product chrome and navigation composition.",
+          tags: "ui layout shell navigation",
+        },
+        {
+          path: "src/ui/today/routine-complete-control.client.tsx",
+          kind: "ui",
+          role: "Optimistic routine completion island in the Today screen.",
+          tags: "ui client optimistic routine",
+        },
+        {
+          path: "src/ui/realtime/surface-refresh.client.tsx",
+          kind: "sync",
+          role: "Maps the current route to a surface and refreshes it when marked dirty.",
+          tags: "client realtime router refresh sync",
+        },
+        {
+          path: "src/lib/auth/member-context.ts",
+          kind: "auth",
+          role: "Turns verified Supabase identity into authorized household membership.",
+          tags: "auth household membership tenant server-only",
+        },
+        {
+          path: "src/lib/read-models/today.ts",
+          kind: "reads",
+          role: "Loads the cross-domain Today snapshot in parallel under RLS.",
+          tags: "today read model queries server",
+        },
+        {
+          path: "src/lib/read-models/money-map.ts",
+          kind: "reads",
+          role: "Validates financial rows and derives the Money screen and balance explanation.",
+          tags: "money read model derived balance",
+        },
+        {
+          path: "src/lib/money/commands.ts",
+          kind: "commands",
+          role: "Server-only adapters for all authoritative financial RPCs.",
+          tags: "money rpc commands transaction",
+        },
+        {
+          path: "src/lib/routines/commands.ts",
+          kind: "commands",
+          role: "Server-only adapters for routine definition and occurrence RPCs.",
+          tags: "routine rpc commands recurrence",
+        },
+        {
+          path: "src/lib/realtime/surfaces.ts",
+          kind: "sync",
+          role: "Household-filtered Realtime channel with table-to-surface invalidation.",
+          tags: "realtime postgres changes debounce",
+        },
+        {
+          path: "src/domain/money/allocations.ts",
+          kind: "domain",
+          role: "Pure equal and exact CHF allocation validation.",
+          tags: "domain money cents property test pure",
+        },
+        {
+          path: "src/domain/money/balances.ts",
+          kind: "domain",
+          role: "Pure balance derivation and event-by-event explanation.",
+          tags: "domain money ledger derived balance pure",
+        },
+        {
+          path: "src/domain/routines/schedule.ts",
+          kind: "domain",
+          role: "Pure validation and next-date calculations for supported recurrence rules.",
+          tags: "domain routine recurrence date pure",
+        },
+        {
+          path: "src/domain/notifications/surfaces.ts",
+          kind: "domain",
+          role: "Explicit mapping from changed tables to affected product surfaces.",
+          tags: "domain realtime notifications sync",
+        },
+        {
+          path: "supabase/migrations/20260809190100_harden_core_tenancy.sql",
+          kind: "database",
+          role: "Private membership helper, grants, and tenant RLS hardening.",
+          tags: "database rls auth tenancy security",
+        },
+        {
+          path: "supabase/migrations/20260809210000_routine_engine.sql",
+          kind: "database",
+          role: "Routine tables, recurrence commands, idempotency, activity, and policies.",
+          tags: "database routine recurrence rpc",
+        },
+        {
+          path: "supabase/migrations/20260811180000_meals_groceries.sql",
+          kind: "database",
+          role: "Meals, groceries, shopping sessions, expense drafts, commands, and RLS.",
+          tags: "database meals groceries shopping draft",
+        },
+        {
+          path: "supabase/migrations/20260811200000_chf_ledger.sql",
+          kind: "database",
+          role: "Append-only CHF event ledger, transactional financial commands, and zero-sum trigger.",
+          tags: "database money ledger event rls trigger",
+        },
+        {
+          path: "supabase/migrations/20260812202316_share_ledger_lock.sql",
+          kind: "database",
+          role: "Shared household advisory lock for every financial writer.",
+          tags: "database money concurrency lock settlement",
+        },
+        {
+          path: "supabase/migrations/20260812090000_notifications_realtime.sql",
+          kind: "database",
+          role: "Activity, inbox, digest, push outbox, jobs, and realtime publication setup.",
+          tags: "database notifications realtime cron push",
+        },
+        {
+          path: "supabase/functions/push-dispatch/index.ts",
+          kind: "jobs",
+          role: "Bounded Edge Function drain for the optional push outbox.",
+          tags: "edge function push outbox service role",
+        },
+        {
+          path: "scripts/identity-admin.mts",
+          kind: "auth",
+          role: "Local-only bootstrap, enrollment, and recovery command entry point.",
+          tags: "auth admin passkey recovery secret",
+        },
+        {
+          path: "supabase/tests/database/006_settlement_lock.test.sql",
+          kind: "tests",
+          role: "Adversarial coverage for settlement and concurrent ledger writers.",
+          tags: "tests pgTAP concurrency money",
+        },
+        {
+          path: "tests/e2e/m7-forms.spec.ts",
+          kind: "tests",
+          role: "Browser coverage for the M7 write-flow forms at desktop and mobile sizes.",
+          tags: "tests playwright browser forms mobile",
+        },
+        {
+          path: "docs/architecture.md",
+          kind: "docs",
+          role: "The accepted runtime, command, data, scheduling, and failure model.",
+          tags: "docs architecture decisions",
+        },
+        {
+          path: "docs/domain-model.md",
+          kind: "docs",
+          role: "The aggregates, entities, invariants, cross-domain commands, and authorization boundary.",
+          tags: "docs domain model invariants",
+        },
+        {
+          path: "docs/adr/0024-flatten-nextjs-application.md",
+          kind: "docs",
+          role: "Why this is one root application with folder boundaries instead of packages.",
+          tags: "docs adr repository layout nextjs",
+        },
+      ];
+
+      function sourceHref(path) {
+        return path.startsWith("docs/") ? path.slice(5) : `../${path}`;
+      }
+
+      function sourceListMarkup(files) {
+        return files
+          .map(
+            (file) =>
+              `<li><a class="source-link" href="${sourceHref(file)}" target="_blank" rel="noopener"><span>${file}</span></a></li>`,
+          )
+          .join("");
+      }
+
+      function showChapter(chapterId, updateHash = true) {
+        document.querySelectorAll(".chapter").forEach((chapter) => {
+          chapter.hidden = chapter.id !== chapterId;
+        });
+        document.querySelectorAll(".chapter-button").forEach((button) => {
+          const selected = button.dataset.chapter === chapterId;
+          button.setAttribute("aria-selected", String(selected));
+          button.tabIndex = selected ? 0 : -1;
+        });
+        if (updateHash) history.replaceState(null, "", `#${chapterId}`);
+        document
+          .querySelector(`#${chapterId} h1`)
+          ?.focus({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      document.querySelectorAll(".chapter-button").forEach((button) => {
+        button.addEventListener("click", () =>
+          showChapter(button.dataset.chapter),
+        );
+        button.addEventListener("keydown", (event) => {
+          if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+          const buttons = [...document.querySelectorAll(".chapter-button")];
+          const index = buttons.indexOf(button);
+          const delta = event.key === "ArrowRight" ? 1 : -1;
+          const target =
+            buttons[(index + delta + buttons.length) % buttons.length];
+          target.focus();
+          showChapter(target.dataset.chapter);
+        });
+      });
+
+      document
+        .getElementById("start-tour")
+        .addEventListener("click", () => showChapter("journeys"));
+
+      function renderMapDetail(key) {
+        const node = architectureNodes[key];
+        document
+          .querySelectorAll(".map-node")
+          .forEach((button) =>
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.node === key),
+            ),
+          );
+        document.getElementById("map-detail-kicker").textContent = node.zone;
+        document.getElementById("map-detail-title").textContent = node.title;
+        document.getElementById("map-detail-copy").textContent = node.copy;
+        document.getElementById("map-detail-guarantees").innerHTML =
+          node.guarantees.map((item) => `<li>${item}</li>`).join("");
+        document.getElementById("map-detail-files").innerHTML =
+          sourceListMarkup(node.files);
+      }
+      document
+        .querySelectorAll(".map-node")
+        .forEach((button) =>
+          button.addEventListener("click", () =>
+            renderMapDetail(button.dataset.node),
+          ),
+        );
+      renderMapDetail("browser");
+
+      let activeJourney = "today";
+      let activeStep = 0;
+      const journeySwitcher = document.getElementById("journey-switcher");
+      Object.entries(journeys).forEach(([key, journey]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "journey-choice";
+        button.dataset.journey = key;
+        button.setAttribute("aria-pressed", String(key === activeJourney));
+        button.textContent = journey.label;
+        button.addEventListener("click", () => {
+          activeJourney = key;
+          activeStep = 0;
+          renderJourney();
+        });
+        journeySwitcher.append(button);
+      });
+
+      function renderJourney() {
+        const journey = journeys[activeJourney];
+        const step = journey.steps[activeStep];
+        document
+          .querySelectorAll(".journey-choice")
+          .forEach((button) =>
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.journey === activeJourney),
+            ),
+          );
+        document.getElementById("journey-kind").textContent = journey.kind;
+        document.getElementById("journey-title").textContent = journey.label;
+        document.getElementById("journey-position").textContent =
+          `Step ${activeStep + 1} of ${journey.steps.length}`;
+        document.getElementById("journey-runtime").textContent = step.location;
+        document.getElementById("journey-progress-bar").style.width =
+          `${((activeStep + 1) / journey.steps.length) * 100}%`;
+        document.getElementById("journey-steps").innerHTML = journey.steps
+          .map((item, index) => {
+            const state =
+              index < activeStep
+                ? "past"
+                : index === activeStep
+                  ? "current"
+                  : "future";
+            return `<li><button class="step-button" type="button" data-step="${index}" data-state="${state}" aria-current="${index === activeStep ? "step" : "false"}"><span class="step-dot">${index + 1}</span><span class="step-title">${item.title}</span></button></li>`;
+          })
+          .join("");
+        document.querySelectorAll(".step-button").forEach((button) =>
+          button.addEventListener("click", () => {
+            activeStep = Number(button.dataset.step);
+            renderJourney();
+          }),
+        );
+        document.getElementById("step-location").textContent = step.location;
+        document.getElementById("step-title").textContent = step.title;
+        document.getElementById("step-copy").textContent = step.copy;
+        document.getElementById("step-why").textContent = step.why;
+        document.getElementById("step-payloads").innerHTML = step.payloads
+          .map(
+            ([label, tone]) =>
+              `<span class="data-chip" data-tone="${tone}">${label}</span>`,
+          )
+          .join("");
+        document.getElementById("step-files").innerHTML = sourceListMarkup(
+          step.files,
+        );
+        document.getElementById("previous-step").disabled = activeStep === 0;
+        document.getElementById("next-step").disabled =
+          activeStep === journey.steps.length - 1;
+        document
+          .querySelector(`.step-button[data-step="${activeStep}"]`)
+          ?.scrollIntoView({
+            block: "nearest",
+            inline: "center",
+            behavior: "smooth",
+          });
+      }
+      document.getElementById("previous-step").addEventListener("click", () => {
+        if (activeStep > 0) {
+          activeStep -= 1;
+          renderJourney();
+        }
+      });
+      document.getElementById("next-step").addEventListener("click", () => {
+        if (activeStep < journeys[activeJourney].steps.length - 1) {
+          activeStep += 1;
+          renderJourney();
+        }
+      });
+      renderJourney();
+
+      let activeDomain = "identity";
+      const domainList = document.getElementById("domain-list");
+      Object.entries(domains).forEach(([key, domain]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "domain-button";
+        button.dataset.domain = key;
+        button.setAttribute("aria-pressed", String(key === activeDomain));
+        button.innerHTML = `<strong>${domain.label}</strong><span>${domain.count}</span>`;
+        button.addEventListener("click", () => {
+          activeDomain = key;
+          renderDomain();
+        });
+        domainList.append(button);
+      });
+
+      function renderDomain() {
+        const domain = domains[activeDomain];
+        document
+          .querySelectorAll(".domain-button")
+          .forEach((button) =>
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.domain === activeDomain),
+            ),
+          );
+        document.getElementById("domain-kicker").textContent = domain.kicker;
+        document.getElementById("domain-title").textContent = domain.label;
+        document.getElementById("domain-copy").textContent = domain.copy;
+        document.getElementById("domain-entities").innerHTML = domain.entities
+          .map((entity) => `<span class="badge">${entity}</span>`)
+          .join("");
+        document.getElementById("domain-invariants").innerHTML =
+          domain.invariants.map((item) => `<li>${item}</li>`).join("");
+        document.getElementById("domain-relations").innerHTML = domain.relations
+          .map(
+            ([target, copy]) =>
+              `<p class="relationship"><strong>${target}:</strong> ${copy}</p>`,
+          )
+          .join("");
+        document.getElementById("domain-ts-files").innerHTML = sourceListMarkup(
+          domain.ts,
+        );
+        document.getElementById("domain-db-files").innerHTML = sourceListMarkup(
+          domain.db,
+        );
+      }
+      renderDomain();
+
+      let activeScenario = "tenant";
+      const scenarioGrid = document.getElementById("scenario-grid");
+      Object.entries(scenarios).forEach(([key, scenario]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "scenario-button";
+        button.dataset.scenario = key;
+        button.setAttribute("aria-pressed", String(key === activeScenario));
+        button.textContent = scenario.label;
+        button.addEventListener("click", () => {
+          activeScenario = key;
+          renderScenario();
+        });
+        scenarioGrid.append(button);
+      });
+
+      function renderScenario() {
+        const scenario = scenarios[activeScenario];
+        document
+          .querySelectorAll(".scenario-button")
+          .forEach((button) =>
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.scenario === activeScenario),
+            ),
+          );
+        document.getElementById("scenario-kicker").textContent =
+          scenario.kicker;
+        document.getElementById("scenario-title").textContent = scenario.title;
+        document.getElementById("scenario-copy").textContent = scenario.copy;
+        document.getElementById("scenario-files").innerHTML = sourceListMarkup(
+          scenario.files,
+        );
+        document.getElementById("scenario-path").innerHTML = scenario.path
+          .map(
+            ([label, state], index) =>
+              `<div class="rejection-step" data-state="${state === "stop" ? "stop" : "pass"}">${index + 1}. ${label}</div>`,
+          )
+          .join("");
+      }
+      renderScenario();
+
+      let activeTest = "verify";
+      const testTabs = document.getElementById("test-tabs");
+      Object.entries(testLayers).forEach(([key, layer]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "test-tab";
+        button.dataset.test = key;
+        button.role = "tab";
+        button.setAttribute("aria-selected", String(key === activeTest));
+        button.textContent = layer.label;
+        button.addEventListener("click", () => {
+          activeTest = key;
+          renderTest();
+        });
+        testTabs.append(button);
+      });
+
+      function renderTest() {
+        const layer = testLayers[activeTest];
+        document
+          .querySelectorAll(".test-tab")
+          .forEach((button) =>
+            button.setAttribute(
+              "aria-selected",
+              String(button.dataset.test === activeTest),
+            ),
+          );
+        document.getElementById("test-kicker").textContent = layer.kicker;
+        document.getElementById("test-title").textContent = layer.title;
+        document.getElementById("test-copy").textContent = layer.copy;
+        document.getElementById("test-command").textContent = layer.command;
+        document.getElementById("test-signals").innerHTML = layer.signals
+          .map((signal) => `<li>${signal}</li>`)
+          .join("");
+        document.getElementById("test-files").innerHTML = sourceListMarkup(
+          layer.files,
+        );
+      }
+      renderTest();
+
+      const codeFilters = [
+        "all",
+        "routes",
+        "ui",
+        "reads",
+        "commands",
+        "domain",
+        "database",
+        "auth",
+        "sync",
+        "jobs",
+        "tests",
+        "docs",
+      ];
+      let activeFilter = "all";
+      const filtersContainer = document.getElementById("code-filters");
+      codeFilters.forEach((filter) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "filter-button";
+        button.dataset.filter = filter;
+        button.setAttribute("aria-pressed", String(filter === activeFilter));
+        button.textContent =
+          filter === "all"
+            ? "All areas"
+            : filter[0].toUpperCase() + filter.slice(1);
+        button.addEventListener("click", () => {
+          activeFilter = filter;
+          renderCodeAreas();
+        });
+        filtersContainer.append(button);
+      });
+
+      function renderCodeAreas() {
+        const query = document
+          .getElementById("code-search")
+          .value.trim()
+          .toLowerCase();
+        const results = codeAreas.filter((area) => {
+          const matchesFilter =
+            activeFilter === "all" || area.kind === activeFilter;
+          const haystack =
+            `${area.path} ${area.kind} ${area.role} ${area.tags}`.toLowerCase();
+          return matchesFilter && haystack.includes(query);
+        });
+        document
+          .querySelectorAll(".filter-button")
+          .forEach((button) =>
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.filter === activeFilter),
+            ),
+          );
+        document.getElementById("code-list").innerHTML = results
+          .map(
+            (area) =>
+              `<div class="code-row"><dt><a class="code-path" href="${sourceHref(area.path)}" target="_blank" rel="noopener">${area.path}</a></dt><dd class="code-role">${area.role}</dd><dd class="code-kind">${area.kind}</dd></div>`,
+          )
+          .join("");
+        document.getElementById("result-count").textContent =
+          `${results.length} ${results.length === 1 ? "area" : "areas"}`;
+        document.getElementById("empty-results").hidden = results.length !== 0;
+      }
+      document
+        .getElementById("code-search")
+        .addEventListener("input", renderCodeAreas);
+      renderCodeAreas();
+
+      const initialHash = window.location.hash.slice(1);
+      const validChapters = [
+        "overview",
+        "journeys",
+        "domains",
+        "trust",
+        "code",
+      ];
+      if (validChapters.includes(initialHash)) showChapter(initialHash, false);
+    </script>
+  </body>
+</html>
