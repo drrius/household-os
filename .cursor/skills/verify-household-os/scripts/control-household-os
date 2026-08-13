@@ -211,9 +211,13 @@ async function commandLaunch(flags) {
     );
   }
 
-  const supabaseStatus = await fetchStatus("http://127.0.0.1:54321/auth/v1/health");
+  const supabaseStatus = await fetchStatus(
+    "http://127.0.0.1:54321/auth/v1/health",
+  );
   if (supabaseStatus === null) {
-    fail("Local Supabase is not answering on 127.0.0.1:54321. Run pnpm db:start.");
+    fail(
+      "Local Supabase is not answering on 127.0.0.1:54321. Run pnpm db:start.",
+    );
   }
 
   const occupied = await fetchStatus(`http://127.0.0.1:${port}/sign-in`);
@@ -286,12 +290,20 @@ async function commandDoctor() {
   }
 
   const protectedStatus = await fetchStatus(new URL("/", state.baseUrl));
-  if (protectedStatus !== 307 && protectedStatus !== 308 && protectedStatus !== 200) {
-    problems.push(`GET / returned ${protectedStatus ?? "no response"} (expected 307/308 redirect or 200).`);
+  if (
+    protectedStatus !== 307 &&
+    protectedStatus !== 308 &&
+    protectedStatus !== 200
+  ) {
+    problems.push(
+      `GET / returned ${protectedStatus ?? "no response"} (expected 307/308 redirect or 200).`,
+    );
   }
 
   if (state.port === 3000) {
-    problems.push("Refusing port 3000: that is the user's ordinary dev server.");
+    problems.push(
+      "Refusing port 3000: that is the user's ordinary dev server.",
+    );
   }
 
   if (problems.length > 0) {
@@ -355,7 +367,9 @@ async function commandBrowser(positionals, flags) {
         fail("browser fill requires --role, --name, and --value");
       }
       await withPage(state, async (page) => {
-        await page.getByRole(flags.role, { name: flags.name }).fill(flags.value);
+        await page
+          .getByRole(flags.role, { name: flags.name })
+          .fill(flags.value);
         console.log(`filled ${flags.role} ${JSON.stringify(flags.name)}`);
       });
       return;
@@ -446,7 +460,9 @@ function commandCleanup() {
   }
 
   rmSync(RUN_DIR, { recursive: true, force: true });
-  console.log(`Cleaned verification instance. Evidence remains in ${ARTIFACT_DIR}`);
+  console.log(
+    `Cleaned verification instance. Evidence remains in ${ARTIFACT_DIR}`,
+  );
 }
 
 const { flags, positionals } = parseArgs(process.argv.slice(2));

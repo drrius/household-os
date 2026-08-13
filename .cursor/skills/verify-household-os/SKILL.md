@@ -60,15 +60,15 @@ control-household-os browser screenshot --path sign-in-gate/after.png
 
 Prefer ARIA roles and accessible names. Stable handles in this app:
 
-| Handle | Role / name |
-| --- | --- |
-| Sign-in submit | `button` named `Sign in with passkey` |
-| Primary destinations | `link` named `Today`, `Plan`, `Groceries`, `Money`, `Home` inside `navigation` named `Primary navigation` |
-| Global create | `button` named `Add something` |
-| Create choices | `link` named `Routine`, `Grocery item`, `Meal`, `Expense` |
-| Grocery create | `link` named `Add item` on Groceries; heading `New grocery item`; textbox `Item`; button `Add to groceries` |
-| Expense create | `link` named `Add expense` on Money; heading `New expense`; textboxes `Description` and `Amount in CHF`; button `Post expense` |
-| Form abandon | `link` named `Cancel` |
+| Handle               | Role / name                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Sign-in submit       | `button` named `Sign in with passkey`                                                                                          |
+| Primary destinations | `link` named `Today`, `Plan`, `Groceries`, `Money`, `Home` inside `navigation` named `Primary navigation`                      |
+| Global create        | `button` named `Add something`                                                                                                 |
+| Create choices       | `link` named `Routine`, `Grocery item`, `Meal`, `Expense`                                                                      |
+| Grocery create       | `link` named `Add item` on Groceries; heading `New grocery item`; textbox `Item`; button `Add to groceries`                    |
+| Expense create       | `link` named `Add expense` on Money; heading `New expense`; textboxes `Description` and `Amount in CHF`; button `Post expense` |
+| Form abandon         | `link` named `Cancel`                                                                                                          |
 
 Cookies persist in `/tmp/household-os-verify/run/browser-profile` for the life of the run. `cleanup` deletes that profile.
 
