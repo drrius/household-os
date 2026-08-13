@@ -69,7 +69,12 @@ function DatePickerControl({
   };
 
   useEffect(() => {
-    postedRef.current?.setCustomValidity(missing ? emptyDateMessage : "");
+    const posted = postedRef.current;
+    if (posted === null) return;
+    posted.setCustomValidity(missing ? emptyDateMessage : "");
+    if (!missing) {
+      posted.dispatchEvent(new Event("input", { bubbles: true }));
+    }
   }, [missing]);
 
   return (
