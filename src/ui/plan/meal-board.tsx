@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
@@ -75,22 +74,35 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
 
   return (
     <article
-      className={cn(
-        "grid min-w-0 snap-start grid-rows-[auto_1fr] border-2 border-transparent border-r-border p-3 last:border-r-transparent lg:snap-none lg:p-2",
-        day.isToday && "border-primary bg-secondary last:border-primary",
-      )}
+      aria-current={day.isToday ? "date" : undefined}
       aria-labelledby={`plan-day-${day.date}`}
+      className={cn(
+        "relative grid min-w-0 snap-start grid-rows-[auto_1fr] border-r border-border p-3 last:border-r-0 lg:snap-none lg:p-2",
+        day.isToday &&
+          "before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-full before:bg-primary lg:before:inset-x-2",
+      )}
     >
       <header className="flex h-11 items-center justify-between gap-2">
         <h2
-          className="min-w-0 truncate font-heading text-xl lg:text-base"
+          className={cn(
+            "min-w-0 truncate font-heading text-xl tabular-nums lg:text-base",
+            day.isToday && "text-primary",
+          )}
           id={`plan-day-${day.date}`}
         >
           <time dateTime={day.date} title={dateLabel}>
             {day.weekdayLabel}
           </time>
         </h2>
-        {day.isToday ? <Badge variant="accent">Today</Badge> : null}
+        {day.isToday ? (
+          <p className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary lg:text-xs">
+            <span
+              aria-hidden="true"
+              className="size-1.5 shrink-0 rounded-full bg-primary"
+            />
+            Today
+          </p>
+        ) : null}
       </header>
       <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2">
         {day.slots.map((mealSlot, slotIndex) => (
