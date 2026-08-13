@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -15,6 +15,7 @@ import { FormField } from "@/ui/forms/form-field.client";
 import { useFormFieldValue } from "@/ui/forms/form-fields.client";
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+const emptyDateMessage = "Choose a date.";
 
 function isoToCalendarDate(iso: string): Date | undefined {
   if (!isoDatePattern.test(iso)) return undefined;
@@ -60,9 +61,29 @@ function DatePickerControl({
 }) {
   const selected = isoToCalendarDate(value);
   const echo = dayEcho(value);
+  const missing = required === true && !isoDatePattern.test(value);
+  const postedRef = useRef<HTMLInputElement>(null);
+  const bindPosted = (node: HTMLInputElement | null) => {
+    postedRef.current = node;
+    node?.setCustomValidity(missing ? emptyDateMessage : "");
+  };
+
+  useEffect(() => {
+    postedRef.current?.setCustomValidity(missing ? emptyDateMessage : "");
+  }, [missing]);
+
   return (
     <div className="grid gap-2">
-      <input name={name} required={required} type="hidden" value={value} />
+      <input
+        aria-hidden
+        className="sr-only"
+        name={name}
+        onChange={() => undefined}
+        ref={bindPosted}
+        required={required}
+        tabIndex={-1}
+        value={value}
+      />
       <Popover>
         <PopoverTrigger
           render={

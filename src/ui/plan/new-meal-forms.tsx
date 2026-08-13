@@ -33,7 +33,7 @@ function DateAndSlotFields({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <DateField
-        defaultValue={date ?? zurichCivilDate()}
+        defaultValue={date || zurichCivilDate()}
         label="Date"
         name="date"
         required
