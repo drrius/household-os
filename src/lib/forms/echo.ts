@@ -1,10 +1,5 @@
 const regeneratedKeys = new Set(["idempotencyKey"]);
 
-/**
- * Copies every submitted string field except keys that must be minted again
- * on the next render. Repeated names (`weekdays`) are joined so a rejected
- * submit can restore `getAll` values.
- */
 export function echoValues(formData: FormData): Record<string, string> {
   const values: Record<string, string> = {};
   for (const name of new Set(formData.keys())) {

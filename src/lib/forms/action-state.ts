@@ -7,7 +7,6 @@ export type FormActionState = {
   error?: string;
   field?: string;
   values?: Readonly<Record<string, string>>;
-  /** Advances on every rejection so a repeated failure still announces. */
   submissionId: number;
 };
 

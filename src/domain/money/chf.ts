@@ -1,9 +1,3 @@
-/**
- * CHF text parsing shared by the browser and the server, so a split the browser
- * calls balanced is the same split the ledger accepts. Amounts stay integer
- * centimes and the intermediate arithmetic is BigInt, never a float.
- */
-
 export const chfAmountMessage =
   "Enter a CHF amount with at most two decimal places.";
 
@@ -13,7 +7,6 @@ function normalizeChf(value: string): string {
   return value.trim().replace(",", ".");
 }
 
-/** Null rather than a throw: a half-typed amount is not an error yet. */
 export function parseChfToCentimesOrNull(value: string): number | null {
   const match = chfAmountPattern.exec(normalizeChf(value));
   if (match === null) {

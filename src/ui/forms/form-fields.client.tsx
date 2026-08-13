@@ -64,10 +64,6 @@ function controlValidationMessage(target: EventTarget | null): string {
   return "";
 }
 
-/**
- * Keeps the browser's own validation message after its bubble disappears, so a
- * blocked submit leaves persistent evidence under the failing control.
- */
 function useNativeValidation() {
   const [errors, setErrors] = useState<FieldMap>({});
   const reportingRef = useRef(false);
@@ -131,10 +127,6 @@ export function FormFields({
     onInput,
     onInvalidCapture,
   } = useNativeValidation();
-  // The action is passed through untouched. Anything wrapping it here would be
-  // a client closure rather than a server reference, and React would stop
-  // emitting the `<form action>` endpoint that lets a submission reach the
-  // server before the client bundle has hydrated.
   const [submission, submit] = useActionState(action, initialFormActionState);
   const alertRef = useRef<HTMLDivElement>(null);
   const { error, field, submissionId, values } = submission;
@@ -162,8 +154,6 @@ export function FormFields({
       onInput={onInput}
       onInvalidCapture={onInvalidCapture}
     >
-      {/* Mounted on every render: a live region inserted in the same commit as
-          its content is announced unreliably. */}
       <div
         aria-live="polite"
         className="grid gap-5"

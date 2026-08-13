@@ -10,11 +10,6 @@ export type ShareReconciliation = {
   sharesCents: number;
 };
 
-/**
- * Live reading of an exact split. Blank shares count as nothing so the running
- * total stays useful while one is still being typed. Null when the amount or a
- * filled share cannot be read as CHF.
- */
 export function reconcileShares(
   amount: string,
   shares: readonly string[],

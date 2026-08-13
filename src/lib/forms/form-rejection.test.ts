@@ -16,12 +16,6 @@ describe("form rejection state", () => {
     });
   });
 
-  /**
-   * `FormFields` announces the alert from an effect keyed on
-   * `[error, submissionId]`, so rejecting the same value twice has to produce a
-   * state that differs from the one already on screen. Without the counter the
-   * second attempt is silent for anyone listening rather than looking.
-   */
   it("changes state when the identical failure repeats", () => {
     const first = formRejection({ submissionId: 0 }, failure, values);
     const second = formRejection(first, failure, values);
