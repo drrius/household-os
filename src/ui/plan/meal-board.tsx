@@ -47,16 +47,15 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
         size="sm"
       >
         <CardContent className="grid min-w-0 gap-2">
-          <p className="truncate text-xs whitespace-nowrap text-muted-foreground">
-            <span className="capitalize">{slot}</span>
-            {entry.isLeftover ? (
-              <>
-                <span aria-hidden="true"> · </span>
-                <span className="font-medium text-warning-foreground">
-                  Leftover
-                </span>
-              </>
-            ) : null}
+          <p
+            className={cn(
+              "truncate text-xs capitalize",
+              entry.isLeftover
+                ? "font-medium text-warning-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            {entry.isLeftover ? "Leftover" : slot}
           </p>
           <h3 className="wrap-anywhere text-sm leading-snug font-semibold">
             {entry.title}
