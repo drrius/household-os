@@ -2,13 +2,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
 import { cn } from "@/lib/utils";
@@ -52,17 +46,18 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
         )}
         size="sm"
       >
-        <CardHeader className="flex-row flex-wrap items-start">
-          <CardTitle className="text-xs text-muted-foreground capitalize">
-            {slot}
-          </CardTitle>
-          <CardAction>
-            {entry.isLeftover ? (
-              <Badge variant="warning">Leftover</Badge>
-            ) : null}
-          </CardAction>
-        </CardHeader>
         <CardContent className="grid min-w-0 gap-2">
+          <p className="text-xs text-muted-foreground">
+            <span className="capitalize">{slot}</span>
+            {entry.isLeftover ? (
+              <>
+                <span aria-hidden="true"> · </span>
+                <span className="font-medium text-warning-foreground">
+                  Leftover
+                </span>
+              </>
+            ) : null}
+          </p>
           <h3 className="wrap-anywhere text-sm leading-snug font-semibold">
             {entry.title}
           </h3>
