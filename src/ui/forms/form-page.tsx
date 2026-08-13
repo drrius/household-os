@@ -107,10 +107,14 @@ export function FormSection({
   legend: string;
 }) {
   return (
-    <fieldset className="grid gap-4 border-t pt-5 first:border-t-0 first:pt-0">
-      <legend className="font-heading font-bold">{legend}</legend>
-      {children}
-    </fieldset>
+    <div className="border-border py-6 first-of-type:pt-0 last-of-type:pb-0 not-first-of-type:border-t">
+      <fieldset className="min-w-0 space-y-4 border-0 p-0">
+        <legend className="float-none w-full p-0 font-heading font-semibold">
+          {legend}
+        </legend>
+        {children}
+      </fieldset>
+    </div>
   );
 }
 

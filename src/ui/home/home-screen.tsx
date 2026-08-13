@@ -36,15 +36,15 @@ function HouseholdCard({
             >
               <div className="grid min-w-0 gap-1">
                 <strong>{member.displayName}</strong>
-                <span className="text-xs text-muted-foreground">
-                  {member.isSelf ? "You · Equal member" : "Equal member"}
-                </span>
+                {member.isSelf ? (
+                  <span className="text-xs text-muted-foreground">You</span>
+                ) : null}
               </div>
             </li>
           ))}
         </ul>
         <p className="text-xs text-muted-foreground">
-          Both members have equal access. Each person signs in with their own{" "}
+          Each person signs in with their own{" "}
           <Link href={SECURITY_PATH}>passkeys</Link>.
         </p>
       </CardContent>
