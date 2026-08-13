@@ -47,7 +47,7 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
         size="sm"
       >
         <CardContent className="grid min-w-0 gap-2">
-          <p className="text-xs text-muted-foreground">
+          <p className="truncate text-xs whitespace-nowrap text-muted-foreground">
             <span className="capitalize">{slot}</span>
             {entry.isLeftover ? (
               <>
