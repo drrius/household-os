@@ -4,7 +4,7 @@ Read `docs/product-scope.md`, `docs/domain-model.md`, and the relevant ADRs befo
 
 ## Non-negotiable boundaries
 
-- Do not design or style the product UI. The user is handling frontend visual design separately. Foundation UI must remain neutral.
+- Product UI design and styling are in scope for post-v1 work. The version-one design freeze is lifted; layout, styling, copy, spacing, contrast, and touch targets may be changed. This does not reopen version-one product scope.
 - Keep household work and financial obligations as separate domains.
 - Financial history is append-only. Corrections use reversal and replacement events; balances are always derived.
 - Store CHF as integer centimes. Never use floating-point monetary arithmetic.
@@ -23,7 +23,7 @@ Read `docs/product-scope.md`, `docs/domain-model.md`, and the relevant ADRs befo
 - Keep server-only modules behind `server-only` imports and never re-export them from client entry points.
 - Avoid barrel imports in performance-sensitive application code.
 - Add a database or property test with every new invariant.
-- Add a Playwright flow only after the user supplies the visual design for the affected surface.
+- Add a Playwright flow only after the design of the affected surface is settled.
 
 ## Parallel work
 
