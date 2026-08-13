@@ -21,7 +21,7 @@ export default async function NewGroceryPage({
   return (
     <FormPage
       backHref="/groceries"
-      description="Add one item without silently combining quantities or units."
+      description="Add one item to the shopping list."
       error={query.error}
       title="New grocery item"
     >
@@ -33,14 +33,22 @@ export default async function NewGroceryPage({
           <Input maxLength={120} name="name" required />
         </FormField>
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Quantity">
+          <FormField
+            description="Just the amount, e.g. 2"
+            label="Quantity"
+            optional
+          >
             <Input maxLength={80} name="quantity" />
           </FormField>
-          <FormField label="Unit">
+          <FormField
+            description="e.g. cartons, kg, packs"
+            label="Unit"
+            optional
+          >
             <Input maxLength={80} name="unit" />
           </FormField>
         </div>
-        <FormField label="Category">
+        <FormField label="Category" optional>
           <select className={selectClassName} name="categoryId">
             <option value="">Other</option>
             {categories.map((category) => (
@@ -50,7 +58,7 @@ export default async function NewGroceryPage({
             ))}
           </select>
         </FormField>
-        <FormField label="Note">
+        <FormField label="Note" optional>
           <Textarea maxLength={1000} name="note" />
         </FormField>
       </FormFields>
