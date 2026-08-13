@@ -33,7 +33,17 @@ function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
         </CardHeader>
         <CardContent>
           {meals.length === 0 ? (
-            <EmptyState title="No saved meals yet">
+            <EmptyState
+              action={
+                <Link
+                  className={buttonVariants({ className: "no-underline" })}
+                  href="/plan/meals/new"
+                >
+                  Add meal
+                </Link>
+              }
+              title="No saved meals yet"
+            >
               <p>Meals you save will appear here for quick reuse.</p>
             </EmptyState>
           ) : (
@@ -43,7 +53,14 @@ function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
             >
               {meals.map((meal) => (
                 <li key={meal.id}>
-                  <Badge variant="secondary">{meal.title}</Badge>
+                  <Link
+                    className="no-underline"
+                    href={`/plan/meals/new?libraryId=${encodeURIComponent(meal.id)}`}
+                  >
+                    <Badge className="cursor-pointer" variant="secondary">
+                      {meal.title}
+                    </Badge>
+                  </Link>
                 </li>
               ))}
             </ul>

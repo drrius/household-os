@@ -1,6 +1,12 @@
-import { createMealAction } from "@/app/(product)/_actions/m7-plan-groceries";
+import { redirect } from "next/navigation";
+
+import {
+  createMealAction,
+  placeFromLibraryAction,
+} from "@/app/(product)/_actions/m7-plan-groceries";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { loadLibraryMealTitle } from "@/lib/read-models/meal-entry-manage";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import {
   CheckboxField,
@@ -16,6 +22,7 @@ export default async function NewMealPage({
   searchParams: Promise<{
     date?: string;
     error?: string;
+    libraryId?: string;
     slot?: string;
   }>;
 }) {
@@ -23,6 +30,67 @@ export default async function NewMealPage({
   const slot = ["breakfast", "lunch", "dinner"].includes(query.slot ?? "")
     ? query.slot
     : "dinner";
+  const libraryId =
+    typeof query.libraryId === "string" && query.libraryId.length > 0
+      ? query.libraryId
+      : null;
+  const libraryTitle =
+    libraryId === null ? null : await loadLibraryMealTitle(libraryId);
+
+  if (libraryId !== null && libraryTitle === null) {
+    redirect("/plan/meals/new");
+  }
+
+  if (libraryId !== null && libraryTitle !== null) {
+    return (
+      <FormPage
+        backHref="/plan"
+        description="Place a saved library meal into one weekly slot."
+        error={query.error}
+        title="Place saved meal"
+      >
+        <FormFields
+          action={placeFromLibraryAction}
+          submitLabel="Add to plan"
+        >
+          <input
+            name="idempotencyKey"
+            type="hidden"
+            value={crypto.randomUUID()}
+          />
+          <input name="libraryId" type="hidden" value={libraryId} />
+          <FormField label="Meal">
+            <p className="text-sm font-normal">{libraryTitle}</p>
+          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Date">
+              <Input
+                defaultValue={query.date ?? zurichCivilDate()}
+                name="date"
+                required
+                type="date"
+              />
+            </FormField>
+            <FormField label="Slot">
+              <select
+                className={selectClassName}
+                defaultValue={slot}
+                name="slot"
+              >
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+              </select>
+            </FormField>
+          </div>
+          <FormField label="Notes">
+            <Textarea maxLength={4000} name="notes" />
+          </FormField>
+        </FormFields>
+      </FormPage>
+    );
+  }
+
   return (
     <FormPage
       backHref="/plan"
