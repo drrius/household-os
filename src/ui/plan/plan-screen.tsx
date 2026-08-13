@@ -57,9 +57,7 @@ function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
                     className="no-underline"
                     href={`/plan/meals/new?libraryId=${encodeURIComponent(meal.id)}`}
                   >
-                    <Badge variant="secondary">
-                      {meal.title}
-                    </Badge>
+                    <Badge variant="secondary">{meal.title}</Badge>
                   </Link>
                 </li>
               ))}

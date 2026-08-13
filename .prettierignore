@@ -6,3 +6,4 @@ next-env.d.ts
 
 # User-owned visual design source; frontend design is outside foundation formatting.
 Household OS Designs.html
+pnpm-lock.yaml
