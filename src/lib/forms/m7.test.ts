@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { errorField } from "./field-error";
 import {
   draftSplitDefaults,
-  expenseFormHref,
   parseChfToCentimes,
   parseExpenseForm,
   parseGroceryForm,
@@ -23,20 +23,10 @@ const areaId = "33333333-3333-4333-8333-333333333333";
 const idempotencyKey = "44444444-4444-4444-8444-444444444444";
 
 describe("M7 form parsing", () => {
-  it("parses CHF without floating-point arithmetic", () => {
-    expect(parseChfToCentimes("12")).toBe(1200);
-    expect(parseChfToCentimes("12.3")).toBe(1230);
+  // The parser itself is exercised in src/domain/money/chf.test.ts; this keeps
+  // the re-export existing importers still use.
+  it("re-exports the shared CHF parser", () => {
     expect(parseChfToCentimes("12,34")).toBe(1234);
-    expect(() => parseChfToCentimes("12.345")).toThrow(/two decimal/);
-  });
-
-  it("round-trips household amounts as exact centimes", () => {
-    fc.assert(
-      fc.property(fc.integer({ min: 0, max: 999_999_999 }), (centimes) => {
-        const amount = `${Math.floor(centimes / 100)}.${String(centimes % 100).padStart(2, "0")}`;
-        expect(parseChfToCentimes(amount)).toBe(centimes);
-      }),
-    );
   });
 
   it("maps a weekly assigned routine to the database schedule contract", () => {
@@ -63,8 +53,43 @@ describe("M7 form parsing", () => {
     form.set(`allocation:${firstMember}`, "6.00");
     form.set(`allocation:${secondMember}`, "5.00");
     expect(() => parseExpenseForm(form, [firstMember, secondMember])).toThrow(
-      /sum to the event amount/,
+      /shares need to add up to the total/,
     );
+  });
+
+  it("names the control that rejected an amount instead of leaking storage words", () => {
+    const shares = expenseForm("10.00", "exact");
+    shares.set(`allocation:${firstMember}`, "6.00");
+    shares.set(`allocation:${secondMember}`, "5.00");
+    expect(
+      errorField(
+        captureError(() =>
+          parseExpenseForm(shares, [firstMember, secondMember]),
+        ),
+      ),
+    ).toBe(`allocation:${firstMember}`);
+
+    const letters = expenseForm("abc", "equal");
+    const failure = captureError(() =>
+      parseExpenseForm(letters, [firstMember, secondMember]),
+    );
+    expect(errorField(failure)).toBe("amount");
+    expect((failure as Error).message).toMatch(/two decimal/);
+
+    const zero = expenseForm("0.00", "equal");
+    expect(
+      errorField(
+        captureError(() => parseExpenseForm(zero, [firstMember, secondMember])),
+      ),
+    ).toBe("amount");
+  });
+
+  it("ignores the amount field for a full settlement", () => {
+    const form = new FormData();
+    form.set("mode", "full");
+    form.set("occurredOn", "2026-08-12");
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parseSettlementForm(form).amountCents).toBeNull();
   });
 
   it("normalizes grocery fields without combining quantity and unit", () => {
@@ -185,13 +210,6 @@ describe("M7 form parsing", () => {
     );
   });
 
-  it("keeps the draft query on the expense error path", () => {
-    expect(expenseFormHref(null)).toBe("/money/expenses/new");
-    expect(expenseFormHref(firstMember)).toBe(
-      `/money/expenses/new?draft=${firstMember}`,
-    );
-  });
-
   it("initializes exact split mode from a non-equal draft allocation", () => {
     expect(
       draftSplitDefaults(
@@ -283,6 +301,15 @@ describe("M7 form parsing", () => {
     ).toBe(false);
   });
 });
+
+function captureError(run: () => unknown): unknown {
+  try {
+    run();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("Expected the parser to reject this form.");
+}
 
 function expenseForm(amount: string, splitMode: "equal" | "exact"): FormData {
   const form = new FormData();

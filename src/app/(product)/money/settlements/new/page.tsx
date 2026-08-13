@@ -1,61 +1,79 @@
+import Link from "next/link";
+
 import { recordSettlementAction } from "@/app/(product)/_actions/m7-money";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { loadSettlementContext } from "@/lib/forms/options";
+import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
-import {
-  FormField,
-  FormFields,
-  FormPage,
-  selectClassName,
-} from "@/ui/forms/form-page";
+import { DateField } from "@/ui/forms/date-field.client";
+import { FormField, FormFields, FormPage } from "@/ui/forms/form-page";
+import { SettlementFields } from "@/ui/forms/settlement-fields.client";
+import { Amount } from "@/ui/layout/amount";
 
 export default async function NewSettlementPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; mode?: string }>;
 }) {
-  const query = await searchParams;
+  const [query, settlement] = await Promise.all([
+    searchParams,
+    loadSettlementContext(),
+  ]);
   const mode = query.mode === "partial" ? "partial" : "full";
   return (
     <FormPage
       backHref="/money"
-      description="Record an external transfer; Household OS never moves money itself."
+      description="Record a transfer one of you already made; Household OS never moves money itself."
       error={query.error}
       title="Record settlement"
     >
-      <FormFields
-        action={recordSettlementAction}
-        submitLabel="Record settlement"
-      >
-        <input
-          name="idempotencyKey"
-          type="hidden"
-          value={crypto.randomUUID()}
-        />
-        <FormField label="Settlement">
-          <select className={selectClassName} defaultValue={mode} name="mode">
-            <option value="full">Full current balance</option>
-            <option value="partial">Partial amount</option>
-          </select>
-        </FormField>
-        <FormField
-          label="Partial amount in CHF"
-          description="Ignored for a full settlement."
-        >
-          <Input inputMode="decimal" name="amount" placeholder="0.00" />
-        </FormField>
-        <FormField label="Date">
-          <Input
-            defaultValue={zurichCivilDate()}
-            name="occurredOn"
-            required
-            type="date"
-          />
-        </FormField>
-        <FormField label="Note">
-          <Textarea maxLength={4000} name="note" />
-        </FormField>
-      </FormFields>
+      {settlement === null ? (
+        <p>
+          You are already settled up, so there is nothing to record. Review the
+          balance in <Link href="/money">Money</Link>.
+        </p>
+      ) : (
+        <>
+          {/* The screen this form was reached from states the balance; a
+              confirmation step must not show less than it. */}
+          <div className="mb-6 grid gap-1 border-b border-border pb-6">
+            <p className="font-heading text-xs font-bold tracking-[0.06em] text-muted-foreground uppercase">
+              Right now
+            </p>
+            <p className="font-heading text-xl font-semibold">
+              {settlement.debtorName} pays {settlement.creditorName}
+            </p>
+            <p className="text-3xl leading-tight font-extrabold">
+              <Amount
+                value={formatCentimesAsFrancs(settlement.outstandingCents)}
+              />
+            </p>
+          </div>
+          <FormFields
+            action={recordSettlementAction}
+            submitLabel="Record settlement"
+          >
+            <input
+              name="idempotencyKey"
+              type="hidden"
+              value={crypto.randomUUID()}
+            />
+            <SettlementFields
+              initialMode={mode}
+              outstandingCents={settlement.outstandingCents}
+            />
+            <DateField
+              defaultValue={zurichCivilDate()}
+              label="Date"
+              name="occurredOn"
+              required
+            />
+            <FormField label="Note" optional>
+              <Textarea maxLength={4000} name="note" />
+            </FormField>
+          </FormFields>
+        </>
+      )}
     </FormPage>
   );
 }

@@ -45,7 +45,7 @@ export default async function NewExpensePage({
   return (
     <FormPage
       backHref="/money"
-      description="Post an immediate CHF event with an equal or exact two-member allocation."
+      description="Record something one of you already paid for. We'll split it and update who owes who straight away."
       error={query.error}
       title={draft ? "Complete expense draft" : "New expense"}
     >

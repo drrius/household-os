@@ -1,11 +1,14 @@
 import { z } from "zod";
 
+import type { AllocationValidationError } from "@/domain/money/allocations";
 import {
   allocateEqualExpense,
   validateExactAllocations,
 } from "@/domain/money/allocations";
+import { parseChfToCentimes } from "@/domain/money/chf";
 import type { MoneyAllocationInput } from "@/lib/money/commands";
 import { asMemberId } from "@/domain/money/values";
+import { FormFieldError } from "@/lib/forms/field-error";
 
 const uuidSchema = z.string().uuid("Choose a valid household option.");
 const dateSchema = z.iso.date("Choose a valid date.");
@@ -29,19 +32,29 @@ function optionalUuid(formData: FormData, name: string): string | null {
   return value === null ? null : uuidSchema.parse(value);
 }
 
-export function parseChfToCentimes(value: string): number {
-  const normalized = value.trim().replace(",", ".");
-  const match = /^(\d{1,13})(?:\.(\d{1,2}))?$/.exec(normalized);
-  if (match === null) {
-    throw new Error("Enter a CHF amount with at most two decimal places.");
+/**
+ * Field-linked so a rejected amount lands under the control that produced it
+ * instead of only above the card.
+ */
+function parseChfField(formData: FormData, name: string): number {
+  const raw = formData.get(name);
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (value.length === 0) {
+    throw new FormFieldError(
+      name,
+      "Enter an amount in francs, for example 12.50.",
+    );
   }
-  const francs = BigInt(match[1] ?? "0");
-  const decimal = (match[2] ?? "").padEnd(2, "0");
-  const centimes = francs * 100n + BigInt(decimal || "0");
-  if (centimes > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error("The CHF amount is too large.");
+  try {
+    return parseChfToCentimes(value);
+  } catch (error) {
+    throw new FormFieldError(
+      name,
+      error instanceof Error
+        ? error.message
+        : "Enter an amount in francs, for example 12.50.",
+    );
   }
-  return Number(centimes);
 }
 
 export function formErrorMessage(error: unknown): string {
@@ -54,6 +67,9 @@ export function formErrorMessage(error: unknown): string {
   return "We couldn't save that change. Check the details and try again.";
 }
 
+// Re-exported so importers keep one CHF entry point while the rule itself
+// stays in the domain, where the browser can reuse it.
+export { formatCentimesField, parseChfToCentimes } from "@/domain/money/chf";
 export { parseRoutineForm, routineFormChangesSchedule } from "./routine";
 export type { RoutineFormValue, StoredRoutineSchedule } from "./routine";
 export {
@@ -73,16 +89,6 @@ const proposedAllocationSchema = z.object({
   memberId: z.string().min(1),
   allocatedCents: z.number().int(),
 });
-
-export function expenseFormHref(draftId: string | null): string {
-  if (draftId === null || draftId.length === 0) return "/money/expenses/new";
-  return `/money/expenses/new?draft=${encodeURIComponent(draftId)}`;
-}
-
-export function formatCentimesField(centimes: number): string {
-  const absolute = Math.abs(centimes);
-  return `${Math.floor(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
-}
 
 export function draftSplitDefaults(
   amountCents: number | null,
@@ -157,13 +163,42 @@ export type ExpenseFormValue = {
   idempotencyKey: string;
 };
 
+/**
+ * The domain messages name storage concepts ("event", "allocations"), so every
+ * rejection code gets the plain sentence its control needs. The domain strings
+ * themselves stay untouched: they are tested invariants.
+ */
+const exactSplitMessages: Readonly<
+  Record<AllocationValidationError["code"], string>
+> = {
+  invalid_amount: "Enter an amount greater than CHF 0.00.",
+  same_member: "An expense needs two different people to share it.",
+  exact_members_required: "Each of you needs exactly one share.",
+  duplicate_member: "Each of you needs exactly one share.",
+  invalid_allocation: "Each share has to be CHF 0.00 or more.",
+  allocation_sum_mismatch: "The two shares need to add up to the total.",
+};
+
+function exactSplitError(
+  error: AllocationValidationError,
+  shareField: string,
+): FormFieldError {
+  return new FormFieldError(
+    error.code === "invalid_amount" ? "amount" : shareField,
+    exactSplitMessages[error.code],
+  );
+}
+
 export function parseExpenseForm(
   formData: FormData,
   memberIds: readonly [string, string],
 ): ExpenseFormValue {
-  const amountCents = parseChfToCentimes(requiredString(formData, "amount"));
+  const amountCents = parseChfField(formData, "amount");
   if (amountCents <= 0)
-    throw new Error("Expense amount must be greater than zero.");
+    throw new FormFieldError(
+      "amount",
+      "Enter an amount greater than CHF 0.00.",
+    );
   const payerMemberId = uuidSchema.parse(
     requiredString(formData, "payerMemberId"),
   );
@@ -186,9 +221,7 @@ export function parseExpenseForm(
   } else {
     const proposed = memberIds.map((memberId) => ({
       memberId: asMemberId(memberId),
-      allocatedCents: parseChfToCentimes(
-        requiredString(formData, `allocation:${memberId}`),
-      ),
+      allocatedCents: parseChfField(formData, `allocation:${memberId}`),
     }));
     const validated = validateExactAllocations(
       amountCents,
@@ -196,7 +229,9 @@ export function parseExpenseForm(
       asMemberId(otherMemberId),
       proposed,
     );
-    if (!validated.ok) throw new Error(validated.error.message);
+    if (!validated.ok) {
+      throw exactSplitError(validated.error, `allocation:${memberIds[0]}`);
+    }
     allocations = validated.allocations;
   }
   return {
@@ -219,9 +254,12 @@ export function parseExpenseForm(
 }
 
 export function parseOpeningBalanceForm(formData: FormData) {
-  const amountCents = parseChfToCentimes(requiredString(formData, "amount"));
+  const amountCents = parseChfField(formData, "amount");
   if (amountCents <= 0)
-    throw new Error("Opening balance must be greater than zero.");
+    throw new FormFieldError(
+      "amount",
+      "Enter an amount greater than CHF 0.00.",
+    );
   return {
     creditorMemberId: uuidSchema.parse(
       requiredString(formData, "creditorMemberId"),
@@ -239,12 +277,15 @@ export function parseSettlementForm(formData: FormData) {
   const mode = z
     .enum(["full", "partial"])
     .parse(requiredString(formData, "mode"));
+  // `amount` is read only on the partial branch: the field is not in the DOM
+  // for a full settlement.
   const amountCents =
-    mode === "full"
-      ? null
-      : parseChfToCentimes(requiredString(formData, "amount"));
+    mode === "full" ? null : parseChfField(formData, "amount");
   if (amountCents !== null && amountCents <= 0) {
-    throw new Error("Settlement amount must be greater than zero.");
+    throw new FormFieldError(
+      "amount",
+      "Enter an amount greater than CHF 0.00.",
+    );
   }
   return {
     mode,

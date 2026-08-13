@@ -38,7 +38,7 @@ function renderFlow(flow: string) {
     return (
       <FormPage
         backHref="/money"
-        description="Post an immediate CHF event with an equal or exact two-member allocation."
+        description="Record something one of you already paid for. We'll split it and update who owes who straight away."
         title="New expense"
       >
         <ExpenseForm
