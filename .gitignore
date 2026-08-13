@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 .next/
+.next-verify/
 out/
 coverage/
 playwright-report/
