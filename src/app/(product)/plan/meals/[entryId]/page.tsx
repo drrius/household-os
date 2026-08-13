@@ -53,7 +53,7 @@ export default async function ManageMealPage({
           <p className="text-sm font-normal">{slotLabel(entry.slot)}</p>
         </FormField>
         <FormField label="Recipe link">
-          {entry.recipeUrl === null || entry.recipeUrl.length === 0 ? (
+          {!entry.recipeUrl ? (
             <p className="text-sm font-normal">None</p>
           ) : (
             <a
@@ -68,9 +68,7 @@ export default async function ManageMealPage({
         </FormField>
         <FormField label="Notes">
           <p className="text-sm font-normal">
-            {entry.notes === null || entry.notes.length === 0
-              ? "None"
-              : entry.notes}
+            {entry.notes ? entry.notes : "None"}
           </p>
         </FormField>
         {entry.isLeftover ? (

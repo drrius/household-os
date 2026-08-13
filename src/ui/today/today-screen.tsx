@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 
 import { confirmTodayExpenseDraft } from "@/app/(product)/_actions/routines";
 import { Badge } from "@/components/ui/badge";
@@ -28,39 +27,36 @@ import type {
 type BalancePill = NonNullable<TodayViewModel["balancePill"]>;
 
 function BalanceStatus({ balance }: { balance: BalancePill }) {
-  let badge: ReactNode;
   switch (balance.kind) {
     case "partner_owes_you":
-      badge = (
-        <Badge variant="accent">
-          {balance.partnerName} owes you <Amount value={balance.amount} />
-        </Badge>
+      return (
+        <Link className="no-underline" href="/money">
+          <Badge variant="accent">
+            {balance.partnerName} owes you <Amount value={balance.amount} />
+          </Badge>
+        </Link>
       );
-      break;
     case "you_owe_partner":
-      badge = (
-        <Badge variant="warning">
-          You owe {balance.partnerName} <Amount value={balance.amount} />
-        </Badge>
+      return (
+        <Link className="no-underline" href="/money">
+          <Badge variant="warning">
+            You owe {balance.partnerName} <Amount value={balance.amount} />
+          </Badge>
+        </Link>
       );
-      break;
     case "settled":
-      badge = (
-        <Badge variant="success">
-          Settled <Amount value={balance.amount} />
-        </Badge>
+      return (
+        <Link className="no-underline" href="/money">
+          <Badge variant="success">
+            Settled <Amount value={balance.amount} />
+          </Badge>
+        </Link>
       );
-      break;
     default: {
       const exhaustiveBalance: never = balance.kind;
       return exhaustiveBalance;
     }
   }
-  return (
-    <Link className="no-underline" href="/money">
-      {badge}
-    </Link>
-  );
 }
 
 function progressLabel(progress: TodayViewModel["progress"]): string {
@@ -157,10 +153,6 @@ function ShoppingCard({ shopping }: { shopping: ShoppingGlance }) {
   }
 }
 
-function draftEditHref(draftId: string): string {
-  return `/money/expenses/new?draft=${encodeURIComponent(draftId)}`;
-}
-
 function DraftActions({ draft }: { draft: DraftGlance }) {
   switch (draft.kind) {
     case "ready":
@@ -174,7 +166,7 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
               className: "no-underline",
               variant: "outline",
             })}
-            href={draftEditHref(draft.draftId)}
+            href={`/money/expenses/new?draft=${encodeURIComponent(draft.draftId)}`}
           >
             Edit
           </Link>
@@ -189,7 +181,7 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
               className: "no-underline",
               variant: "outline",
             })}
-            href={draftEditHref(draft.draftId)}
+            href={`/money/expenses/new?draft=${encodeURIComponent(draft.draftId)}`}
           >
             Edit
           </Link>

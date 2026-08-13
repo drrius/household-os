@@ -7,15 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const WELCOME_DISMISSED_KEY = "household-os:welcome-dismissed";
-const WELCOME_DISMISSED_VALUE = "1";
 
 type WelcomePhase = "pending" | "showing" | "dismissed";
 
 function readDismissed(): boolean {
   try {
-    return (
-      localStorage.getItem(WELCOME_DISMISSED_KEY) === WELCOME_DISMISSED_VALUE
-    );
+    return localStorage.getItem(WELCOME_DISMISSED_KEY) === "1";
   } catch {
     return false;
   }
@@ -23,7 +20,7 @@ function readDismissed(): boolean {
 
 function persistDismissed(): void {
   try {
-    localStorage.setItem(WELCOME_DISMISSED_KEY, WELCOME_DISMISSED_VALUE);
+    localStorage.setItem(WELCOME_DISMISSED_KEY, "1");
   } catch {
     return;
   }
