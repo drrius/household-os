@@ -68,6 +68,10 @@ function WeekdayCheckboxes({
 }) {
   const missingDays = days.length === 0;
   const guardRef = useRef<HTMLInputElement>(null);
+  const bindGuard = (node: HTMLInputElement | null) => {
+    guardRef.current = node;
+    node?.setCustomValidity(missingDays ? emptyWeekdayMessage : "");
+  };
 
   useEffect(() => {
     guardRef.current?.setCustomValidity(missingDays ? emptyWeekdayMessage : "");
@@ -81,8 +85,8 @@ function WeekdayCheckboxes({
           className="sr-only"
           disabled={!missingDays}
           name="weekdays"
-          readOnly
-          ref={guardRef}
+          onChange={() => undefined}
+          ref={bindGuard}
           required
           tabIndex={-1}
           value=""

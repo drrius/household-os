@@ -36,6 +36,9 @@ test("routine form exposes the complete M7 scheduling contract", async ({
   await expect(page.getByRole("checkbox", { name: "Monday" })).toHaveCount(0);
 
   await chooseOption(page, "Repeat", "Selected weekdays");
+  await page.getByRole("textbox", { name: "Title" }).fill("Walk the dog");
+  await page.getByRole("button", { name: "Create routine" }).click();
+  await expect(page.getByText("Choose at least one weekday.")).toBeVisible();
   await page.getByRole("checkbox", { name: "Monday" }).check();
   await page.getByRole("checkbox", { name: "Friday" }).check();
   await expect(page.getByRole("checkbox", { name: "Monday" })).toBeChecked();
