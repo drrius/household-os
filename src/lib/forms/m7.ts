@@ -8,7 +8,8 @@ import {
 import { parseChfToCentimes } from "@/domain/money/chf";
 import type { MoneyAllocationInput } from "@/lib/money/commands";
 import { asMemberId } from "@/domain/money/values";
-import { FormFieldError } from "@/lib/forms/field-error";
+import { FormFieldError, errorField } from "@/lib/forms/field-error";
+import type { FormActionState } from "@/ui/forms/form-action";
 
 const uuidSchema = z.string().uuid("Choose a valid household option.");
 const dateSchema = z.iso.date("Choose a valid date.");
@@ -65,6 +66,30 @@ export function formErrorMessage(error: unknown): string {
     return error.message;
   }
   return "We couldn't save that change. Check the details and try again.";
+}
+
+/**
+ * The one place a rejected submission is assembled, so no action can forget to
+ * move `submissionId` on.
+ *
+ * The counter has to advance here, on the server. Rejecting the same value
+ * twice otherwise produces an identical state object, the alert's effect
+ * dependencies never change, and the live region stays silent the second time.
+ * Incrementing it in the client instead would mean wrapping the action before
+ * `useActionState` sees it, which is what costs the form its server-rendered
+ * `<form action>` and with it every pre-hydration submission.
+ */
+export function formRejection(
+  previous: FormActionState,
+  failure: unknown,
+  values: Readonly<Record<string, string>>,
+): FormActionState {
+  return {
+    error: formErrorMessage(failure),
+    field: errorField(failure),
+    values,
+    submissionId: previous.submissionId + 1,
+  };
 }
 
 // Re-exported so importers keep one CHF entry point while the rule itself

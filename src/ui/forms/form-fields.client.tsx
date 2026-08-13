@@ -17,7 +17,10 @@ import { useFormStatus } from "react-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { FormAction } from "@/ui/forms/form-action";
+import {
+  initialFormActionState,
+  type FormAction,
+} from "@/ui/forms/form-action";
 
 type FieldMap = Readonly<Record<string, string>>;
 
@@ -27,14 +30,6 @@ export type FormFieldsState = {
   submissionId: number;
 };
 
-type SubmissionState = {
-  error?: string;
-  field?: string;
-  values?: FieldMap;
-  submissionId: number;
-};
-
-const initialSubmission: SubmissionState = { submissionId: 0 };
 const outsideForm: FormFieldsState = {
   errors: {},
   values: {},
@@ -131,13 +126,11 @@ export function FormFields({
     onInput,
     onInvalidCapture,
   } = useNativeValidation();
-  const [submission, submit] = useActionState<SubmissionState, FormData>(
-    async (previous, formData) => ({
-      ...((await action(formData)) ?? {}),
-      submissionId: previous.submissionId + 1,
-    }),
-    initialSubmission,
-  );
+  // The action is passed through untouched. Anything wrapping it here would be
+  // a client closure rather than a server reference, and React would stop
+  // emitting the `<form action>` endpoint that lets a submission reach the
+  // server before the client bundle has hydrated.
+  const [submission, submit] = useActionState(action, initialFormActionState);
   const alertRef = useRef<HTMLDivElement>(null);
   const { error, field, submissionId, values } = submission;
 

@@ -9,9 +9,8 @@ import {
   uuidSchema,
 } from "@/app/(product)/_actions/m7-shared";
 import { settlementAmount } from "@/domain/money/settlements";
-import { errorField } from "@/lib/forms/field-error";
 import {
-  formErrorMessage,
+  formRejection,
   parseExpenseForm,
   parseOpeningBalanceForm,
   parseSettlementForm,
@@ -23,7 +22,7 @@ import {
   postManualExpense,
   recordSettlement,
 } from "@/lib/money/commands";
-import type { FormActionResult } from "@/ui/forms/form-action";
+import type { FormActionState } from "@/ui/forms/form-action";
 
 function expenseEchoNames(formData: FormData): readonly string[] {
   const names = [
@@ -42,8 +41,9 @@ function expenseEchoNames(formData: FormData): readonly string[] {
 }
 
 export async function createExpenseAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   const draftValue = formData.get("draftId");
   const draftId =
     typeof draftValue === "string" && draftValue.length > 0 ? draftValue : null;
@@ -72,19 +72,20 @@ export async function createExpenseAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, expenseEchoNames(formData)),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, expenseEchoNames(formData)),
+    );
   }
   revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");
 }
 
 export async function establishOpeningBalanceAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     const members = await loadHouseholdMembers();
@@ -97,24 +98,25 @@ export async function establishOpeningBalanceAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, [
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, [
         "creditorMemberId",
         "amount",
         "occurredOn",
         "note",
       ]),
-    };
+    );
   }
   revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");
 }
 
 export async function recordSettlementAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     const input = parseSettlementForm(formData);
@@ -142,11 +144,11 @@ export async function recordSettlementAction(
   if (failure !== null) {
     // `occurredOn` is non-negotiable here: a back-dated settlement that
     // silently reverts to today needs a reversal plus a replacement event.
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, ["mode", "amount", "occurredOn", "note"]),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, ["mode", "amount", "occurredOn", "note"]),
+    );
   }
   revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");

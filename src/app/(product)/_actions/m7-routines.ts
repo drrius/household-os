@@ -9,9 +9,8 @@ import {
   uuidSchema,
 } from "@/app/(product)/_actions/m7-shared";
 import { requireMemberContext } from "@/lib/auth/member-context";
-import { errorField } from "@/lib/forms/field-error";
 import {
-  formErrorMessage,
+  formRejection,
   parseRoutineForm,
   routineFormChangesSchedule,
 } from "@/lib/forms/m7";
@@ -20,7 +19,7 @@ import {
   updateRoutineDefinition,
 } from "@/lib/routines/commands";
 import { createClient } from "@/lib/supabase/server";
-import type { FormActionResult } from "@/ui/forms/form-action";
+import type { FormActionState } from "@/ui/forms/form-action";
 
 const routineEchoNames = [
   "title",
@@ -39,8 +38,9 @@ const routineEchoNames = [
 ] as const;
 
 export async function createRoutineAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     await createRoutine(parseRoutineForm(formData));
@@ -48,19 +48,20 @@ export async function createRoutineAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, routineEchoNames),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, routineEchoNames),
+    );
   }
   revalidateProduct(["/", "/home"]);
   redirect("/home");
 }
 
 export async function updateRoutineAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     const routineId = uuidSchema.parse(formData.get("routineId"));
@@ -108,11 +109,11 @@ export async function updateRoutineAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, routineEchoNames),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, routineEchoNames),
+    );
   }
   revalidateProduct(["/", "/home"]);
   redirect("/home");

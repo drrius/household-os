@@ -6,9 +6,8 @@ import {
   errorHref,
   revalidateProduct,
 } from "@/app/(product)/_actions/m7-shared";
-import { errorField } from "@/lib/forms/field-error";
 import {
-  formErrorMessage,
+  formRejection,
   parseGroceryForm,
   parseMealForm,
   parsePlaceFromLibraryForm,
@@ -22,13 +21,14 @@ import {
   removeMealPlanEntry,
   updateMealPlanEntry,
 } from "@/lib/meals/commands";
-import type { FormActionResult } from "@/ui/forms/form-action";
+import type { FormActionState } from "@/ui/forms/form-action";
 
 const mealEchoNames = ["title", "date", "slot", "recipeUrl", "notes"] as const;
 
 export async function createGroceryItemAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     await createGroceryItem(parseGroceryForm(formData));
@@ -36,25 +36,20 @@ export async function createGroceryItemAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, [
-        "name",
-        "quantity",
-        "unit",
-        "categoryId",
-        "note",
-      ]),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, ["name", "quantity", "unit", "categoryId", "note"]),
+    );
   }
   revalidateProduct(["/", "/groceries"]);
   redirect("/groceries");
 }
 
 export async function createMealAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     const input = parseMealForm(formData);
@@ -82,19 +77,20 @@ export async function createMealAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, mealEchoNames),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, mealEchoNames),
+    );
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
 
 export async function placeFromLibraryAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     const input = parsePlaceFromLibraryForm(formData);
@@ -110,11 +106,11 @@ export async function placeFromLibraryAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, ["date", "slot", "notes"]),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, ["date", "slot", "notes"]),
+    );
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
@@ -147,8 +143,9 @@ export async function removeMealEntryAction(formData: FormData): Promise<void> {
 }
 
 export async function updateMealEntryAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<FormActionResult> {
+): Promise<FormActionState> {
   let failure: unknown = null;
   try {
     const input = parseUpdateMealForm(formData);
@@ -165,11 +162,11 @@ export async function updateMealEntryAction(
     failure = error;
   }
   if (failure !== null) {
-    return {
-      error: formErrorMessage(failure),
-      field: errorField(failure),
-      values: echoValues(formData, mealEchoNames),
-    };
+    return formRejection(
+      previous,
+      failure,
+      echoValues(formData, mealEchoNames),
+    );
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");

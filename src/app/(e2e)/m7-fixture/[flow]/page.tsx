@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ExpenseForm } from "@/ui/forms/expense-form";
+import type { FormActionState } from "@/ui/forms/form-action";
 import { FormPage } from "@/ui/forms/form-page";
 import { RoutineForm } from "@/ui/forms/routine-form";
 import { AppShell } from "@/ui/shell/app-shell";
@@ -10,9 +11,18 @@ const members = [
   { user_id: "00000000-0000-4000-8000-000000000002", display_name: "Partner" },
 ] as const;
 
-async function noFormAction(formData: FormData): Promise<void> {
+/**
+ * Declared in a Server Component so it stays a real server reference: the
+ * fixtures exist to prove these forms submit before hydration, which a client
+ * stub could not show.
+ */
+async function noFormAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
   "use server";
   void formData;
+  return { submissionId: previous.submissionId + 1 };
 }
 
 function renderFlow(flow: string) {
