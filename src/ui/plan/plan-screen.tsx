@@ -10,12 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { addCivilDays } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
+import { addCivilDays, startOfZurichWeek } from "@/lib/ui/zurich-date";
 import { AppPage } from "@/ui/layout/app-page";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
 import { MealBoard } from "@/ui/plan/meal-board";
+import { PlanThisWeekJump } from "@/ui/plan/plan-this-week-jump.client";
 
 type PlanScreenProps = {
   plan: PlanViewModel;
@@ -33,7 +34,17 @@ function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
         </CardHeader>
         <CardContent>
           {meals.length === 0 ? (
-            <EmptyState title="No saved meals yet">
+            <EmptyState
+              action={
+                <Link
+                  className={buttonVariants({ className: "no-underline" })}
+                  href="/plan/meals/new"
+                >
+                  Add meal
+                </Link>
+              }
+              title="No saved meals yet"
+            >
               <p>Meals you save will appear here for quick reuse.</p>
             </EmptyState>
           ) : (
@@ -43,7 +54,12 @@ function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
             >
               {meals.map((meal) => (
                 <li key={meal.id}>
-                  <Badge variant="secondary">{meal.title}</Badge>
+                  <Link
+                    className="no-underline"
+                    href={`/plan/meals/new?libraryId=${encodeURIComponent(meal.id)}`}
+                  >
+                    <Badge variant="secondary">{meal.title}</Badge>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -57,15 +73,22 @@ function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
 export function PlanScreen({ plan }: PlanScreenProps) {
   const previousWeek = addCivilDays(plan.weekStart, -7);
   const nextWeek = addCivilDays(plan.weekStart, 7);
+  const currentWeekStart = startOfZurichWeek(plan.today);
+  const viewingCurrentWeek = plan.weekStart === currentWeekStart;
 
   return (
     <AppPage labelledBy="plan-title">
       <PageHeader
         titleId="plan-title"
-        title="This week"
-        eyebrow={`${plan.rangeLabel} · ${plan.timeZoneLabel}`}
+        title={plan.rangeLabel}
+        eyebrow={
+          viewingCurrentWeek
+            ? `This week · ${plan.timeZoneLabel}`
+            : plan.timeZoneLabel
+        }
         trailing={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
+            <PlanThisWeekJump visible={!viewingCurrentWeek} />
             <Link
               aria-label="Previous week"
               className={buttonVariants({
@@ -94,7 +117,7 @@ export function PlanScreen({ plan }: PlanScreenProps) {
             >
               Add meal
             </Link>
-          </>
+          </div>
         }
       />
       <MealBoard days={plan.days} />

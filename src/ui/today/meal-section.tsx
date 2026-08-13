@@ -1,4 +1,7 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -6,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageSection } from "@/ui/layout/page-section";
 import { RoutineCompleteControl } from "@/ui/today/routine-complete-control.client";
@@ -104,26 +108,38 @@ export function MealSection({ meals }: { meals: readonly MealGlance[] }) {
             meal.kind === "prep" ? (
               <PrepCard key={mealGlanceKey(meal)} meal={meal} />
             ) : (
-              <Card
-                className="bg-secondary"
+              <Link
+                className="block no-underline transition-transform hover:scale-[1.02] motion-reduce:transition-none motion-reduce:hover:scale-100"
+                href={`/plan/meals/${meal.entryId}`}
                 key={mealGlanceKey(meal)}
-                size="sm"
               >
-                <CardHeader>
-                  <CardTitle>{mealGlanceLabel(meal)}</CardTitle>
-                  <CardAction>
-                    <Badge variant="accent">{mealDayBadge(meal.day)}</Badge>
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  <strong>{meal.title}</strong>
-                </CardContent>
-              </Card>
+                <Card className="bg-secondary" size="sm">
+                  <CardHeader>
+                    <CardTitle>{mealGlanceLabel(meal)}</CardTitle>
+                    <CardAction>
+                      <Badge variant="accent">{mealDayBadge(meal.day)}</Badge>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent>
+                    <strong>{meal.title}</strong>
+                  </CardContent>
+                </Card>
+              </Link>
             ),
           )}
         </div>
       ) : (
-        <EmptyState title="No meal planned">
+        <EmptyState
+          action={
+            <Link
+              className={buttonVariants({ className: "no-underline" })}
+              href={`/plan/meals/new?date=${encodeURIComponent(zurichCivilDate())}&slot=dinner`}
+            >
+              Plan a meal
+            </Link>
+          }
+          title="No meal planned"
+        >
           <p>Today’s meal plan is open.</p>
         </EmptyState>
       )}

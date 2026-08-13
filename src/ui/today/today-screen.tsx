@@ -30,21 +30,27 @@ function BalanceStatus({ balance }: { balance: BalancePill }) {
   switch (balance.kind) {
     case "partner_owes_you":
       return (
-        <Badge variant="accent">
-          {balance.partnerName} owes you <Amount value={balance.amount} />
-        </Badge>
+        <Link className="no-underline" href="/money">
+          <Badge variant="accent">
+            {balance.partnerName} owes you <Amount value={balance.amount} />
+          </Badge>
+        </Link>
       );
     case "you_owe_partner":
       return (
-        <Badge variant="warning">
-          You owe {balance.partnerName} <Amount value={balance.amount} />
-        </Badge>
+        <Link className="no-underline" href="/money">
+          <Badge variant="warning">
+            You owe {balance.partnerName} <Amount value={balance.amount} />
+          </Badge>
+        </Link>
       );
     case "settled":
       return (
-        <Badge variant="success">
-          Settled <Amount value={balance.amount} />
-        </Badge>
+        <Link className="no-underline" href="/money">
+          <Badge variant="success">
+            Settled <Amount value={balance.amount} />
+          </Badge>
+        </Link>
       );
     default: {
       const exhaustiveBalance: never = balance.kind;
@@ -91,38 +97,54 @@ function ShoppingCard({ shopping }: { shopping: ShoppingGlance }) {
   switch (shopping.kind) {
     case "empty":
       return (
-        <EmptyState title="The list is empty">
+        <EmptyState
+          action={
+            <Link
+              className={buttonVariants({ className: "no-underline" })}
+              href="/groceries/new"
+            >
+              Add grocery
+            </Link>
+          }
+          title="The list is empty"
+        >
           <p>There is nothing waiting to be bought.</p>
         </EmptyState>
       );
     case "list":
       return (
-        <Card size="sm">
-          <CardContent className="grid gap-1">
-            <Badge className="mb-2" variant="accent">
-              Ready
-            </Badge>
-            <strong>{itemCountLabel(shopping.itemCount)}</strong>
-            <p className="text-xs text-muted-foreground">on the shared list</p>
-          </CardContent>
-        </Card>
+        <Link className="block no-underline" href="/groceries">
+          <Card size="sm">
+            <CardContent className="grid gap-1">
+              <Badge className="mb-2" variant="accent">
+                Ready
+              </Badge>
+              <strong>{itemCountLabel(shopping.itemCount)}</strong>
+              <p className="text-xs text-muted-foreground">
+                on the shared list
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       );
     case "live":
       return (
-        <Card className="bg-success-soft" size="sm">
-          <CardHeader>
-            <CardTitle>Shopping now</CardTitle>
-            <CardAction>
-              <Badge variant="success">Live</Badge>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="grid gap-1">
-            <strong>{shopping.shopperNames.join(" and ")}</strong>
-            <p className="text-xs text-muted-foreground">
-              {itemCountLabel(shopping.itemCount)} on the list
-            </p>
-          </CardContent>
-        </Card>
+        <Link className="block no-underline" href="/groceries">
+          <Card className="bg-success-soft" size="sm">
+            <CardHeader>
+              <CardTitle>Shopping now</CardTitle>
+              <CardAction>
+                <Badge variant="success">Live</Badge>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="grid gap-1">
+              <strong>{shopping.shopperNames.join(" and ")}</strong>
+              <p className="text-xs text-muted-foreground">
+                {itemCountLabel(shopping.itemCount)} on the list
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       );
     default: {
       const exhaustiveShopping: never = shopping;
@@ -144,7 +166,7 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
               className: "no-underline",
               variant: "outline",
             })}
-            href="/money"
+            href={`/money/expenses/new?draft=${encodeURIComponent(draft.draftId)}`}
           >
             Edit
           </Link>
@@ -159,7 +181,7 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
               className: "no-underline",
               variant: "outline",
             })}
-            href="/money"
+            href={`/money/expenses/new?draft=${encodeURIComponent(draft.draftId)}`}
           >
             Edit
           </Link>

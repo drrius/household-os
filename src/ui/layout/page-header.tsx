@@ -15,7 +15,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header className="flex items-end justify-between gap-4">
-      <div className="grid gap-1">
+      <div className="grid min-w-0 gap-1">
         {eyebrow !== undefined && eyebrow !== null ? (
           <p className="text-xs font-semibold text-muted-foreground">
             {eyebrow}

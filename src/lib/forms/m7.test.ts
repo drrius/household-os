@@ -9,6 +9,9 @@ import {
   parseGroceryForm,
   parseMealForm,
   parseOpeningBalanceForm,
+  parsePlaceFromLibraryForm,
+  parseRemoveMealForm,
+  parseUpdateMealForm,
   parseRoutineForm,
   parseSettlementForm,
   routineFormChangesSchedule,
@@ -91,6 +94,52 @@ describe("M7 form parsing", () => {
       date: "2026-08-14",
       slot: "dinner",
       saveToLibrary: true,
+    });
+  });
+
+  it("parses place-from-library without freeform title fields", () => {
+    const form = new FormData();
+    form.set("libraryId", areaId);
+    form.set("date", "2026-08-14");
+    form.set("slot", "lunch");
+    form.set("notes", "  use basil  ");
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parsePlaceFromLibraryForm(form)).toEqual({
+      libraryId: areaId,
+      date: "2026-08-14",
+      slot: "lunch",
+      notes: "use basil",
+      idempotencyKey,
+    });
+  });
+
+  it("parses remove meal entry fields", () => {
+    const form = new FormData();
+    form.set("entryId", firstMember);
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parseRemoveMealForm(form)).toEqual({
+      entryId: firstMember,
+      idempotencyKey,
+    });
+  });
+
+  it("parses update meal entry fields", () => {
+    const form = new FormData();
+    form.set("entryId", firstMember);
+    form.set("title", "  Chicken & Rice  ");
+    form.set("date", "2026-08-13");
+    form.set("slot", "breakfast");
+    form.set("recipeUrl", "https://example.invalid/chicken");
+    form.set("notes", "  leftovers tomorrow  ");
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parseUpdateMealForm(form)).toEqual({
+      entryId: firstMember,
+      title: "Chicken & Rice",
+      date: "2026-08-13",
+      slot: "breakfast",
+      recipeUrl: "https://example.invalid/chicken",
+      notes: "leftovers tomorrow",
+      idempotencyKey,
     });
   });
 

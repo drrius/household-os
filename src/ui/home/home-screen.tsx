@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SECURITY_PATH } from "@/lib/auth/paths";
 import type { HomeViewModel } from "@/lib/read-models/home";
+import { SettingsList } from "@/ui/home/home-settings";
 import { AppPage } from "@/ui/layout/app-page";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
@@ -36,15 +36,15 @@ function HouseholdCard({
             >
               <div className="grid min-w-0 gap-1">
                 <strong>{member.displayName}</strong>
-                <span className="text-xs text-muted-foreground">
-                  {member.isSelf ? "You · Equal member" : "Equal member"}
-                </span>
+                {member.isSelf ? (
+                  <span className="text-xs text-muted-foreground">You</span>
+                ) : null}
               </div>
             </li>
           ))}
         </ul>
         <p className="text-xs text-muted-foreground">
-          Both members have equal access. Each person signs in with their own{" "}
+          Each person signs in with their own{" "}
           <Link href={SECURITY_PATH}>passkeys</Link>.
         </p>
       </CardContent>
@@ -143,7 +143,17 @@ function ActivityList({ activity }: Pick<HomeViewModel, "activity">) {
 function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
   if (routines.length === 0) {
     return (
-      <EmptyState title="No routines yet">
+      <EmptyState
+        action={
+          <Link
+            className={buttonVariants({ className: "no-underline" })}
+            href="/home/routines/new"
+          >
+            Create routine
+          </Link>
+        }
+        title="No routines yet"
+      >
         <p>Create the first one-off or recurring household routine.</p>
       </EmptyState>
     );
@@ -163,82 +173,18 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
                   {routine.areaName}
                 </span>
               </span>
-              <Link href={`/home/routines/${routine.id}/edit`}>Edit</Link>
+              <Link
+                className={buttonVariants({
+                  className: "no-underline",
+                  size: "sm",
+                  variant: "outline",
+                })}
+                href={`/home/routines/${routine.id}/edit`}
+              >
+                Edit
+              </Link>
             </li>
           ))}
-        </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-type SettingsRowProps = {
-  hint: string;
-  title: string;
-};
-
-function SettingsRow({ hint, title }: SettingsRowProps) {
-  return (
-    <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
-      <div className="grid min-w-0 gap-1">
-        <strong>{title}</strong>
-        <span className="text-xs text-muted-foreground">{hint}</span>
-      </div>
-    </li>
-  );
-}
-
-function SettingsLinkRow({
-  href,
-  hint,
-  title,
-}: SettingsRowProps & { href: string }) {
-  return (
-    <li className="border-t first:border-t-0">
-      <Link
-        className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-xl px-2 py-3 no-underline hover:bg-muted"
-        href={href}
-      >
-        <span className="grid min-w-0 gap-1">
-          <strong>{title}</strong>
-          <span className="text-xs text-muted-foreground">{hint}</span>
-        </span>
-        <ChevronRight
-          aria-hidden="true"
-          className="size-4 shrink-0 text-muted-foreground"
-        />
-      </Link>
-    </li>
-  );
-}
-
-function SettingsList({
-  storageUsedLabel,
-}: Pick<HomeViewModel, "storageUsedLabel">) {
-  const storageHint =
-    storageUsedLabel === null
-      ? "Images only · Warning at 500 MB"
-      : `${storageUsedLabel} used · Warning at 500 MB`;
-
-  return (
-    <Card>
-      <CardContent>
-        <ul className="list-none" aria-label="Household settings">
-          <SettingsRow
-            hint="In-app notifications, optional push, and a personal digest"
-            title="Notifications & digest"
-          />
-          <SettingsLinkRow
-            hint="Manage authenticators and recovery access"
-            href={SECURITY_PATH}
-            title="Passkeys & recovery"
-          />
-          <SettingsLinkRow
-            hint="Household name, areas, and pets"
-            href="/home/setup"
-            title="Household settings"
-          />
-          <SettingsRow hint={storageHint} title="Attachment storage" />
         </ul>
       </CardContent>
     </Card>

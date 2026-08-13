@@ -1,0 +1,9 @@
+{
+  "household": "Our home",
+  "appOrigin": "http://localhost:3000",
+  "projectUrl": "http://127.0.0.1:54321",
+  "members": [
+    { "email": "you@example.com", "displayName": "You" },
+    { "email": "partner@example.com", "displayName": "Partner" }
+  ]
+}

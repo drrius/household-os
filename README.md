@@ -41,8 +41,28 @@ Use the public project URL and publishable key printed by `pnpm db:start` in
 
 ## Identity administration
 
-The local admin command reads the Supabase administrator secret only from
-standard input. Pipe it directly from a password manager:
+After a local `db reset`, Auth users and passkeys are gone. Set up once:
+
+```bash
+cp .local/identity.example.json .local/identity.json
+# edit both members
+```
+
+Then whenever local Auth is empty:
+
+```bash
+pnpm admin:local
+# or wipe + re-bootstrap:
+pnpm db:fresh
+```
+
+`admin:local` reads `.local/identity.json`, pulls the local `SECRET_KEY` from
+`supabase status`, bootstraps both members, and prints enroll URLs. Open a URL
+on `http://localhost:3000`, register a passkey, sign in. Pass `--open` to open
+the first enroll link in the browser.
+
+Production and one-off admin still use stdin for the secret. Pipe it from a
+password manager:
 
 ```bash
 op read "op://Private/Household OS/Supabase secret key" | pnpm admin bootstrap \

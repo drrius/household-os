@@ -1,17 +1,11 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
 import { cn } from "@/lib/utils";
+import { MealBoardSlotPresence } from "@/ui/plan/meal-board-presence.client";
 
 type PlanDay = PlanViewModel["days"][number];
 type PlanSlot = PlanDay["slots"][number];
@@ -27,21 +21,23 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
 
   if (entry === null) {
     return (
-      <li className="min-w-0">
-        <Link
-          className="flex min-h-full items-center justify-center gap-1 rounded-xl border border-dashed p-3 font-heading font-bold text-muted-foreground no-underline transition-colors hover:border-primary hover:bg-card hover:text-secondary-foreground motion-reduce:transition-none"
-          href={`/plan/meals/new?date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`}
-          aria-label={`Add ${slot} on ${dateLabel}`}
-        >
-          <Plus aria-hidden="true" className="size-4 shrink-0" />
-          <span className="truncate capitalize">{slot}</span>
-        </Link>
-      </li>
+      <Link
+        className="flex min-h-full items-center justify-center gap-1 rounded-xl border border-dashed p-3 font-heading font-bold text-muted-foreground no-underline transition-colors hover:border-primary hover:bg-card hover:text-secondary-foreground motion-reduce:transition-none"
+        href={`/plan/meals/new?date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`}
+        aria-label={`Add ${slot} on ${dateLabel}`}
+      >
+        <Plus aria-hidden="true" className="size-4 shrink-0" />
+        <span className="truncate capitalize">{slot}</span>
+      </Link>
     );
   }
 
   return (
-    <li className="min-w-0">
+    <Link
+      aria-label={`${slot} on ${dateLabel}: ${entry.title}`}
+      className="block h-full no-underline"
+      href={`/plan/meals/${entry.id}`}
+    >
       <Card
         className={cn(
           "h-full",
@@ -49,17 +45,17 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
         )}
         size="sm"
       >
-        <CardHeader className="flex-row flex-wrap items-start">
-          <CardTitle className="text-xs text-muted-foreground capitalize">
-            {slot}
-          </CardTitle>
-          <CardAction>
-            {entry.isLeftover ? (
-              <Badge variant="warning">Leftover</Badge>
-            ) : null}
-          </CardAction>
-        </CardHeader>
         <CardContent className="grid min-w-0 gap-2">
+          <p
+            className={cn(
+              "truncate text-xs capitalize",
+              entry.isLeftover
+                ? "font-medium text-warning-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            {entry.isLeftover ? "Leftover" : slot}
+          </p>
           <h3 className="wrap-anywhere text-sm leading-snug font-semibold">
             {entry.title}
           </h3>
@@ -69,40 +65,57 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
           ) : null}
         </CardContent>
       </Card>
-    </li>
+    </Link>
   );
 }
 
-function DayColumn({ day }: { day: PlanDay }) {
+function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
   const dateLabel = formatZurichDayLabel(day.date);
 
   return (
     <article
-      className={cn(
-        "grid min-w-0 snap-start grid-rows-[auto_1fr] border-2 border-transparent border-r-border p-3 last:border-r-transparent lg:snap-none lg:p-2",
-        day.isToday && "border-primary bg-secondary last:border-primary",
-      )}
+      aria-current={day.isToday ? "date" : undefined}
       aria-labelledby={`plan-day-${day.date}`}
+      className={cn(
+        "relative grid min-w-0 snap-start grid-rows-[auto_1fr] border-r border-border p-3 last:border-r-0 lg:snap-none lg:p-2",
+        day.isToday &&
+          "before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-full before:bg-primary lg:before:inset-x-2",
+      )}
     >
       <header className="flex h-11 items-center justify-between gap-2">
         <h2
-          className="min-w-0 truncate font-heading text-xl lg:text-base"
+          className={cn(
+            "min-w-0 truncate font-heading text-xl tabular-nums lg:text-base",
+            day.isToday && "text-primary",
+          )}
           id={`plan-day-${day.date}`}
         >
           <time dateTime={day.date} title={dateLabel}>
             {day.weekdayLabel}
           </time>
         </h2>
-        {day.isToday ? <Badge variant="accent">Today</Badge> : null}
+        {day.isToday ? (
+          <p className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary lg:text-xs">
+            <span
+              aria-hidden="true"
+              className="size-1.5 shrink-0 rounded-full bg-primary"
+            />
+            Today
+          </p>
+        ) : null}
       </header>
       <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2">
-        {day.slots.map((mealSlot) => (
-          <MealSlot
+        {day.slots.map((mealSlot, slotIndex) => (
+          <MealBoardSlotPresence
+            index={dayIndex * day.slots.length + slotIndex}
             key={mealSlot.slot}
-            date={day.date}
-            dateLabel={dateLabel}
-            mealSlot={mealSlot}
-          />
+          >
+            <MealSlot
+              date={day.date}
+              dateLabel={dateLabel}
+              mealSlot={mealSlot}
+            />
+          </MealBoardSlotPresence>
         ))}
       </ul>
     </article>
@@ -119,8 +132,8 @@ export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
         <CardContent className="px-0">
           <div className="snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-px-3 lg:snap-none lg:overflow-x-visible">
             <div className="grid min-w-max auto-cols-[minmax(15rem,82vw)] grid-flow-col lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-7">
-              {days.map((day) => (
-                <DayColumn key={day.date} day={day} />
+              {days.map((day, dayIndex) => (
+                <DayColumn day={day} dayIndex={dayIndex} key={day.date} />
               ))}
             </div>
           </div>

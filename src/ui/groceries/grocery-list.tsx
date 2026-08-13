@@ -1,7 +1,8 @@
 import { CheckIcon } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { GroceriesViewModel } from "@/lib/read-models/groceries";
 import { cn } from "@/lib/utils";
@@ -97,7 +98,17 @@ export function GroceryList({ categories, claimAction }: GroceryListProps) {
   return (
     <PageSection title="Shopping list" titleId="grocery-list-title">
       {categories.length === 0 ? (
-        <EmptyState title="The list is empty">
+        <EmptyState
+          action={
+            <Link
+              className={buttonVariants({ className: "no-underline" })}
+              href="/groceries/new"
+            >
+              Add grocery
+            </Link>
+          }
+          title="The list is empty"
+        >
           <p>Add a grocery item or plan a meal to get started.</p>
         </EmptyState>
       ) : (

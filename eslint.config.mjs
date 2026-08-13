@@ -135,6 +135,7 @@ export default defineConfig([
   },
   globalIgnores([
     "**/.next/**",
+    "**/.next-verify/**",
     "coverage/**",
     "next-env.d.ts",
     "playwright-report/**",

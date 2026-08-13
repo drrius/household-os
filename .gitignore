@@ -14,6 +14,8 @@ next-env.d.ts
 .env
 .env.*
 !.env.example
+.local/*
+!.local/identity.example.json
 .supabase/
 supabase/.branches/
 supabase/.temp/

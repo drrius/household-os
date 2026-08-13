@@ -5,9 +5,20 @@ import {
   errorHref,
   revalidateProduct,
 } from "@/app/(product)/_actions/m7-shared";
-import { parseGroceryForm, parseMealForm } from "@/lib/forms/m7";
+import {
+  parseGroceryForm,
+  parseMealForm,
+  parsePlaceFromLibraryForm,
+  parseRemoveMealForm,
+  parseUpdateMealForm,
+} from "@/lib/forms/m7";
 import { createGroceryItem } from "@/lib/groceries/commands";
-import { createAndPlaceMeal, placeMeal } from "@/lib/meals/commands";
+import {
+  createAndPlaceMeal,
+  placeMeal,
+  removeMealPlanEntry,
+  updateMealPlanEntry,
+} from "@/lib/meals/commands";
 
 export async function createGroceryItemAction(
   formData: FormData,
@@ -51,6 +62,85 @@ export async function createMealAction(formData: FormData): Promise<void> {
     failure = error;
   }
   if (failure !== null) redirect(errorHref("/plan/meals/new", failure));
+  revalidateProduct(["/", "/plan", "/groceries"]);
+  redirect("/plan");
+}
+
+export async function placeFromLibraryAction(
+  formData: FormData,
+): Promise<void> {
+  let failure: unknown = null;
+  let libraryId: string | null = null;
+  try {
+    const input = parsePlaceFromLibraryForm(formData);
+    libraryId = input.libraryId;
+    await placeMeal({
+      date: input.date,
+      slot: input.slot,
+      sourceKind: "library",
+      mealDefinitionId: input.libraryId,
+      notes: input.notes,
+      idempotencyKey: input.idempotencyKey,
+    });
+  } catch (error) {
+    failure = error;
+  }
+  if (failure !== null) {
+    const fallback =
+      libraryId === null
+        ? "/plan/meals/new"
+        : `/plan/meals/new?libraryId=${encodeURIComponent(libraryId)}`;
+    redirect(errorHref(fallback, failure));
+  }
+  revalidateProduct(["/", "/plan", "/groceries"]);
+  redirect("/plan");
+}
+
+export async function removeMealEntryAction(formData: FormData): Promise<void> {
+  let failure: unknown = null;
+  let entryId: string | null = null;
+  try {
+    const input = parseRemoveMealForm(formData);
+    entryId = input.entryId;
+    await removeMealPlanEntry({
+      entryId: input.entryId,
+      idempotencyKey: input.idempotencyKey,
+    });
+  } catch (error) {
+    failure = error;
+  }
+  if (failure !== null) {
+    const fallback =
+      entryId === null ? "/plan" : `/plan/meals/${encodeURIComponent(entryId)}`;
+    redirect(errorHref(fallback, failure));
+  }
+  revalidateProduct(["/", "/plan", "/groceries"]);
+  redirect("/plan");
+}
+
+export async function updateMealEntryAction(formData: FormData): Promise<void> {
+  let failure: unknown = null;
+  let entryId: string | null = null;
+  try {
+    const input = parseUpdateMealForm(formData);
+    entryId = input.entryId;
+    await updateMealPlanEntry({
+      entryId: input.entryId,
+      title: input.title,
+      date: input.date,
+      slot: input.slot,
+      recipeUrl: input.recipeUrl,
+      notes: input.notes,
+      idempotencyKey: input.idempotencyKey,
+    });
+  } catch (error) {
+    failure = error;
+  }
+  if (failure !== null) {
+    const fallback =
+      entryId === null ? "/plan" : `/plan/meals/${encodeURIComponent(entryId)}`;
+    redirect(errorHref(fallback, failure));
+  }
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
