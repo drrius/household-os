@@ -173,7 +173,16 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
                   {routine.areaName}
                 </span>
               </span>
-              <Link href={`/home/routines/${routine.id}/edit`}>Edit</Link>
+              <Link
+                className={buttonVariants({
+                  className: "no-underline",
+                  size: "sm",
+                  variant: "outline",
+                })}
+                href={`/home/routines/${routine.id}/edit`}
+              >
+                Edit
+              </Link>
             </li>
           ))}
         </ul>
@@ -235,7 +244,7 @@ function SettingsList({
       <CardContent>
         <ul className="list-none" aria-label="Household settings">
           <SettingsRow
-            hint="In-app notifications, optional push, and a personal digest"
+            hint="Coming later · In-app notifications, optional push, and a personal digest"
             title="Notifications & digest"
           />
           <SettingsLinkRow

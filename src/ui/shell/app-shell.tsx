@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { HouseIcon } from "@/ui/icons/app-icons";
@@ -20,13 +21,18 @@ export function AppShell({ children }: AppShellProps) {
 
       <div className="grid min-h-dvh grid-rows-[minmax(0,1fr)_auto] lg:grid-cols-[15rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
         <header className="hidden min-h-11 items-center gap-2 border-r bg-sidebar p-6 font-heading text-xl font-bold lg:col-start-1 lg:row-start-1 lg:flex">
-          <span
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
-            aria-hidden="true"
+          <Link
+            className="inline-flex min-w-0 items-center gap-2 no-underline"
+            href="/"
           >
-            <HouseIcon />
-          </span>
-          <span>Our Home</span>
+            <span
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
+              aria-hidden="true"
+            >
+              <HouseIcon />
+            </span>
+            <span>Our Home</span>
+          </Link>
         </header>
 
         <main

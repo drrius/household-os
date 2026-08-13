@@ -52,6 +52,20 @@ export default async function ManageMealPage({
         <FormField label="Slot">
           <p className="text-sm font-normal">{slotLabel(entry.slot)}</p>
         </FormField>
+        <FormField label="Recipe link">
+          {entry.recipeUrl === null || entry.recipeUrl.length === 0 ? (
+            <p className="text-sm font-normal">None</p>
+          ) : (
+            <a
+              className="text-sm font-normal break-all underline"
+              href={entry.recipeUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {entry.recipeUrl}
+            </a>
+          )}
+        </FormField>
         <FormField label="Notes">
           <p className="text-sm font-normal">
             {entry.notes === null || entry.notes.length === 0
