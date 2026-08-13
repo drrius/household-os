@@ -143,7 +143,17 @@ function ActivityList({ activity }: Pick<HomeViewModel, "activity">) {
 function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
   if (routines.length === 0) {
     return (
-      <EmptyState title="No routines yet">
+      <EmptyState
+        action={
+          <Link
+            className={buttonVariants({ className: "no-underline" })}
+            href="/home/routines/new"
+          >
+            Create routine
+          </Link>
+        }
+        title="No routines yet"
+      >
         <p>Create the first one-off or recurring household routine.</p>
       </EmptyState>
     );

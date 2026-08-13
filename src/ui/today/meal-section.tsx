@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageSection } from "@/ui/layout/page-section";
 import { RoutineCompleteControl } from "@/ui/today/routine-complete-control.client";
@@ -127,7 +129,17 @@ export function MealSection({ meals }: { meals: readonly MealGlance[] }) {
           )}
         </div>
       ) : (
-        <EmptyState title="No meal planned">
+        <EmptyState
+          action={
+            <Link
+              className={buttonVariants({ className: "no-underline" })}
+              href={`/plan/meals/new?date=${encodeURIComponent(zurichCivilDate())}&slot=dinner`}
+            >
+              Plan a meal
+            </Link>
+          }
+          title="No meal planned"
+        >
           <p>Today’s meal plan is open.</p>
         </EmptyState>
       )}
