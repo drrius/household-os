@@ -1,28 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { removeMealEntryAction } from "@/app/(product)/_actions/m7-plan-groceries";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 import { loadManageMealEntry } from "@/lib/read-models/meal-entry-manage";
-import { cn } from "@/lib/utils";
-import { FormField, FormPage } from "@/ui/forms/form-page";
-
-function slotLabel(slot: "breakfast" | "lunch" | "dinner" | null): string {
-  switch (slot) {
-    case "breakfast":
-      return "Breakfast";
-    case "lunch":
-      return "Lunch";
-    case "dinner":
-      return "Dinner";
-    case null:
-      return "Unscheduled";
-    default: {
-      const exhaustiveSlot: never = slot;
-      return exhaustiveSlot;
-    }
-  }
-}
+import { FormPage } from "@/ui/forms/form-page";
+import { ManageMealForms } from "@/ui/plan/manage-meal-forms";
 
 export default async function ManageMealPage({
   params,
@@ -41,59 +21,11 @@ export default async function ManageMealPage({
   return (
     <FormPage
       backHref="/plan"
-      description="View or remove this planned meal."
+      description="Edit this planned meal, or remove it from the week."
       error={query.error}
       title={entry.title}
     >
-      <div className="grid gap-5">
-        <FormField label="Date">
-          <p className="text-sm font-normal">{entry.date}</p>
-        </FormField>
-        <FormField label="Slot">
-          <p className="text-sm font-normal">{slotLabel(entry.slot)}</p>
-        </FormField>
-        <FormField label="Recipe link">
-          {!entry.recipeUrl ? (
-            <p className="text-sm font-normal">None</p>
-          ) : (
-            <a
-              className="text-sm font-normal break-all underline"
-              href={entry.recipeUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {entry.recipeUrl}
-            </a>
-          )}
-        </FormField>
-        <FormField label="Notes">
-          <p className="text-sm font-normal">
-            {entry.notes ? entry.notes : "None"}
-          </p>
-        </FormField>
-        {entry.isLeftover ? (
-          <Badge className="w-fit" variant="warning">
-            Leftover
-          </Badge>
-        ) : null}
-        <form action={removeMealEntryAction} className="grid gap-3">
-          <input name="entryId" type="hidden" value={entry.id} />
-          <input
-            name="idempotencyKey"
-            type="hidden"
-            value={crypto.randomUUID()}
-          />
-          <button
-            className={cn(
-              buttonVariants({ size: "lg", variant: "destructive" }),
-              "w-full sm:w-fit",
-            )}
-            type="submit"
-          >
-            Remove from plan
-          </button>
-        </form>
-      </div>
+      <ManageMealForms entry={entry} />
     </FormPage>
   );
 }

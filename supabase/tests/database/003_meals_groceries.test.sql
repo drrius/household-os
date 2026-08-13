@@ -991,5 +991,76 @@ select is(
   'meal removal skips the locked preparation occurrence'
 );
 
+select lives_ok(
+  $$
+    select public.place_meal(
+      p_household_id => '10000000-0000-4000-8000-000000000021'::uuid,
+      p_date => '2030-08-08'::date,
+      p_slot => 'lunch',
+      p_source_kind => 'freeform',
+      p_idempotency_key => 'place-freeform-edit-source',
+      p_title => 'Editable lunch',
+      p_recipe_url => 'https://example.invalid/old',
+      p_notes => 'Old notes'
+    )
+  $$,
+  'a member can place a freeform meal to edit'
+);
+
+select lives_ok(
+  $$
+    select public.update_meal_plan_entry(
+      p_entry_id => (
+        select id
+        from public.meal_plan_entries
+        where date = '2030-08-08' and slot = 'lunch'
+      ),
+      p_title => 'Edited lunch',
+      p_date => '2030-08-08'::date,
+      p_slot => 'dinner',
+      p_idempotency_key => 'update-meal-1',
+      p_recipe_url => 'https://example.invalid/new',
+      p_notes => 'New notes'
+    )
+  $$,
+  'a member can update a planned meal'
+);
+
+select results_eq(
+  $$
+    select title_snapshot, recipe_url_snapshot, notes, slot
+    from public.meal_plan_entries
+    where date = '2030-08-08' and removed_at is null
+  $$,
+  $$
+    values (
+      'Edited lunch'::text,
+      'https://example.invalid/new'::text,
+      'New notes'::text,
+      'dinner'::text
+    )
+  $$,
+  'meal update rewrites title, recipe, notes, and slot'
+);
+
+select lives_ok(
+  $$
+    select public.update_meal_plan_entry(
+      p_entry_id => (
+        select id
+        from public.meal_plan_entries
+        where date = '2030-08-08' and slot = 'dinner'
+      ),
+      p_title => 'Edited lunch',
+      p_date => '2030-08-08'::date,
+      p_slot => 'dinner',
+      p_idempotency_key => 'update-meal-1',
+      p_recipe_url => 'https://example.invalid/new',
+      p_notes => 'New notes'
+    )
+  $$,
+  'meal update replays the same idempotency key'
+);
+
 select * from finish();
 rollback;

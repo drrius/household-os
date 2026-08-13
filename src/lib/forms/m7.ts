@@ -56,6 +56,18 @@ export function formErrorMessage(error: unknown): string {
 
 export { parseRoutineForm, routineFormChangesSchedule } from "./routine";
 export type { RoutineFormValue, StoredRoutineSchedule } from "./routine";
+export {
+  parseMealForm,
+  parsePlaceFromLibraryForm,
+  parseRemoveMealForm,
+  parseUpdateMealForm,
+} from "./meal";
+export type {
+  MealFormValue,
+  PlaceFromLibraryFormValue,
+  RemoveMealFormValue,
+  UpdateMealFormValue,
+} from "./meal";
 
 const proposedAllocationSchema = z.object({
   memberId: z.string().min(1),
@@ -131,77 +143,6 @@ export function parseGroceryForm(formData: FormData): GroceryFormValue {
     unit: optionalText(formData.get("unit")),
     categoryId: optionalUuid(formData, "categoryId"),
     note: optionalText(formData.get("note")),
-  };
-}
-
-export type MealFormValue = {
-  title: string;
-  date: string;
-  slot: "breakfast" | "lunch" | "dinner";
-  recipeUrl: string | null;
-  notes: string | null;
-  saveToLibrary: boolean;
-  idempotencyKey: string;
-};
-
-export function parseMealForm(formData: FormData): MealFormValue {
-  const recipeUrl = optionalText(formData.get("recipeUrl"));
-  if (recipeUrl !== null) {
-    const parsed = new URL(recipeUrl);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      throw new Error("Recipe links must use http or https.");
-    }
-  }
-  return {
-    title: shortTextSchema.parse(requiredString(formData, "title")),
-    date: dateSchema.parse(requiredString(formData, "date")),
-    slot: z
-      .enum(["breakfast", "lunch", "dinner"])
-      .parse(requiredString(formData, "slot")),
-    recipeUrl,
-    notes: optionalText(formData.get("notes")),
-    saveToLibrary: formData.get("saveToLibrary") === "on",
-    idempotencyKey: uuidSchema.parse(
-      requiredString(formData, "idempotencyKey"),
-    ),
-  };
-}
-
-export type PlaceFromLibraryFormValue = {
-  libraryId: string;
-  date: string;
-  slot: "breakfast" | "lunch" | "dinner";
-  notes: string | null;
-  idempotencyKey: string;
-};
-
-export function parsePlaceFromLibraryForm(
-  formData: FormData,
-): PlaceFromLibraryFormValue {
-  return {
-    libraryId: uuidSchema.parse(requiredString(formData, "libraryId")),
-    date: dateSchema.parse(requiredString(formData, "date")),
-    slot: z
-      .enum(["breakfast", "lunch", "dinner"])
-      .parse(requiredString(formData, "slot")),
-    notes: optionalText(formData.get("notes")),
-    idempotencyKey: uuidSchema.parse(
-      requiredString(formData, "idempotencyKey"),
-    ),
-  };
-}
-
-export type RemoveMealFormValue = {
-  entryId: string;
-  idempotencyKey: string;
-};
-
-export function parseRemoveMealForm(formData: FormData): RemoveMealFormValue {
-  return {
-    entryId: uuidSchema.parse(requiredString(formData, "entryId")),
-    idempotencyKey: uuidSchema.parse(
-      requiredString(formData, "idempotencyKey"),
-    ),
   };
 }
 

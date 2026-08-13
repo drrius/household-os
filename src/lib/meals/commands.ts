@@ -113,6 +113,34 @@ export async function removeMealPlanEntry(input: {
   return asRecord(data);
 }
 
+export async function updateMealPlanEntry(input: {
+  entryId: string;
+  title: string;
+  date: string;
+  slot: "breakfast" | "lunch" | "dinner";
+  recipeUrl?: string | null;
+  notes?: string | null;
+  idempotencyKey: string;
+}): Promise<Record<string, unknown>> {
+  await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("update_meal_plan_entry", {
+    p_entry_id: input.entryId,
+    p_title: input.title,
+    p_date: input.date,
+    p_slot: input.slot,
+    p_idempotency_key: input.idempotencyKey,
+    p_recipe_url: input.recipeUrl ?? null,
+    p_notes: input.notes ?? null,
+  });
+
+  if (error) {
+    throw new Error(`update_meal_plan_entry failed: ${error.message}`);
+  }
+
+  return asRecord(data);
+}
+
 export async function createMealPreparation(input: {
   mealPlanEntryId: string;
   title: string;
