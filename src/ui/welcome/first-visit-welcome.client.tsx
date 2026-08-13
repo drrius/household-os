@@ -83,7 +83,7 @@ export function FirstVisitWelcome() {
                   <CardContent className="grid gap-4">
                     <p className="text-sm text-muted-foreground">
                       Plan meals, share groceries, keep routines moving, and
-                      settle money in one place—both of you, equally.
+                      settle money in one place. Both of you, equally.
                     </p>
                     <Button onClick={dismiss} size="lg" type="button">
                       Got it
