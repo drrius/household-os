@@ -4,6 +4,9 @@
  * centimes and the intermediate arithmetic is BigInt, never a float.
  */
 
+export const chfAmountMessage =
+  "Enter a CHF amount with at most two decimal places.";
+
 const chfAmountPattern = /^(\d{1,13})(?:\.(\d{1,2}))?$/;
 
 function normalizeChf(value: string): string {
@@ -28,7 +31,7 @@ export function parseChfToCentimesOrNull(value: string): number | null {
 export function parseChfToCentimes(value: string): number {
   const normalized = normalizeChf(value);
   if (!chfAmountPattern.test(normalized)) {
-    throw new Error("Enter a CHF amount with at most two decimal places.");
+    throw new Error(chfAmountMessage);
   }
   const centimes = parseChfToCentimesOrNull(normalized);
   if (centimes === null) {
@@ -40,60 +43,4 @@ export function parseChfToCentimes(value: string): number {
 export function formatCentimesField(centimes: number): string {
   const absolute = Math.abs(centimes);
   return `${Math.floor(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
-}
-
-export type ShareReconciliation = {
-  amountCents: number;
-  /** Shares minus amount: negative is short of the total, positive is over it. */
-  differenceCents: number;
-  filledShareCount: number;
-  shareCount: number;
-  sharesCents: number;
-};
-
-/**
- * Live reading of an exact split. Blank shares count as nothing so the running
- * total stays useful while one is still being typed; null when the amount or a
- * filled share cannot be read as CHF at all.
- */
-export function reconcileShares(
-  amount: string,
-  shares: readonly string[],
-): ShareReconciliation | null {
-  const amountCents = parseChfToCentimesOrNull(amount);
-  if (amountCents === null) {
-    return null;
-  }
-  let sharesCents = 0;
-  let filledShareCount = 0;
-  for (const share of shares) {
-    if (share.trim().length === 0) continue;
-    const shareCents = parseChfToCentimesOrNull(share);
-    if (shareCents === null) {
-      return null;
-    }
-    sharesCents += shareCents;
-    filledShareCount += 1;
-  }
-  if (!Number.isSafeInteger(sharesCents)) {
-    return null;
-  }
-  return {
-    amountCents,
-    differenceCents: sharesCents - amountCents,
-    filledShareCount,
-    shareCount: shares.length,
-    sharesCents,
-  };
-}
-
-/** The rule `validateExactAllocations` enforces on the server, read live. */
-export function sharesBalance(
-  reconciliation: ShareReconciliation | null,
-): boolean {
-  return (
-    reconciliation !== null &&
-    reconciliation.filledShareCount === reconciliation.shareCount &&
-    reconciliation.differenceCents === 0
-  );
 }

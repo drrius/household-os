@@ -4,56 +4,32 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import {
-  echoValues,
   revalidateProduct,
   uuidSchema,
 } from "@/app/(product)/_actions/m7-shared";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import {
-  formRejection,
+  settleFormAction,
+  type FormActionState,
+} from "@/lib/forms/action-state";
+import {
   parseRoutineForm,
   routineFormChangesSchedule,
-} from "@/lib/forms/m7";
+} from "@/lib/forms/routine";
 import {
   createRoutine,
   updateRoutineDefinition,
 } from "@/lib/routines/commands";
 import { createClient } from "@/lib/supabase/server";
-import type { FormActionState } from "@/ui/forms/form-action";
-
-const routineEchoNames = [
-  "title",
-  "instructions",
-  "areaId",
-  "petId",
-  "priority",
-  "assignmentPolicy",
-  "memberId",
-  "scheduleMode",
-  "oneOffDate",
-  "weeklyWeekday",
-  "monthlyDay",
-  "intervalEvery",
-  "intervalUnit",
-] as const;
 
 export async function createRoutineAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  let failure: unknown = null;
-  try {
+  const rejected = await settleFormAction(previous, formData, async () => {
     await createRoutine(parseRoutineForm(formData));
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    return formRejection(
-      previous,
-      failure,
-      echoValues(formData, routineEchoNames),
-    );
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
   redirect("/home");
 }
@@ -62,8 +38,7 @@ export async function updateRoutineAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  let failure: unknown = null;
-  try {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const routineId = uuidSchema.parse(formData.get("routineId"));
     const parsed = parseRoutineForm(formData);
     const member = await requireMemberContext();
@@ -105,16 +80,8 @@ export async function updateRoutineAction(
         parsed,
       ),
     });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    return formRejection(
-      previous,
-      failure,
-      echoValues(formData, routineEchoNames),
-    );
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
   redirect("/home");
 }

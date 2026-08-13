@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
-import { formErrorMessage } from "@/lib/forms/m7";
+import { formErrorMessage } from "@/lib/forms/action-state";
 import { createClient } from "@/lib/supabase/server";
 
 export const uuidSchema = z.string().uuid();
@@ -16,24 +16,6 @@ export const namedMemberSchema = z.object({
 export function errorHref(path: string, error: unknown): string {
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}error=${encodeURIComponent(formErrorMessage(error))}`;
-}
-
-/**
- * Copies what the member typed back out of the submission so a rejected form
- * re-renders with it. `idempotencyKey` is always skipped: a fresh key has to be
- * minted per render.
- */
-export function echoValues(
-  formData: FormData,
-  names: readonly string[],
-): Record<string, string> {
-  const values: Record<string, string> = {};
-  for (const name of names) {
-    if (name === "idempotencyKey") continue;
-    const value = formData.get(name);
-    if (typeof value === "string") values[name] = value;
-  }
-  return values;
 }
 
 export function revalidateProduct(paths: readonly string[]): void {

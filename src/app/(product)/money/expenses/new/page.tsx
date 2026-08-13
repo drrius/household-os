@@ -19,7 +19,7 @@ const draftSchema = z.object({
 export default async function NewExpensePage({
   searchParams,
 }: {
-  searchParams: Promise<{ draft?: string; error?: string }>;
+  searchParams: Promise<{ draft?: string }>;
 }) {
   const [query, options, member] = await Promise.all([
     searchParams,
@@ -46,7 +46,6 @@ export default async function NewExpensePage({
     <FormPage
       backHref="/money"
       description="Record something one of you already paid for. We'll split it and update who owes who straight away."
-      error={query.error}
       title={draft ? "Complete expense draft" : "New expense"}
     >
       <ExpenseForm

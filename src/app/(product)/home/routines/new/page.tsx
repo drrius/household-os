@@ -6,20 +6,12 @@ import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { FormPage } from "@/ui/forms/form-page";
 import { RoutineForm } from "@/ui/forms/routine-form";
 
-export default async function NewRoutinePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const [options, query] = await Promise.all([
-    loadRoutineFormOptions(),
-    searchParams,
-  ]);
+export default async function NewRoutinePage() {
+  const options = await loadRoutineFormOptions();
   return (
     <FormPage
       backHref="/home"
       description="Create one-off or recurring household work with an explicit responsibility policy."
-      error={query.error}
       title="New routine"
     >
       {options.areas.length === 0 ? (

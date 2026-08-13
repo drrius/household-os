@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { formRejection, settleFormAction } from "./action-state";
 import { FormFieldError } from "./field-error";
-import { formRejection } from "./m7";
 
 const failure = new FormFieldError("amount", "Enter an amount in francs.");
 const values = { amount: "abc" };
@@ -54,5 +54,35 @@ describe("form rejection state", () => {
 
     expect(rejected.field).toBeUndefined();
     expect(rejected.error).toBe("The household is already settled up.");
+  });
+});
+
+describe("settleFormAction", () => {
+  it("returns null so redirect can stay outside the try", async () => {
+    const form = new FormData();
+    form.set("name", "Kitchen");
+    await expect(
+      settleFormAction({ submissionId: 0 }, form, async () => undefined),
+    ).resolves.toBeNull();
+  });
+
+  it("echoes the submitted fields on rejection", async () => {
+    const form = new FormData();
+    form.set("amount", "abc");
+    form.append("weekdays", "1");
+    form.append("weekdays", "5");
+    const rejected = await settleFormAction(
+      { submissionId: 3 },
+      form,
+      async () => {
+        throw new FormFieldError("amount", "Enter an amount in francs.");
+      },
+    );
+    expect(rejected).toEqual({
+      error: "Enter an amount in francs.",
+      field: "amount",
+      values: { amount: "abc", weekdays: "1\u001f5" },
+      submissionId: 4,
+    });
   });
 });

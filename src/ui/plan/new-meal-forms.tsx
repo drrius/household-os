@@ -2,20 +2,26 @@ import {
   createMealAction,
   placeFromLibraryAction,
 } from "@/app/(product)/_actions/m7-plan-groceries";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
+import { DateField } from "@/ui/forms/date-field.client";
+import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import {
   CheckboxField,
   FormField,
   FormFields,
   FormPage,
-  selectClassName,
 } from "@/ui/forms/form-page";
+import { EchoedSelect } from "@/ui/forms/form-select.client";
 
 type SlotDefault = string | undefined;
 
 const RECIPE_URL_HINT = "Must start with http:// or https://";
+
+const slotItems = [
+  { label: "Breakfast", value: "breakfast" },
+  { label: "Lunch", value: "lunch" },
+  { label: "Dinner", value: "dinner" },
+] as const;
 
 function DateAndSlotFields({
   date,
@@ -26,20 +32,18 @@ function DateAndSlotFields({
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <FormField label="Date">
-        <Input
-          defaultValue={date ?? zurichCivilDate()}
-          name="date"
-          required
-          type="date"
-        />
-      </FormField>
+      <DateField
+        defaultValue={date ?? zurichCivilDate()}
+        label="Date"
+        name="date"
+        required
+      />
       <FormField label="Slot">
-        <select className={selectClassName} defaultValue={slot} name="slot">
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-        </select>
+        <EchoedSelect
+          initialValue={slot ?? "dinner"}
+          items={[...slotItems]}
+          name="slot"
+        />
       </FormField>
     </div>
   );
@@ -47,13 +51,11 @@ function DateAndSlotFields({
 
 export function PlaceLibraryMealForm({
   date,
-  error,
   libraryId,
   libraryTitle,
   slot,
 }: {
   date?: string;
-  error?: string;
   libraryId: string;
   libraryTitle: string;
   slot: SlotDefault;
@@ -62,7 +64,6 @@ export function PlaceLibraryMealForm({
     <FormPage
       backHref="/plan"
       description="Place a saved library meal into one weekly slot."
-      error={error}
       title="Place saved meal"
     >
       <FormFields action={placeFromLibraryAction} submitLabel="Add to plan">
@@ -77,7 +78,7 @@ export function PlaceLibraryMealForm({
         </FormField>
         <DateAndSlotFields date={date} slot={slot} />
         <FormField label="Notes" optional>
-          <Textarea maxLength={4000} name="notes" />
+          <EchoedTextarea maxLength={4000} name="notes" />
         </FormField>
       </FormFields>
     </FormPage>
@@ -86,18 +87,15 @@ export function PlaceLibraryMealForm({
 
 export function CreateMealForm({
   date,
-  error,
   slot,
 }: {
   date?: string;
-  error?: string;
   slot: SlotDefault;
 }) {
   return (
     <FormPage
       backHref="/plan"
       description="Place a meal into one weekly slot and optionally keep it in the meal library."
-      error={error}
       title="New meal"
     >
       <FormFields action={createMealAction} submitLabel="Add to plan">
@@ -107,14 +105,14 @@ export function CreateMealForm({
           value={crypto.randomUUID()}
         />
         <FormField label="Meal">
-          <Input maxLength={120} name="title" required />
+          <EchoedInput maxLength={120} name="title" required />
         </FormField>
         <DateAndSlotFields date={date} slot={slot} />
         <FormField description={RECIPE_URL_HINT} label="Recipe link" optional>
-          <Input maxLength={2000} name="recipeUrl" type="url" />
+          <EchoedInput maxLength={2000} name="recipeUrl" type="url" />
         </FormField>
         <FormField label="Notes" optional>
-          <Textarea maxLength={4000} name="notes" />
+          <EchoedTextarea maxLength={4000} name="notes" />
         </FormField>
         <CheckboxField
           label="Save this meal to the library"

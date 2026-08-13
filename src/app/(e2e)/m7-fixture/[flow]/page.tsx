@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ExpenseForm } from "@/ui/forms/expense-form";
-import type { FormActionState } from "@/ui/forms/form-action";
+import type { FormActionState } from "@/lib/forms/action-state";
 import { FormPage } from "@/ui/forms/form-page";
 import { RoutineForm } from "@/ui/forms/routine-form";
 import { AppShell } from "@/ui/shell/app-shell";

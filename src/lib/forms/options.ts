@@ -2,6 +2,9 @@ import "server-only";
 
 import { z } from "zod";
 
+import { deriveMemberBalances } from "@/domain/money/balances";
+import type { LedgerEntry } from "@/domain/money/types";
+import { asFinancialEventId, asMemberId } from "@/domain/money/values";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -103,30 +106,6 @@ export type SettlementContext = {
   outstandingCents: number;
 };
 
-/** Integer centimes only; a household is never reconciled with floats. */
-function reduceBalances(
-  memberIds: readonly string[],
-  rows: readonly { member_id: string; receivable_delta_cents: number }[],
-): Map<string, number> {
-  const balance = new Map(memberIds.map((memberId) => [memberId, 0]));
-  for (const row of rows) {
-    const current = balance.get(row.member_id);
-    if (
-      current === undefined ||
-      !Number.isSafeInteger(row.receivable_delta_cents)
-    ) {
-      throw new Error("The household balance could not be reconciled.");
-    }
-    const next = current + row.receivable_delta_cents;
-    if (!Number.isSafeInteger(next)) {
-      throw new Error("The balance is too large.");
-    }
-    balance.set(row.member_id, next);
-  }
-  return balance;
-}
-
-/** Null when the household is already settled up. */
 export async function loadSettlementContext(): Promise<SettlementContext | null> {
   const member = await requireMemberContext();
   const supabase = await createClient();
@@ -139,7 +118,7 @@ export async function loadSettlementContext(): Promise<SettlementContext | null>
       .order("user_id"),
     supabase
       .from("ledger_entries")
-      .select("member_id, receivable_delta_cents")
+      .select("financial_event_id, member_id, receivable_delta_cents")
       .eq("household_id", member.householdId),
   ]);
   const members = z
@@ -151,19 +130,25 @@ export async function loadSettlementContext(): Promise<SettlementContext | null>
   if (ledgerResult.error) {
     throw new Error(`settlement_balance failed: ${ledgerResult.error.message}`);
   }
-  const balance = reduceBalances(
-    members.map((row) => row.user_id),
-    ledgerResult.data ?? [],
+  const entries: LedgerEntry[] = (ledgerResult.data ?? []).map((row) => ({
+    financialEventId: asFinancialEventId(row.financial_event_id),
+    memberId: asMemberId(row.member_id),
+    receivableDeltaCents: row.receivable_delta_cents,
+  }));
+  const balance = deriveMemberBalances(entries);
+  const debtor = members.find(
+    (row) => (balance.get(asMemberId(row.user_id)) ?? 0) < 0,
   );
-  const debtor = members.find((row) => (balance.get(row.user_id) ?? 0) < 0);
-  const creditor = members.find((row) => (balance.get(row.user_id) ?? 0) > 0);
+  const creditor = members.find(
+    (row) => (balance.get(asMemberId(row.user_id)) ?? 0) > 0,
+  );
   if (debtor === undefined || creditor === undefined) return null;
   return {
     creditorMemberId: creditor.user_id,
     creditorName: creditor.display_name,
     debtorMemberId: debtor.user_id,
     debtorName: debtor.display_name,
-    outstandingCents: Math.abs(balance.get(debtor.user_id) ?? 0),
+    outstandingCents: Math.abs(balance.get(asMemberId(debtor.user_id)) ?? 0),
   };
 }
 

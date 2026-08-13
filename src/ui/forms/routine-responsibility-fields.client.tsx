@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
-import { useFormFieldsState } from "@/ui/forms/form-fields.client";
-import { FormField, FormSection, selectClassName } from "@/ui/forms/form-page";
+import { FormField, FormSection } from "@/ui/forms/form-page";
+import { useFormFieldValue } from "@/ui/forms/form-fields.client";
+import { FormSelect } from "@/ui/forms/form-select.client";
 
 type Member = { user_id: string; display_name: string };
 
 const policies = [
-  ["shared", "Shared"],
-  ["assigned", "Assigned"],
-  ["alternating", "Alternating"],
+  { label: "Shared", value: "shared" },
+  { label: "Assigned", value: "assigned" },
+  { label: "Alternating", value: "alternating" },
 ] as const;
 
-export type AssignmentPolicy = (typeof policies)[number][0];
+export type AssignmentPolicy = (typeof policies)[number]["value"];
 
-/** `shared` drops the submitted member, so the control is not offered for it. */
 const memberCopy = {
   alternating: {
     description:
@@ -29,46 +29,8 @@ const memberCopy = {
 } as const;
 
 function toPolicy(value: string): AssignmentPolicy {
-  const match = policies.find(([policy]) => policy === value);
-  return match === undefined ? "shared" : match[0];
-}
-
-/**
- * The Assignment control decides whether the member control exists, so both are
- * controlled. `FormField` injects the echoed value of a rejected submit as
- * `defaultValue`, and React refuses a `<select>` carrying both; the echo is
- * seeded into state instead, so the injected default is dropped here.
- */
-function ResponsibilitySelect({
-  "aria-describedby": describedBy,
-  "aria-invalid": invalid,
-  children,
-  id,
-  name,
-  onValueChange,
-  value,
-}: {
-  "aria-describedby"?: string;
-  "aria-invalid"?: boolean;
-  children: ReactNode;
-  id?: string;
-  name: string;
-  onValueChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <select
-      aria-describedby={describedBy}
-      aria-invalid={invalid}
-      className={selectClassName}
-      id={id}
-      name={name}
-      onChange={(event) => onValueChange(event.target.value)}
-      value={value}
-    >
-      {children}
-    </select>
-  );
+  const match = policies.find((policy) => policy.value === value);
+  return match === undefined ? "shared" : match.value;
 }
 
 export function RoutineResponsibilityFields({
@@ -80,30 +42,22 @@ export function RoutineResponsibilityFields({
   defaultPolicy: AssignmentPolicy;
   members: readonly Member[];
 }) {
-  const { values } = useFormFieldsState();
-  const [policy, setPolicy] = useState<AssignmentPolicy>(() =>
-    toPolicy(values.assignmentPolicy ?? defaultPolicy),
+  const [policy, setPolicy] = useState<AssignmentPolicy>(
+    toPolicy(useFormFieldValue("assignmentPolicy", defaultPolicy)),
   );
-  // Held apart from the policy so switching back to Assigned restores the
-  // previous pick instead of snapping to the first member.
   const [memberId, setMemberId] = useState(
-    () => values.memberId ?? defaultMemberId ?? members[0]?.user_id ?? "",
+    useFormFieldValue("memberId", defaultMemberId ?? members[0]?.user_id ?? ""),
   );
 
   return (
     <FormSection legend="Responsibility">
       <FormField label="Assignment">
-        <ResponsibilitySelect
+        <FormSelect
+          items={[...policies]}
           name="assignmentPolicy"
           onValueChange={(value) => setPolicy(toPolicy(value))}
           value={policy}
-        >
-          {policies.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </ResponsibilitySelect>
+        />
       </FormField>
       {policy === "shared" ? (
         <p className="text-sm text-muted-foreground">
@@ -114,17 +68,15 @@ export function RoutineResponsibilityFields({
           description={memberCopy[policy].description}
           label={memberCopy[policy].label}
         >
-          <ResponsibilitySelect
+          <FormSelect
+            items={members.map((member) => ({
+              label: member.display_name,
+              value: member.user_id,
+            }))}
             name="memberId"
             onValueChange={setMemberId}
             value={memberId}
-          >
-            {members.map((member) => (
-              <option key={member.user_id} value={member.user_id}>
-                {member.display_name}
-              </option>
-            ))}
-          </ResponsibilitySelect>
+          />
         </FormField>
       )}
     </FormSection>

@@ -11,6 +11,7 @@ import {
   asFinancialEventId,
   asMemberId,
 } from "@/domain/money/values";
+import { balanceHero } from "@/lib/read-models/balance-hero";
 import {
   EXPENSE_DRAFT_BLOCKER_COPY,
   getExpenseDraftReadiness,
@@ -183,11 +184,9 @@ function toBalanceEffect(deltaCents: number, partnerName: string): string {
 }
 
 function toHero(balanceCents: number, partnerName: string): BalanceHero {
-  if (balanceCents === 0) return { kind: "settled" };
-  const amount = formatCentimesAsFrancs(Math.abs(balanceCents));
-  return balanceCents > 0
-    ? { kind: "partner_owes_you", partnerName, amount }
-    : { kind: "you_owe_partner", partnerName, amount };
+  const hero = balanceHero(balanceCents, partnerName);
+  if (hero.kind === "settled") return { kind: "settled" };
+  return hero;
 }
 
 function toEventRows(

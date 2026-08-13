@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { recordSettlementAction } from "@/app/(product)/_actions/m7-money";
-import { Textarea } from "@/components/ui/textarea";
+import { EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { loadSettlementContext } from "@/lib/forms/options";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
@@ -13,7 +13,7 @@ import { Amount } from "@/ui/layout/amount";
 export default async function NewSettlementPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; mode?: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const [query, settlement] = await Promise.all([
     searchParams,
@@ -24,7 +24,6 @@ export default async function NewSettlementPage({
     <FormPage
       backHref="/money"
       description="Record a transfer one of you already made; Household OS never moves money itself."
-      error={query.error}
       title="Record settlement"
     >
       {settlement === null ? (
@@ -69,7 +68,7 @@ export default async function NewSettlementPage({
               required
             />
             <FormField label="Note" optional>
-              <Textarea maxLength={4000} name="note" />
+              <EchoedTextarea maxLength={4000} name="note" />
             </FormField>
           </FormFields>
         </>

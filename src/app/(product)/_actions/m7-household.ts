@@ -4,20 +4,17 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { echoValues } from "@/app/(product)/_actions/m7-shared";
 import { FormFieldError } from "@/lib/forms/field-error";
-import { formRejection } from "@/lib/forms/m7";
+import {
+  settleFormAction,
+  type FormActionState,
+} from "@/lib/forms/action-state";
 import {
   createArea,
   createPet,
   updateHouseholdName,
 } from "@/lib/household/commands";
-import type { FormActionState } from "@/ui/forms/form-action";
 
-/**
- * `required` lets whitespace through, so the trimmed schema is the real gate.
- * Naming the control keeps that rejection attached to the field.
- */
 function requireName(formData: FormData, nameSchema: z.ZodString): string {
   const value = formData.get("name");
   const parsed = nameSchema.safeParse(typeof value === "string" ? value : "");
@@ -27,22 +24,17 @@ function requireName(formData: FormData, nameSchema: z.ZodString): string {
   return parsed.data;
 }
 
-async function runHouseholdAction(
+async function householdNameAction(
   previous: FormActionState,
   formData: FormData,
   nameSchema: z.ZodString,
   command: (name: string) => Promise<unknown>,
   saved: "area" | "household" | "pet",
 ): Promise<FormActionState> {
-  let failure: unknown = null;
-  try {
+  const rejected = await settleFormAction(previous, formData, async () => {
     await command(requireName(formData, nameSchema));
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    return formRejection(previous, failure, echoValues(formData, ["name"]));
-  }
+  });
+  if (rejected) return rejected;
   revalidatePath("/home");
   redirect(`/home/setup?saved=${saved}`);
 }
@@ -51,7 +43,7 @@ export async function createAreaAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  return runHouseholdAction(
+  return householdNameAction(
     previous,
     formData,
     z.string().trim().min(1).max(80),
@@ -64,7 +56,7 @@ export async function createPetAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  return runHouseholdAction(
+  return householdNameAction(
     previous,
     formData,
     z.string().trim().min(1).max(80),
@@ -77,7 +69,7 @@ export async function updateHouseholdNameAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  return runHouseholdAction(
+  return householdNameAction(
     previous,
     formData,
     z.string().trim().min(1).max(120),

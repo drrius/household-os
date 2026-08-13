@@ -1,23 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { EchoedInput } from "@/ui/forms/echoed-control.client";
+import { echoedList } from "@/lib/forms/echo";
 import { DateField } from "@/ui/forms/date-field.client";
-import { useFormFieldsState } from "@/ui/forms/form-fields.client";
-import { FormField, FormSection, selectClassName } from "@/ui/forms/form-page";
+import {
+  useFormFieldValue,
+  useFormFieldsState,
+} from "@/ui/forms/form-fields.client";
+import { FormField, FormSection } from "@/ui/forms/form-page";
+import { EchoedSelect, FormSelect } from "@/ui/forms/form-select.client";
 
 const scheduleModes = [
-  ["one_off", "One-off date"],
-  ["daily", "Daily"],
-  ["weekdays", "Selected weekdays"],
-  ["weekly", "Weekly"],
-  ["monthly", "Monthly by date"],
-  ["after_completion", "After completion"],
+  { label: "One-off date", value: "one_off" },
+  { label: "Daily", value: "daily" },
+  { label: "Selected weekdays", value: "weekdays" },
+  { label: "Weekly", value: "weekly" },
+  { label: "Monthly by date", value: "monthly" },
+  { label: "After completion", value: "after_completion" },
 ] as const;
 
-export type ScheduleMode = (typeof scheduleModes)[number][0];
+export type ScheduleMode = (typeof scheduleModes)[number]["value"];
 
 const weekdays = [
   [1, "Monday"],
@@ -29,15 +34,13 @@ const weekdays = [
   [7, "Sunday"],
 ] as const;
 
-const weekdayErrorId = "weekdays-error";
 const emptyWeekdayMessage = "Choose at least one weekday.";
 
 function toScheduleMode(value: string): ScheduleMode {
-  const match = scheduleModes.find(([mode]) => mode === value);
-  return match === undefined ? "one_off" : match[0];
+  const match = scheduleModes.find((mode) => mode.value === value);
+  return match === undefined ? "one_off" : match.value;
 }
 
-/** Stored rules arrive as JSON, so the days are normalised and ordered here. */
 function toSelectedDays(rule: Record<string, unknown>): readonly number[] {
   const stored = Array.isArray(rule.days) ? rule.days : [];
   return weekdays
@@ -45,91 +48,63 @@ function toSelectedDays(rule: Record<string, unknown>): readonly number[] {
     .filter((value) => stored.some((day) => Number(day) === value));
 }
 
-/**
- * The Repeat control decides which schedule fields exist, so it has to be
- * controlled. `FormField` injects the echoed value of a rejected submit as
- * `defaultValue`, and React refuses a `<select>` carrying both; the echo is
- * seeded into state instead, so the injected default is dropped here.
- */
-function ScheduleModeSelect({
-  "aria-describedby": describedBy,
-  "aria-invalid": invalid,
-  id,
-  mode,
-  name,
-  onModeChange,
-}: {
-  "aria-describedby"?: string;
-  "aria-invalid"?: boolean;
-  id?: string;
-  mode: ScheduleMode;
-  name: string;
-  onModeChange: (mode: ScheduleMode) => void;
-}) {
-  return (
-    <select
-      aria-describedby={describedBy}
-      aria-invalid={invalid}
-      className={selectClassName}
-      id={id}
-      name={name}
-      onChange={(event) => onModeChange(toScheduleMode(event.target.value))}
-      value={mode}
-    >
-      {scheduleModes.map(([value, label]) => (
-        <option key={value} value={value}>
-          {label}
-        </option>
-      ))}
-    </select>
-  );
+function echoedWeekdays(
+  echoed: string | undefined,
+  rule: Record<string, unknown>,
+): readonly number[] {
+  if (echoed === undefined) return toSelectedDays(rule);
+  const selected = new Set(echoedList(echoed).map(Number));
+  return weekdays
+    .map(([value]) => value)
+    .filter((value) => selected.has(value));
 }
 
 function WeekdayCheckboxes({
   days,
-  error,
-  firstDayRef,
   onToggle,
 }: {
   days: readonly number[];
-  error: string | undefined;
-  firstDayRef: RefObject<HTMLSpanElement | null>;
   onToggle: (day: number, checked: boolean) => void;
 }) {
+  const missingDays = days.length === 0;
+  const guardRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    guardRef.current?.setCustomValidity(missingDays ? emptyWeekdayMessage : "");
+  }, [missingDays]);
+
   return (
-    <fieldset
-      aria-describedby={error === undefined ? undefined : weekdayErrorId}
-      aria-invalid={error === undefined ? undefined : true}
-      className="grid gap-2"
-    >
-      <legend className="text-sm font-medium">Selected weekdays</legend>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {weekdays.map(([value, label], index) => (
-          <label
-            className="flex min-h-11 items-center gap-2 text-sm"
-            key={value}
-          >
-            <Checkbox
-              checked={days.includes(value)}
-              name="weekdays"
-              onCheckedChange={(checked) => onToggle(value, checked)}
-              ref={index === 0 ? firstDayRef : undefined}
-              value={String(value)}
-            />
-            {label}
-          </label>
-        ))}
+    <FormField label="Selected weekdays" name="weekdays">
+      <div className="grid gap-2">
+        <input
+          aria-hidden
+          className="sr-only"
+          disabled={!missingDays}
+          name="weekdays"
+          readOnly
+          ref={guardRef}
+          required
+          tabIndex={-1}
+          value=""
+        />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {weekdays.map(([value, label]) => (
+            <label
+              className="flex min-h-11 items-center gap-2 text-sm"
+              key={value}
+            >
+              <Checkbox
+                checked={days.includes(value)}
+                name="weekdays"
+                onCheckedChange={(checked) => onToggle(value, checked === true)}
+                value={String(value)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
       </div>
-      {error === undefined ? null : (
-        <p
-          className="text-sm text-destructive-strong"
-          id={weekdayErrorId}
-          role="alert"
-        >
-          {error}
-        </p>
-      )}
-    </fieldset>
+    </FormField>
   );
 }
 
@@ -140,22 +115,22 @@ function IntervalFields({ rule }: { rule: Record<string, unknown> }) {
         label="Repeat every"
         description="Counted from the day the routine is completed."
       >
-        <Input
-          defaultValue={String(rule.every ?? 1)}
+        <EchoedInput
+          initialValue={String(rule.every ?? 1)}
           min={1}
           name="intervalEvery"
           type="number"
         />
       </FormField>
       <FormField label="Interval unit">
-        <select
-          className={selectClassName}
-          defaultValue={String(rule.unit ?? "days")}
+        <EchoedSelect
+          initialValue={String(rule.unit ?? "days")}
+          items={[
+            { label: "Days", value: "days" },
+            { label: "Weeks", value: "weeks" },
+          ]}
           name="intervalUnit"
-        >
-          <option value="days">Days</option>
-          <option value="weeks">Weeks</option>
-        </select>
+        />
       </FormField>
     </div>
   );
@@ -190,25 +165,22 @@ function ModeFields({
   if (mode === "weekly") {
     return (
       <FormField label="Weekday">
-        <select
-          className={selectClassName}
-          defaultValue={String(rule.weekday ?? 1)}
+        <EchoedSelect
+          initialValue={String(rule.weekday ?? 1)}
+          items={weekdays.map(([value, label]) => ({
+            label,
+            value: String(value),
+          }))}
           name="weeklyWeekday"
-        >
-          {weekdays.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+        />
       </FormField>
     );
   }
   if (mode === "monthly") {
     return (
       <FormField label="Day of month">
-        <Input
-          defaultValue={String(rule.dayOfMonth ?? 1)}
+        <EchoedInput
+          initialValue={String(rule.dayOfMonth ?? 1)}
           max={31}
           min={1}
           name="monthlyDay"
@@ -220,30 +192,6 @@ function ModeFields({
   return <IntervalFields rule={rule} />;
 }
 
-/**
- * The submit button belongs to the shared `FormFields` wrapper, so the only
- * place this sub-form can stop an empty weekday submission is the form element
- * it is mounted into. A capture listener there runs before React's own submit
- * handling, and React skips the action when the native event was prevented.
- */
-function useEmptyWeekdayGuard(
-  firstDayRef: RefObject<HTMLSpanElement | null>,
-  blocked: boolean,
-) {
-  useEffect(() => {
-    const form = blocked ? firstDayRef.current?.closest("form") : null;
-    if (form === null || form === undefined) return;
-    const block = (event: Event) => {
-      event.preventDefault();
-      firstDayRef.current?.focus();
-    };
-    form.addEventListener("submit", block, true);
-    return () => {
-      form.removeEventListener("submit", block, true);
-    };
-  }, [blocked, firstDayRef]);
-}
-
 export function RoutineScheduleFields({
   defaultDate,
   defaultMode,
@@ -253,16 +201,13 @@ export function RoutineScheduleFields({
   defaultMode: ScheduleMode;
   rule: Record<string, unknown>;
 }) {
-  const { errors, values } = useFormFieldsState();
-  const [mode, setMode] = useState<ScheduleMode>(() =>
-    toScheduleMode(values.scheduleMode ?? defaultMode),
+  const { values } = useFormFieldsState();
+  const [mode, setMode] = useState<ScheduleMode>(
+    toScheduleMode(useFormFieldValue("scheduleMode", defaultMode)),
   );
   const [days, setDays] = useState<readonly number[]>(() =>
-    toSelectedDays(rule),
+    echoedWeekdays(values.weekdays, rule),
   );
-  const firstDayRef = useRef<HTMLSpanElement>(null);
-  const missingDays = mode === "weekdays" && days.length === 0;
-  useEmptyWeekdayGuard(firstDayRef, missingDays);
 
   const toggleDay = (day: number, checked: boolean) => {
     setDays((current) =>
@@ -275,19 +220,15 @@ export function RoutineScheduleFields({
   return (
     <FormSection legend="Schedule">
       <FormField label="Repeat">
-        <ScheduleModeSelect
-          mode={mode}
+        <FormSelect
+          items={[...scheduleModes]}
           name="scheduleMode"
-          onModeChange={setMode}
+          onValueChange={(value) => setMode(toScheduleMode(value))}
+          value={mode}
         />
       </FormField>
       {mode === "weekdays" ? (
-        <WeekdayCheckboxes
-          days={days}
-          error={missingDays ? emptyWeekdayMessage : errors.weekdays}
-          firstDayRef={firstDayRef}
-          onToggle={toggleDay}
-        />
+        <WeekdayCheckboxes days={days} onToggle={toggleDay} />
       ) : (
         <ModeFields defaultDate={defaultDate} mode={mode} rule={rule} />
       )}

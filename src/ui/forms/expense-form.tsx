@@ -1,15 +1,11 @@
 import { createExpenseAction } from "@/app/(product)/_actions/m7-money";
-import { Textarea } from "@/components/ui/textarea";
+import { EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { formatCentimesField } from "@/domain/money/chf";
-import { draftSplitDefaults } from "@/lib/forms/m7";
-import type { FormAction } from "@/ui/forms/form-action";
+import type { FormAction } from "@/lib/forms/action-state";
+import { draftSplitDefaults } from "@/lib/forms/money";
 import { ExpenseAmountAndSplitFields } from "@/ui/forms/expense-split-fields.client";
-import {
-  FormField,
-  FormFields,
-  FormSection,
-  selectClassName,
-} from "@/ui/forms/form-page";
+import { FormField, FormFields, FormSection } from "@/ui/forms/form-page";
+import { EchoedSelect } from "@/ui/forms/form-select.client";
 
 type Member = { user_id: string; display_name: string };
 type Option = { id: string; name: string };
@@ -31,17 +27,19 @@ function DetailFields({ categories }: { categories: readonly Option[] }) {
   return (
     <FormSection legend="Details">
       <FormField label="Category" optional>
-        <select className={selectClassName} name="categoryId">
-          <option value="">Other</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <EchoedSelect
+          items={[
+            { label: "Other", value: "" },
+            ...categories.map((category) => ({
+              label: category.name,
+              value: category.id,
+            })),
+          ]}
+          name="categoryId"
+        />
       </FormField>
       <FormField label="Note" optional>
-        <Textarea maxLength={4000} name="note" />
+        <EchoedTextarea maxLength={4000} name="note" />
       </FormField>
     </FormSection>
   );

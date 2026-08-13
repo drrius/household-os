@@ -7,8 +7,8 @@ import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import { AmountField, useAmountValue } from "@/ui/forms/amount-field.client";
 import { DateField } from "@/ui/forms/date-field.client";
 import { FormField } from "@/ui/forms/form-field.client";
-import { useFormFieldsState } from "@/ui/forms/form-fields.client";
-import { selectClassName } from "@/ui/forms/form-page";
+import { useFormFieldValue } from "@/ui/forms/form-fields.client";
+import { FormSelect } from "@/ui/forms/form-select.client";
 import { Amount } from "@/ui/layout/amount";
 
 type Member = { displayName: string; id: string };
@@ -30,11 +30,6 @@ function summary(
   );
 }
 
-/**
- * The direction of an opening balance is easy to reverse by accident and the
- * event it writes cannot be edited afterwards, so the consequence is restated
- * in full before it is posted.
- */
 export function OpeningBalanceSummary({
   defaultDate,
   members,
@@ -42,9 +37,8 @@ export function OpeningBalanceSummary({
   defaultDate: string;
   members: readonly Member[];
 }) {
-  const { values } = useFormFieldsState();
   const [creditorId, setCreditorId] = useState(
-    values.creditorMemberId ?? members[0]?.id ?? "",
+    useFormFieldValue("creditorMemberId", members[0]?.id ?? ""),
   );
   const [amount, setAmount] = useAmountValue("amount");
   const creditor = members.find((member) => member.id === creditorId);
@@ -53,18 +47,15 @@ export function OpeningBalanceSummary({
   return (
     <>
       <FormField label="Member who is owed">
-        <select
-          className={selectClassName}
+        <FormSelect
+          items={members.map((member) => ({
+            label: member.displayName,
+            value: member.id,
+          }))}
           name="creditorMemberId"
-          onChange={(event) => setCreditorId(event.target.value)}
+          onValueChange={setCreditorId}
           value={creditorId}
-        >
-          {members.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.displayName}
-            </option>
-          ))}
-        </select>
+        />
       </FormField>
       <AmountField
         label="Amount in CHF"

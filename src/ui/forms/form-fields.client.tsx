@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import {
   initialFormActionState,
   type FormAction,
-} from "@/ui/forms/form-action";
+} from "@/lib/forms/action-state";
 
 type FieldMap = Readonly<Record<string, string>>;
 
@@ -40,6 +40,11 @@ const FormFieldsContext = createContext<FormFieldsState>(outsideForm);
 
 export function useFormFieldsState(): FormFieldsState {
   return useContext(FormFieldsContext);
+}
+
+export function useFormFieldValue(name: string, initial = ""): string {
+  const { values } = useFormFieldsState();
+  return values[name] ?? initial;
 }
 
 function controlName(target: EventTarget | null): string | null {
@@ -176,8 +181,6 @@ export function FormFields({
         </p>
       </div>
       <FormFieldsContext value={state}>
-        {/* Remounting per rejected submission makes uncontrolled controls
-            re-read the defaultValue FormField restores from `values`. */}
         <div className="grid gap-5" key={submissionId}>
           {children}
         </div>

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { validateExactAllocations } from "@/domain/money/allocations";
 import { asMemberId } from "@/domain/money/values";
 
-const proposedAllocationSchema = z.object({
+export const proposedAllocationSchema = z.object({
   memberId: z.string().min(1),
   allocatedCents: z.number().int(),
 });

@@ -1,21 +1,23 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { parseChfToCentimes } from "@/domain/money/chf";
+
 import { errorField } from "./field-error";
+import { parseGroceryForm } from "./grocery";
 import {
-  draftSplitDefaults,
-  parseChfToCentimes,
-  parseExpenseForm,
-  parseGroceryForm,
   parseMealForm,
-  parseOpeningBalanceForm,
   parsePlaceFromLibraryForm,
   parseRemoveMealForm,
   parseUpdateMealForm,
-  parseRoutineForm,
+} from "./meal";
+import {
+  draftSplitDefaults,
+  parseExpenseForm,
+  parseOpeningBalanceForm,
   parseSettlementForm,
-  routineFormChangesSchedule,
-} from "./m7";
+} from "./money";
+import { parseRoutineForm, routineFormChangesSchedule } from "./routine";
 
 const firstMember = "11111111-1111-4111-8111-111111111111";
 const secondMember = "22222222-2222-4222-8222-222222222222";
@@ -23,9 +25,7 @@ const areaId = "33333333-3333-4333-8333-333333333333";
 const idempotencyKey = "44444444-4444-4444-8444-444444444444";
 
 describe("M7 form parsing", () => {
-  // The parser itself is exercised in src/domain/money/chf.test.ts; this keeps
-  // the re-export existing importers still use.
-  it("re-exports the shared CHF parser", () => {
+  it("parses Swiss comma amounts as integer centimes", () => {
     expect(parseChfToCentimes("12,34")).toBe(1234);
   });
 

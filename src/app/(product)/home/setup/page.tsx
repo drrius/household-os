@@ -3,8 +3,8 @@ import {
   createPetAction,
   updateHouseholdNameAction,
 } from "@/app/(product)/_actions/m7-household";
-import { Input } from "@/components/ui/input";
 import { loadHouseholdSetup } from "@/lib/forms/options";
+import { EchoedInput } from "@/ui/forms/echoed-control.client";
 import {
   FormField,
   FormFields,
@@ -26,7 +26,7 @@ const NON_BLANK_TITLE = "Enter at least one character that is not a space.";
 export default async function HomeSetupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
   const [household, query] = await Promise.all([
     loadHouseholdSetup(),
@@ -40,7 +40,6 @@ export default async function HomeSetupPage({
     <FormPage
       backHref="/home"
       description="Names you and your partner share. Areas and pets become the options you pick from when creating a routine."
-      error={query.error}
       title="Home setup"
     >
       <SavedNotice message={saved} />
@@ -53,8 +52,8 @@ export default async function HomeSetupPage({
             description="Shown in the sidebar. You can change it any time."
             label="Household name"
           >
-            <Input
-              defaultValue={household.name}
+            <EchoedInput
+              initialValue={household.name}
               maxLength={120}
               name="name"
               pattern={NON_BLANK_PATTERN}
@@ -70,7 +69,7 @@ export default async function HomeSetupPage({
             description="A part of the home a routine belongs to, for example Kitchen, Bathroom, or Garden."
             label="Area name"
           >
-            <Input
+            <EchoedInput
               maxLength={80}
               name="name"
               pattern={NON_BLANK_PATTERN}
@@ -86,7 +85,7 @@ export default async function HomeSetupPage({
             description="Add each pet you care for so pet routines can be assigned to them."
             label="Pet name"
           >
-            <Input
+            <EchoedInput
               maxLength={80}
               name="name"
               pattern={NON_BLANK_PATTERN}

@@ -8,7 +8,6 @@ export default async function NewMealPage({
 }: {
   searchParams: Promise<{
     date?: string;
-    error?: string;
     libraryId?: string;
     slot?: string;
   }>;
@@ -32,7 +31,6 @@ export default async function NewMealPage({
     return (
       <PlaceLibraryMealForm
         date={query.date}
-        error={query.error}
         libraryId={libraryId}
         libraryTitle={libraryTitle}
         slot={slot}
@@ -40,5 +38,5 @@ export default async function NewMealPage({
     );
   }
 
-  return <CreateMealForm date={query.date} error={query.error} slot={slot} />;
+  return <CreateMealForm date={query.date} slot={slot} />;
 }

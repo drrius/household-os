@@ -1,26 +1,18 @@
 import Link from "next/link";
 
 import { establishOpeningBalanceAction } from "@/app/(product)/_actions/m7-money";
-import { Textarea } from "@/components/ui/textarea";
+import { EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { loadMoneyFormOptions } from "@/lib/forms/options";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { FormField, FormFields, FormPage } from "@/ui/forms/form-page";
 import { OpeningBalanceSummary } from "@/ui/money/opening-balance-summary.client";
 
-export default async function OpeningBalancePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const [options, query] = await Promise.all([
-    loadMoneyFormOptions(),
-    searchParams,
-  ]);
+export default async function OpeningBalancePage() {
+  const options = await loadMoneyFormOptions();
   return (
     <FormPage
       backHref="/money"
       description="Record who was owed money before Household OS started. It sets the starting point for every balance after it."
-      error={query.error}
       title="Opening balance"
     >
       {options.hasOpeningBalance ? (
@@ -46,7 +38,7 @@ export default async function OpeningBalancePage({
             }))}
           />
           <FormField label="Note" optional>
-            <Textarea maxLength={4000} name="note" />
+            <EchoedTextarea maxLength={4000} name="note" />
           </FormField>
           <p className="text-sm text-muted-foreground">
             This is written once and cannot be edited or removed afterwards. A

@@ -13,6 +13,15 @@ async function expectHealthyFormPage(page: import("@playwright/test").Page) {
   expect(widths.scroll).toBeLessThanOrEqual(widths.client + 1);
 }
 
+async function chooseOption(
+  page: import("@playwright/test").Page,
+  name: string,
+  option: string,
+) {
+  await page.getByRole("combobox", { name }).click();
+  await page.getByRole("option", { name: option }).click();
+}
+
 test("routine form exposes the complete M7 scheduling contract", async ({
   page,
 }) => {
@@ -21,15 +30,12 @@ test("routine form exposes the complete M7 scheduling contract", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "New routine" }),
   ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Assignment" })
-    .selectOption("alternating");
+  await chooseOption(page, "Assignment", "Alternating");
 
-  // Only the fields for the selected repeat mode are rendered.
   await expect(page.locator('input[name="oneOffDate"]')).toHaveCount(1);
   await expect(page.getByRole("checkbox", { name: "Monday" })).toHaveCount(0);
 
-  await page.getByRole("combobox", { name: "Repeat" }).selectOption("weekdays");
+  await chooseOption(page, "Repeat", "Selected weekdays");
   await page.getByRole("checkbox", { name: "Monday" }).check();
   await page.getByRole("checkbox", { name: "Friday" }).check();
   await expect(page.getByRole("checkbox", { name: "Monday" })).toBeChecked();
@@ -45,15 +51,10 @@ test("expense form supports payer selection and exact centime allocations", asyn
   await expect(
     page.getByRole("heading", { level: 1, name: "New expense" }),
   ).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Payer" })
-    .selectOption({ label: "Partner" });
+  await chooseOption(page, "Payer", "Partner");
 
-  // Exact shares stay hidden until the exact allocation is chosen.
   await expect(page.getByRole("textbox", { name: / pays$/ })).toHaveCount(0);
-  await page
-    .getByRole("combobox", { name: "How to split it" })
-    .selectOption("exact");
+  await chooseOption(page, "How to split it", "Different amounts each");
   await expect(page.getByRole("textbox", { name: / pays$/ })).toHaveCount(2);
   await page.getByRole("textbox", { name: "Darius pays" }).fill("7.00");
   await page.getByRole("textbox", { name: "Partner pays" }).fill("3.00");

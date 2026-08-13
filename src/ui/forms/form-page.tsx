@@ -5,14 +5,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
 
 export { FormField } from "@/ui/forms/form-field.client";
 export { FormFields } from "@/ui/forms/form-fields.client";
-
-export const selectClassName =
-  "h-11 w-full min-w-0 rounded-4xl border border-input bg-field/30 px-3 text-base md:h-9 md:text-sm";
 
 export function FormPage({
   backHref,
@@ -30,7 +28,6 @@ export function FormPage({
   const titleId = `form-${title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}`;
   return (
     <AppPage labelledBy={titleId}>
-      {/* Forms cap their measure; list screens keep the full column. */}
       <div className="flex w-full max-w-2xl flex-col gap-4">
         <PageHeader
           titleId={titleId}
@@ -48,7 +45,6 @@ export function FormPage({
           }
         />
         <p className="text-sm text-muted-foreground">{description}</p>
-        {/* Kept for flows that redirect with ?error= instead of using FormFields. */}
         {error ? (
           <Alert variant="destructive">
             <AlertTitle>Couldn&apos;t save</AlertTitle>
@@ -72,12 +68,10 @@ export function FormSection({
 }) {
   return (
     <div className="border-border py-6 first-of-type:pt-0 last-of-type:pb-0 not-first-of-type:border-t">
-      <fieldset className="min-w-0 space-y-4 border-0 p-0">
-        <legend className="float-none w-full p-0 font-heading font-semibold">
-          {legend}
-        </legend>
-        {children}
-      </fieldset>
+      <FieldSet>
+        <FieldLegend>{legend}</FieldLegend>
+        <FieldGroup className="gap-4">{children}</FieldGroup>
+      </FieldSet>
     </div>
   );
 }

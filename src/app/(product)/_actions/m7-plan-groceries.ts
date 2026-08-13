@@ -1,19 +1,22 @@
 "use server";
 
 import { redirect } from "next/navigation";
+
 import {
-  echoValues,
   errorHref,
   revalidateProduct,
 } from "@/app/(product)/_actions/m7-shared";
 import {
-  formRejection,
-  parseGroceryForm,
+  settleFormAction,
+  type FormActionState,
+} from "@/lib/forms/action-state";
+import { parseGroceryForm } from "@/lib/forms/grocery";
+import {
   parseMealForm,
   parsePlaceFromLibraryForm,
   parseRemoveMealForm,
   parseUpdateMealForm,
-} from "@/lib/forms/m7";
+} from "@/lib/forms/meal";
 import { createGroceryItem } from "@/lib/groceries/commands";
 import {
   createAndPlaceMeal,
@@ -21,27 +24,15 @@ import {
   removeMealPlanEntry,
   updateMealPlanEntry,
 } from "@/lib/meals/commands";
-import type { FormActionState } from "@/ui/forms/form-action";
-
-const mealEchoNames = ["title", "date", "slot", "recipeUrl", "notes"] as const;
 
 export async function createGroceryItemAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  let failure: unknown = null;
-  try {
+  const rejected = await settleFormAction(previous, formData, async () => {
     await createGroceryItem(parseGroceryForm(formData));
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    return formRejection(
-      previous,
-      failure,
-      echoValues(formData, ["name", "quantity", "unit", "categoryId", "note"]),
-    );
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/groceries"]);
   redirect("/groceries");
 }
@@ -50,8 +41,7 @@ export async function createMealAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  let failure: unknown = null;
-  try {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseMealForm(formData);
     if (input.saveToLibrary) {
       await createAndPlaceMeal({
@@ -62,27 +52,19 @@ export async function createMealAction(
         recipeUrl: input.recipeUrl,
         notes: input.notes,
       });
-    } else {
-      await placeMeal({
-        date: input.date,
-        slot: input.slot,
-        sourceKind: "freeform",
-        title: input.title,
-        recipeUrl: input.recipeUrl,
-        notes: input.notes,
-        idempotencyKey: input.idempotencyKey,
-      });
+      return;
     }
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    return formRejection(
-      previous,
-      failure,
-      echoValues(formData, mealEchoNames),
-    );
-  }
+    await placeMeal({
+      date: input.date,
+      slot: input.slot,
+      sourceKind: "freeform",
+      title: input.title,
+      recipeUrl: input.recipeUrl,
+      notes: input.notes,
+      idempotencyKey: input.idempotencyKey,
+    });
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
@@ -91,8 +73,7 @@ export async function placeFromLibraryAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  let failure: unknown = null;
-  try {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const input = parsePlaceFromLibraryForm(formData);
     await placeMeal({
       date: input.date,
@@ -102,24 +83,12 @@ export async function placeFromLibraryAction(
       notes: input.notes,
       idempotencyKey: input.idempotencyKey,
     });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    return formRejection(
-      previous,
-      failure,
-      echoValues(formData, ["date", "slot", "notes"]),
-    );
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
 
-/**
- * Bound to a plain `<form action>` rather than `FormFields`, and it carries no
- * typed values, so it keeps the page-level `?error=` path.
- */
 export async function removeMealEntryAction(formData: FormData): Promise<void> {
   let failure: unknown = null;
   let entryId: string | null = null;
@@ -146,8 +115,7 @@ export async function updateMealEntryAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  let failure: unknown = null;
-  try {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseUpdateMealForm(formData);
     await updateMealPlanEntry({
       entryId: input.entryId,
@@ -158,16 +126,8 @@ export async function updateMealEntryAction(
       notes: input.notes,
       idempotencyKey: input.idempotencyKey,
     });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    return formRejection(
-      previous,
-      failure,
-      echoValues(formData, mealEchoNames),
-    );
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }

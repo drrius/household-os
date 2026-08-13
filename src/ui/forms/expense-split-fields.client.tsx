@@ -2,19 +2,26 @@
 
 import { useId, useState } from "react";
 
-import { Input } from "@/components/ui/input";
+import { EchoedInput } from "@/ui/forms/echoed-control.client";
 import {
   formatCentimesField,
-  reconcileShares,
-  sharesBalance,
-  type ShareReconciliation,
+  parseChfToCentimesOrNull,
 } from "@/domain/money/chf";
+import {
+  exactSharesBalance,
+  reconcileShares,
+  type ShareReconciliation,
+} from "@/lib/forms/shares";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import { AmountField, useAmountValue } from "@/ui/forms/amount-field.client";
 import { DateField } from "@/ui/forms/date-field.client";
 import { FormField } from "@/ui/forms/form-field.client";
-import { useFormFieldsState } from "@/ui/forms/form-fields.client";
-import { FormSection, selectClassName } from "@/ui/forms/form-page";
+import {
+  useFormFieldValue,
+  useFormFieldsState,
+} from "@/ui/forms/form-fields.client";
+import { FormSection } from "@/ui/forms/form-page";
+import { FormSelect } from "@/ui/forms/form-select.client";
 
 type Member = { user_id: string; display_name: string };
 type SplitMode = "equal" | "exact";
@@ -45,19 +52,31 @@ function splitStatus(reconciliation: ShareReconciliation | null): string {
   return `Shares total ${formatCentimesAsFrancs(sharesCents)} — ${direction} ${total}.`;
 }
 
-/**
- * Set on the first share so the browser blocks the submit and `FormFields`
- * keeps the sentence under the field; undefined while a share is still empty,
- * where `required` is the better message.
- */
 function unbalancedShares(
   members: readonly Member[],
+  payerMemberId: string,
   reconciliation: ShareReconciliation | null,
+  shares: Shares,
 ): string | undefined {
   if (
     reconciliation === null ||
-    reconciliation.filledShareCount < reconciliation.shareCount ||
-    sharesBalance(reconciliation)
+    reconciliation.filledShareCount < reconciliation.shareCount
+  ) {
+    return undefined;
+  }
+  const first = members[0];
+  const second = members[1];
+  if (first === undefined || second === undefined) return undefined;
+  const firstCents = parseChfToCentimesOrNull(shares[first.user_id] ?? "");
+  const secondCents = parseChfToCentimesOrNull(shares[second.user_id] ?? "");
+  if (firstCents === null || secondCents === null) return undefined;
+  if (
+    exactSharesBalance({
+      amountCents: reconciliation.amountCents,
+      memberIds: [first.user_id, second.user_id],
+      payerMemberId,
+      sharesCents: [firstCents, secondCents],
+    })
   ) {
     return undefined;
   }
@@ -70,6 +89,7 @@ function SplitSection({
   mode,
   onModeChange,
   onShareChange,
+  payerMemberId,
   reconciliation,
   shares,
 }: {
@@ -77,27 +97,29 @@ function SplitSection({
   mode: SplitMode;
   onModeChange: (mode: SplitMode) => void;
   onShareChange: (memberId: string, value: string) => void;
+  payerMemberId: string;
   reconciliation: ShareReconciliation | null;
   shares: Shares;
 }) {
   const statusId = useId();
-  const blocking = unbalancedShares(members, reconciliation);
+  const blocking = unbalancedShares(
+    members,
+    payerMemberId,
+    reconciliation,
+    shares,
+  );
   return (
     <FormSection legend="Split">
       <FormField label="How to split it">
-        {/* Controlled: an uncontrolled select silently reverts to 50/50 after a
-            rejected submit while the exact fields stay on screen. */}
-        <select
-          className={selectClassName}
+        <FormSelect
+          items={[
+            { label: "Split evenly", value: "equal" },
+            { label: "Different amounts each", value: "exact" },
+          ]}
           name="splitMode"
-          onChange={(event) =>
-            onModeChange(toSplitMode(event.target.value, mode))
-          }
+          onValueChange={(value) => onModeChange(toSplitMode(value, mode))}
           value={mode}
-        >
-          <option value="equal">Split evenly</option>
-          <option value="exact">Different amounts each</option>
-        </select>
+        />
       </FormField>
       {mode === "exact" ? (
         <>
@@ -141,6 +163,8 @@ function ExpenseSection({
   members,
   occurredOn,
   onAmountChange,
+  onPayerChange,
+  payerMemberId,
 }: {
   amount: string;
   initialDescription: string;
@@ -149,12 +173,14 @@ function ExpenseSection({
   members: readonly Member[];
   occurredOn: string;
   onAmountChange: (value: string) => void;
+  onPayerChange: (value: string) => void;
+  payerMemberId: string;
 }) {
   return (
     <FormSection legend="Expense">
       <FormField label="Description">
-        <Input
-          defaultValue={initialDescription}
+        <EchoedInput
+          initialValue={initialDescription}
           maxLength={200}
           name="description"
           readOnly={isDraft}
@@ -177,27 +203,20 @@ function ExpenseSection({
         />
       </div>
       <FormField label="Payer">
-        <select
-          className={selectClassName}
-          defaultValue={initialPayerMemberId}
+        <FormSelect
+          items={members.map((member) => ({
+            label: member.display_name,
+            value: member.user_id,
+          }))}
           name="payerMemberId"
-        >
-          {members.map((member) => (
-            <option key={member.user_id} value={member.user_id}>
-              {member.display_name}
-            </option>
-          ))}
-        </select>
+          onValueChange={onPayerChange}
+          value={payerMemberId || initialPayerMemberId}
+        />
       </FormField>
     </FormSection>
   );
 }
 
-/**
- * The amount lives in this client boundary with the shares: an exact split can
- * only be reconciled while both are in one place, and the check has to happen
- * before an append-only event is posted.
- */
 export function ExpenseAmountAndSplitFields({
   initialAmount,
   initialDescription,
@@ -220,7 +239,10 @@ export function ExpenseAmountAndSplitFields({
   const { values } = useFormFieldsState();
   const [amount, setAmount] = useAmountValue("amount", initialAmount);
   const [mode, setMode] = useState<SplitMode>(
-    toSplitMode(values.splitMode, initialMode),
+    toSplitMode(useFormFieldValue("splitMode"), initialMode),
+  );
+  const [payerMemberId, setPayerMemberId] = useState(
+    useFormFieldValue("payerMemberId", initialPayerMemberId),
   );
   const [shares, setShares] = useState<Shares>(() =>
     Object.fromEntries(
@@ -252,6 +274,8 @@ export function ExpenseAmountAndSplitFields({
         members={members}
         occurredOn={occurredOn}
         onAmountChange={setAmount}
+        onPayerChange={setPayerMemberId}
+        payerMemberId={payerMemberId}
       />
       <SplitSection
         members={members}
@@ -260,6 +284,7 @@ export function ExpenseAmountAndSplitFields({
         onShareChange={(memberId, value) =>
           setShares((current) => ({ ...current, [memberId]: value }))
         }
+        payerMemberId={payerMemberId}
         reconciliation={reconciliation}
         shares={shares}
       />

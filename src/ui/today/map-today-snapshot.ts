@@ -1,5 +1,6 @@
 import { deriveMemberBalances } from "@/domain/money/balances";
 import { asFinancialEventId, asMemberId } from "@/domain/money/values";
+import { balanceHero } from "@/lib/read-models/balance-hero";
 import {
   EXPENSE_DRAFT_BLOCKER_COPY,
   getExpenseDraftReadiness,
@@ -126,26 +127,7 @@ function deriveBalancePill(
   }));
   const balance =
     deriveMemberBalances(entries).get(asMemberId(snapshot.viewerUserId)) ?? 0;
-  const amount = formatCentimesAsFrancs(Math.abs(balance));
-  if (balance > 0) {
-    return {
-      kind: "partner_owes_you",
-      partnerName: partner.display_name,
-      amount,
-    };
-  }
-  if (balance < 0) {
-    return {
-      kind: "you_owe_partner",
-      partnerName: partner.display_name,
-      amount,
-    };
-  }
-  return {
-    kind: "settled",
-    partnerName: partner.display_name,
-    amount,
-  };
+  return balanceHero(balance, partner.display_name);
 }
 
 function mapShopping(

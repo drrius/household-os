@@ -5,8 +5,8 @@ import { useState } from "react";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import { AmountField, useAmountValue } from "@/ui/forms/amount-field.client";
 import { FormField } from "@/ui/forms/form-field.client";
-import { useFormFieldsState } from "@/ui/forms/form-fields.client";
-import { selectClassName } from "@/ui/forms/form-page";
+import { useFormFieldValue } from "@/ui/forms/form-fields.client";
+import { FormSelect } from "@/ui/forms/form-select.client";
 
 type SettlementMode = "full" | "partial";
 
@@ -19,10 +19,6 @@ function toSettlementMode(
   return fallback;
 }
 
-/**
- * A full settlement always transfers the whole outstanding balance, so the
- * amount is not merely ignored — it is not offered.
- */
 export function SettlementFields({
   initialMode,
   outstandingCents,
@@ -30,9 +26,8 @@ export function SettlementFields({
   initialMode: SettlementMode;
   outstandingCents: number;
 }) {
-  const { values } = useFormFieldsState();
   const [mode, setMode] = useState<SettlementMode>(
-    toSettlementMode(values.mode, initialMode),
+    toSettlementMode(useFormFieldValue("mode"), initialMode),
   );
   const [amount, setAmount] = useAmountValue("amount");
   const outstanding = formatCentimesAsFrancs(outstandingCents);
@@ -40,19 +35,18 @@ export function SettlementFields({
   return (
     <>
       <FormField label="How much was paid">
-        {/* Controlled: an uncontrolled select can revert to full while the
-            partial amount field is still on screen. */}
-        <select
-          className={selectClassName}
+        <FormSelect
+          items={[
+            {
+              label: `Full current balance — ${outstanding}`,
+              value: "full",
+            },
+            { label: "Part of the balance", value: "partial" },
+          ]}
           name="mode"
-          onChange={(event) =>
-            setMode(toSettlementMode(event.target.value, mode))
-          }
+          onValueChange={(value) => setMode(toSettlementMode(value, mode))}
           value={mode}
-        >
-          <option value="full">{`Full current balance — ${outstanding}`}</option>
-          <option value="partial">Part of the balance</option>
-        </select>
+        />
       </FormField>
       {mode === "partial" ? (
         <AmountField
