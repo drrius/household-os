@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { FormFieldError } from "@/lib/forms/field-error";
+
 const uuidSchema = z.string().uuid("Choose a valid household option.");
 const dateSchema = z.iso.date("Choose a valid date.");
 const scheduleModeSchema = z.enum([
@@ -52,8 +54,13 @@ function parseSchedule(formData: FormData): {
     const days = formData
       .getAll("weekdays")
       .map((day) => positiveInteger(String(day), "Weekday", 7));
-    if (days.length === 0 || new Set(days).size !== days.length) {
-      throw new Error("Choose at least one unique weekday.");
+    // The weekday group blocks an empty submission in the browser; this stays
+    // the authority, and the field keeps the message under the group.
+    if (days.length === 0) {
+      throw new FormFieldError("weekdays", "Choose at least one weekday.");
+    }
+    if (new Set(days).size !== days.length) {
+      throw new FormFieldError("weekdays", "Choose each weekday only once.");
     }
     return {
       scheduleKind: "calendar",
