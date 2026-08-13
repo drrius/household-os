@@ -34,8 +34,12 @@ export function PrimaryNav() {
             key={destination.id}
             href={destination.href}
             className={cn(
-              "flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 font-heading text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-muted hover:text-foreground motion-reduce:transition-none lg:flex-row lg:justify-start lg:gap-3 lg:rounded-xl lg:px-4 lg:text-sm",
-              isActive && "bg-secondary text-secondary-foreground",
+              "relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 font-heading text-xs font-semibold text-muted-foreground no-underline transition-colors hover:bg-muted hover:text-foreground motion-reduce:transition-none lg:flex-row lg:justify-start lg:gap-3 lg:rounded-xl lg:px-4 lg:text-sm",
+              // Selection carries on three channels — fill, ring and a
+              // positional bar — because the palette alone resolves to a hue
+              // shift well under the 3:1 non-text contrast floor.
+              isActive &&
+                "bg-secondary font-black text-foreground ring-1 ring-primary/50 before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-[3px] before:rounded-full before:bg-primary lg:before:inset-x-auto lg:before:inset-y-2 lg:before:top-auto lg:before:left-0 lg:before:h-auto lg:before:w-[3px]",
             )}
             aria-current={isActive ? "page" : undefined}
           >

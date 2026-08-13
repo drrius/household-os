@@ -34,3 +34,17 @@ export const GLOBAL_ADD_OPTIONS = [
     description: "CHF · 50/50 or exact split · counts right away",
   },
 ] as const;
+
+// Dedicated create and edit surfaces already are the add flow. Not every one of
+// them ends in `/new` or `/edit`, so the named surfaces are listed alongside the
+// suffix pattern rather than inferred from it.
+const FORM_SURFACE_PATTERNS = [
+  /\/(?:new|edit)$/,
+  /^\/plan\/meals\/[^/]+$/,
+  /^\/money\/opening-balance$/,
+  /^\/home\/setup$/,
+] as const;
+
+export function isFormSurface(pathname: string): boolean {
+  return FORM_SURFACE_PATTERNS.some((pattern) => pattern.test(pathname));
+}

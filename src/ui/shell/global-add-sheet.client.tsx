@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { GLOBAL_ADD_OPTIONS } from "@/lib/ui/destinations";
+import { GLOBAL_ADD_OPTIONS, isFormSurface } from "@/lib/ui/destinations";
 import { cn } from "@/lib/utils";
 import { PlusIcon } from "@/ui/icons/app-icons";
 
@@ -33,14 +33,55 @@ const ADD_OPTION_ICONS = {
   expense: Wallet,
 } satisfies Record<(typeof GLOBAL_ADD_OPTIONS)[number]["id"], LucideIcon>;
 
-// Dedicated create and edit surfaces already are the add flow, so the floating
-// trigger only duplicates them there while covering the form's own content.
-const FORM_ROUTE = /\/(?:new|edit)$/;
+// Below `lg` the trigger floats over the page, so it can sit on top of a row it
+// does not own. Reading downwards is the gesture that reveals what it covers, so
+// it steps aside for the length of that gesture and comes straight back.
+const SCROLL_HIDE_THRESHOLD_PX = 8;
+const SCROLL_IDLE_MS = 600;
+
+function useHiddenWhileScrollingDown() {
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function handleScroll() {
+      const currentY = window.scrollY;
+      const delta = currentY - lastY;
+
+      // Small downward deltas accumulate against `lastY` until they clear the
+      // threshold, so a slow drag still hides the trigger eventually.
+      if (delta <= 0) {
+        lastY = currentY;
+        setHidden(false);
+      } else if (delta > SCROLL_HIDE_THRESHOLD_PX) {
+        lastY = currentY;
+        setHidden(true);
+      }
+
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => setHidden(false), SCROLL_IDLE_MS);
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(idleTimer);
+    };
+  }, []);
+
+  return { hidden, reveal: () => setHidden(false) };
+}
 
 export function GlobalAddSheet() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const isFormRoute = FORM_ROUTE.test(pathname);
+  // Dedicated create and edit surfaces already are the add flow, so the floating
+  // trigger only duplicates them there while covering the form's own content.
+  const isFormRoute = isFormSurface(pathname);
+  const { hidden, reveal } = useHiddenWhileScrollingDown();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -49,9 +90,14 @@ export function GlobalAddSheet() {
           <Button
             aria-label="Add something"
             className={cn(
-              "fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 size-14 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.3)] ring-1 ring-primary lg:static lg:col-start-1 lg:row-start-3 lg:m-4 lg:h-11 lg:w-auto lg:px-4 lg:shadow-none",
+              "fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 size-14 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.3)] ring-1 ring-primary max-lg:transition-transform max-lg:duration-200 motion-reduce:transition-none lg:static lg:col-start-1 lg:row-start-3 lg:m-4 lg:h-11 lg:w-auto lg:px-4 lg:shadow-none",
+              // Never `display: none` while the trigger is only temporarily out
+              // of the way: that would move focus off it mid-gesture.
+              hidden &&
+                "max-lg:pointer-events-none max-lg:translate-y-[calc(100%+1.5rem)] max-lg:opacity-0",
               isFormRoute && "max-lg:hidden",
             )}
+            onFocus={reveal}
             size="icon-lg"
           />
         }
