@@ -87,7 +87,7 @@ export function PlanScreen({ plan }: PlanScreenProps) {
             : plan.timeZoneLabel
         }
         trailing={
-          <div className="relative flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <PlanThisWeekJump visible={!viewingCurrentWeek} />
             <Link
               aria-label="Previous week"
