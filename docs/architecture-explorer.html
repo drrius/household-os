@@ -3277,7 +3277,7 @@
         return reducedMotion.matches ? "auto" : "smooth";
       }
 
-      function showChapter(chapterId, updateHash = true) {
+      function showChapter(chapterId, updateHash = true, focusHeading = true) {
         document.querySelectorAll(".chapter").forEach((chapter) => {
           chapter.hidden = chapter.id !== chapterId;
         });
@@ -3287,15 +3287,17 @@
           button.tabIndex = selected ? 0 : -1;
         });
         if (updateHash) history.replaceState(null, "", `#${chapterId}`);
-        document
-          .querySelector(`#${chapterId} h1`)
-          ?.focus({ preventScroll: true });
+        if (focusHeading) {
+          document
+            .querySelector(`#${chapterId} h1`)
+            ?.focus({ preventScroll: true });
+        }
         window.scrollTo({ top: 0, behavior: scrollBehavior() });
       }
 
       document.querySelectorAll(".chapter-button").forEach((button) => {
         button.addEventListener("click", () =>
-          showChapter(button.dataset.chapter),
+          showChapter(button.dataset.chapter, true, false),
         );
         button.addEventListener("keydown", (event) => {
           if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
@@ -3305,7 +3307,7 @@
           const target =
             buttons[(index + delta + buttons.length) % buttons.length];
           target.focus();
-          showChapter(target.dataset.chapter);
+          showChapter(target.dataset.chapter, true, false);
         });
       });
 
@@ -3640,7 +3642,7 @@
       ];
       if (validChapters.includes(initialHash)) showChapter(initialHash, false);
       window.addEventListener("hashchange", () => {
-        const chapterId = window.location.hash.slice(1);
+        const chapterId = window.location.hash.slice(1) || "overview";
         if (validChapters.includes(chapterId)) showChapter(chapterId, false);
       });
     </script>
