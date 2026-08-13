@@ -28,12 +28,20 @@ export function useSlowLinkStatus(): boolean {
   return slow;
 }
 
-function SlowLinkPending({
+function SlowLinkStatus({
   children,
+  onPendingChange,
 }: {
   children: (pending: boolean) => ReactNode;
+  onPendingChange: (pending: boolean) => void;
 }) {
-  return children(useSlowLinkStatus());
+  const pending = useSlowLinkStatus();
+
+  useEffect(() => {
+    onPendingChange(pending);
+  }, [onPendingChange, pending]);
+
+  return children(pending);
 }
 
 export function SlowLink({
@@ -44,9 +52,17 @@ export function SlowLink({
 }: Omit<ComponentProps<typeof Link>, "children"> & {
   children: (pending: boolean) => ReactNode;
 }) {
+  const [pending, setPending] = useState(false);
+
   return (
-    <Link className={className} href={href} {...props}>
-      <SlowLinkPending>{children}</SlowLinkPending>
+    <Link
+      {...props}
+      aria-busy={pending || undefined}
+      aria-disabled={pending || undefined}
+      className={className}
+      href={href}
+    >
+      <SlowLinkStatus onPendingChange={setPending}>{children}</SlowLinkStatus>
     </Link>
   );
 }

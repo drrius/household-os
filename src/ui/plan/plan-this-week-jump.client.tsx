@@ -62,7 +62,10 @@ export function PlanThisWeekJump({ visible }: { visible: boolean }) {
                 : { type: "spring", stiffness: 420, damping: 28, mass: 0.7 }
             }
           >
-            <SlowLink className={chipClassName} href="/plan">
+            <SlowLink
+              className={cn(chipClassName, "aria-busy:opacity-70")}
+              href="/plan"
+            >
               {(pending) => (
                 <>
                   This week
