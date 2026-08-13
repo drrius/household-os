@@ -90,7 +90,11 @@ export function GlobalAddSheet() {
           <Button
             aria-label="Add something"
             className={cn(
-              "fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 size-14 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.3)] ring-1 ring-primary max-lg:transition-transform max-lg:duration-200 motion-reduce:transition-none lg:static lg:col-start-1 lg:row-start-3 lg:m-4 lg:h-11 lg:w-auto lg:px-4 lg:shadow-none",
+              // `md:size-14` is load-bearing: the `icon-lg` variant is
+              // `size-11 md:size-10`, and tailwind-merge only drops the
+              // unmodified `size-11` against `size-14`. Without the `md:` half
+              // the trigger collapses to 40px between 768px and 1023px.
+              "fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] z-20 size-14 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.3)] ring-1 ring-primary max-lg:transition-transform max-lg:duration-200 motion-reduce:transition-none md:size-14 lg:static lg:col-start-1 lg:row-start-3 lg:m-4 lg:h-11 lg:w-auto lg:px-4 lg:shadow-none",
               // Never `display: none` while the trigger is only temporarily out
               // of the way: that would move focus off it mid-gesture.
               hidden &&

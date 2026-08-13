@@ -50,25 +50,17 @@ test("expense form supports payer selection and exact centime allocations", asyn
     .selectOption({ label: "Partner" });
 
   // Exact shares stay hidden until the exact allocation is chosen.
-  await expect(page.getByRole("textbox", { name: /exact share/ })).toHaveCount(
-    0,
-  );
+  await expect(page.getByRole("textbox", { name: / pays$/ })).toHaveCount(0);
   await page
-    .getByRole("combobox", { name: "Allocation" })
+    .getByRole("combobox", { name: "How to split it" })
     .selectOption("exact");
-  await expect(page.getByRole("textbox", { name: /exact share/ })).toHaveCount(
-    2,
+  await expect(page.getByRole("textbox", { name: / pays$/ })).toHaveCount(2);
+  await page.getByRole("textbox", { name: "Darius pays" }).fill("7.00");
+  await page.getByRole("textbox", { name: "Partner pays" }).fill("3.00");
+  await expect(page.getByRole("textbox", { name: "Darius pays" })).toHaveValue(
+    "7.00",
   );
-  await page
-    .getByRole("textbox", { name: /Darius's exact share/ })
-    .fill("7.00");
-  await page
-    .getByRole("textbox", { name: /Partner's exact share/ })
-    .fill("3.00");
-  await expect(
-    page.getByRole("textbox", { name: /Darius's exact share/ }),
-  ).toHaveValue("7.00");
-  await expect(
-    page.getByRole("textbox", { name: /Partner's exact share/ }),
-  ).toHaveValue("3.00");
+  await expect(page.getByRole("textbox", { name: "Partner pays" })).toHaveValue(
+    "3.00",
+  );
 });
