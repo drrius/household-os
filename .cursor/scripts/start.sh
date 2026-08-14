@@ -100,7 +100,3 @@ if ! pnpm exec supabase status >/dev/null 2>&1; then
 fi
 
 write_env_local
-
-if [[ -f scripts/seed-push-dispatch-vault.mts ]]; then
-  node --experimental-strip-types scripts/seed-push-dispatch-vault.mts
-fi

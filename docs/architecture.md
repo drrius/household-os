@@ -30,6 +30,8 @@ Financial events and their ledger entries are append-only. Corrections atomicall
 
 Supabase Cron invokes idempotent database functions for due occurrence generation, recurring expense drafts, digest candidates, and retention cleanup. Jobs process bounded batches and record a stable schedule key so retries cannot duplicate work.
 
+Optional Web Push uses the same Cron plane. `run_drain_push_outbox` reconciles pending outbox rows that lost their subscription. `private.invoke_push_dispatch` posts to the `push-dispatch` Edge Function through `pg_net` when Vault holds `push_dispatch_url` and `push_dispatch_service_role_key`. The Edge Function signs with VAPID secrets (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) and marks deliveries `sent`, `failed`, or `skipped_no_subscription`. Local `start.sh` seeds Vault and injects VAPID into the Edge runtime. Production sets the same Edge secrets with `supabase secrets set` and stores the invoke URL plus service role key in Vault.
+
 ## Passkeys
 
 The client opts into Supabase's experimental passkey API with an exactly pinned SDK. Local Supabase uses `localhost` as the WebAuthn relying party. Production chooses one stable Vercel hostname before enrollment and never changes it without re-enrolling both members.

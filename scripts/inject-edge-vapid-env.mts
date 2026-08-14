@@ -359,8 +359,25 @@ function recreateWithVapid(
     createArgs.push(...inspect.Config.Cmd);
   }
 
-  requireDocker(["stop", name], `failed to stop ${name}`);
-  requireDocker(["rm", name], `failed to remove ${name}`);
+  runDocker(["stop", name]);
+  const removed = runDocker(["rm", "-f", name]);
+  if (removed.status !== 0) {
+    const detail = `${removed.stderr} ${removed.stdout}`;
+    if (!/No such container/iu.test(detail)) {
+      const deadline = Date.now() + 30_000;
+      while (Date.now() < deadline) {
+        const stillThere = runDocker(["inspect", name]);
+        if (stillThere.status !== 0) {
+          break;
+        }
+        spawnSync("sleep", ["0.25"]);
+      }
+      const gone = runDocker(["inspect", name]);
+      if (gone.status === 0) {
+        throw new Error(`failed to remove ${name}: ${detail.trim()}`);
+      }
+    }
+  }
   requireDocker(createArgs, `failed to create ${name}`);
   requireDocker(["start", name], `failed to start ${name}`);
 }

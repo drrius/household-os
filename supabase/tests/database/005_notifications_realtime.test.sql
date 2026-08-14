@@ -116,6 +116,35 @@ select is(
   'service_role can execute every Cron RPC'
 );
 
+select has_function(
+  'private',
+  'invoke_push_dispatch',
+  'invoke_push_dispatch exists for Edge Web Push transport'
+);
+
+select ok(
+  has_function_privilege(
+    'service_role',
+    'private.invoke_push_dispatch()',
+    'execute'
+  ),
+  'service_role can execute invoke_push_dispatch'
+);
+
+select ok(
+  not has_function_privilege(
+    'anon',
+    'private.invoke_push_dispatch()',
+    'execute'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'private.invoke_push_dispatch()',
+    'execute'
+  ),
+  'clients cannot execute invoke_push_dispatch'
+);
+
 select ok(
   not has_table_privilege(
     'authenticated',
