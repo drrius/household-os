@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,47 +13,39 @@ type PagerDay = {
 // The board is only a seven-column grid at lg; below that it is a carousel.
 const BOARD_IS_A_GRID = "(min-width: 1024px)";
 
-function scrollToColumn(columnId: string, behavior: ScrollBehavior): void {
+function findBoardScroller(columnId: string): HTMLElement | null {
+  const column = document.getElementById(columnId);
+  return column?.closest<HTMLElement>(".overflow-x-auto") ?? null;
+}
+
+function scrollToColumn(columnId: string): void {
   // `block: "nearest"` keeps the page's own vertical scroll where it was.
   document
     .getElementById(columnId)
-    ?.scrollIntoView({ behavior, block: "nearest", inline: "start" });
+    ?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "start" });
 }
 
-function preferredBehavior(): ScrollBehavior {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? "auto"
-    : "smooth";
-}
+function columnNearestScrollStart(columnIds: string[]): string | null {
+  const scroller = findBoardScroller(columnIds[0]!);
+  if (scroller === null) return null;
 
-function findBoardScroller(columnId: string): Element | null {
-  return document.getElementById(columnId)?.closest(".overflow-x-auto") ?? null;
-}
-
-function jumpToColumn(
-  columnId: string,
-  behavior: ScrollBehavior,
-  scrollLockRef: MutableRefObject<string | null>,
-  setSelectedColumnId: (columnId: string) => void,
-): void {
-  scrollLockRef.current = columnId;
-  setSelectedColumnId(columnId);
-  const scroller = findBoardScroller(columnId);
-  const release = () => {
-    if (scrollLockRef.current === columnId) {
-      scrollLockRef.current = null;
+  const startEdge = scroller.getBoundingClientRect().left;
+  let nearestId: string | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const columnId of columnIds) {
+    const column = document.getElementById(columnId);
+    if (column === null) continue;
+    const distance = Math.abs(column.getBoundingClientRect().left - startEdge);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestId = columnId;
     }
-  };
-  if (scroller !== null) {
-    scroller.addEventListener("scrollend", release, { once: true });
   }
-  window.setTimeout(release, behavior === "smooth" ? 700 : 50);
-  scrollToColumn(columnId, behavior);
+  return nearestId;
 }
 
-function useScrollLockedVisibleDay(
+function useSelectionFollowsScroll(
   columnIdsKey: string,
-  scrollLockRef: MutableRefObject<string | null>,
   setSelectedColumnId: (columnId: string) => void,
 ): void {
   useEffect(() => {
@@ -64,35 +56,21 @@ function useScrollLockedVisibleDay(
     const scroller = findBoardScroller(columnIds[0]!);
     if (scroller === null) return;
 
-    const ratios = new Map<string, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (scrollLockRef.current !== null) return;
-        for (const entry of entries) {
-          ratios.set(entry.target.id, entry.intersectionRatio);
-        }
-        let bestId: string | null = null;
-        let bestRatio = 0;
-        for (const [id, ratio] of ratios) {
-          if (ratio > bestRatio) {
-            bestId = id;
-            bestRatio = ratio;
-          }
-        }
-        if (bestId !== null && bestRatio >= 0.5) {
-          setSelectedColumnId(bestId);
-        }
-      },
-      { root: scroller, threshold: [0.5, 0.6, 0.75, 1] },
-    );
+    let frame = 0;
+    const sync = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const nearest = columnNearestScrollStart(columnIds);
+        if (nearest !== null) setSelectedColumnId(nearest);
+      });
+    };
 
-    for (const columnId of columnIds) {
-      const column = document.getElementById(columnId);
-      if (column !== null) observer.observe(column);
-    }
-
-    return () => observer.disconnect();
-  }, [columnIdsKey, scrollLockRef, setSelectedColumnId]);
+    scroller.addEventListener("scroll", sync, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      scroller.removeEventListener("scroll", sync);
+    };
+  }, [columnIdsKey, setSelectedColumnId]);
 }
 
 function dayButtonClass(isSelected: boolean, isToday: boolean): string {
@@ -107,12 +85,11 @@ export function PlanWeekPager({ days }: { days: PagerDay[] }) {
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(
     fallbackColumnId,
   );
-  const [scrolledWeekId, setScrolledWeekId] = useState(todayColumnId);
-  const scrollLockRef = useRef<string | null>(null);
+  const [renderedWeekId, setRenderedWeekId] = useState(fallbackColumnId);
   const columnIdsKey = days.map((day) => day.columnId).join("\0");
 
-  if (todayColumnId !== scrolledWeekId) {
-    setScrolledWeekId(todayColumnId);
+  if (fallbackColumnId !== renderedWeekId) {
+    setRenderedWeekId(fallbackColumnId);
     setSelectedColumnId(fallbackColumnId);
   }
 
@@ -122,16 +99,10 @@ export function PlanWeekPager({ days }: { days: PagerDay[] }) {
     // it never fights a scroll the member started.
     if (todayColumnId === null) return;
     if (window.matchMedia(BOARD_IS_A_GRID).matches) return;
-    scrollLockRef.current = todayColumnId;
-    scrollToColumn(todayColumnId, "auto");
-    window.setTimeout(() => {
-      if (scrollLockRef.current === todayColumnId) {
-        scrollLockRef.current = null;
-      }
-    }, 50);
+    scrollToColumn(todayColumnId);
   }, [todayColumnId]);
 
-  useScrollLockedVisibleDay(columnIdsKey, scrollLockRef, setSelectedColumnId);
+  useSelectionFollowsScroll(columnIdsKey, setSelectedColumnId);
 
   return (
     <div
@@ -151,12 +122,8 @@ export function PlanWeekPager({ days }: { days: PagerDay[] }) {
             )}
             key={day.columnId}
             onClick={() => {
-              jumpToColumn(
-                day.columnId,
-                preferredBehavior(),
-                scrollLockRef,
-                setSelectedColumnId,
-              );
+              setSelectedColumnId(day.columnId);
+              scrollToColumn(day.columnId);
             }}
             type="button"
           >
