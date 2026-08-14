@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -30,9 +30,31 @@ function findBoardScroller(columnId: string): Element | null {
   return document.getElementById(columnId)?.closest(".overflow-x-auto") ?? null;
 }
 
-function useVisibleDayColumn(
+function jumpToColumn(
+  columnId: string,
+  behavior: ScrollBehavior,
+  scrollLockRef: MutableRefObject<string | null>,
+  setSelectedColumnId: (columnId: string) => void,
+): void {
+  scrollLockRef.current = columnId;
+  setSelectedColumnId(columnId);
+  const scroller = findBoardScroller(columnId);
+  const release = () => {
+    if (scrollLockRef.current === columnId) {
+      scrollLockRef.current = null;
+    }
+  };
+  if (scroller !== null) {
+    scroller.addEventListener("scrollend", release, { once: true });
+  }
+  window.setTimeout(release, behavior === "smooth" ? 700 : 50);
+  scrollToColumn(columnId, behavior);
+}
+
+function useScrollLockedVisibleDay(
   columnIdsKey: string,
-  onVisible: (columnId: string) => void,
+  scrollLockRef: MutableRefObject<string | null>,
+  setSelectedColumnId: (columnId: string) => void,
 ): void {
   useEffect(() => {
     const columnIds = columnIdsKey === "" ? [] : columnIdsKey.split("\0");
@@ -45,6 +67,7 @@ function useVisibleDayColumn(
     const ratios = new Map<string, number>();
     const observer = new IntersectionObserver(
       (entries) => {
+        if (scrollLockRef.current !== null) return;
         for (const entry of entries) {
           ratios.set(entry.target.id, entry.intersectionRatio);
         }
@@ -57,7 +80,7 @@ function useVisibleDayColumn(
           }
         }
         if (bestId !== null && bestRatio >= 0.5) {
-          onVisible(bestId);
+          setSelectedColumnId(bestId);
         }
       },
       { root: scroller, threshold: [0.5, 0.6, 0.75, 1] },
@@ -69,40 +92,13 @@ function useVisibleDayColumn(
     }
 
     return () => observer.disconnect();
-  }, [columnIdsKey, onVisible]);
+  }, [columnIdsKey, scrollLockRef, setSelectedColumnId]);
 }
 
-function DayPagerButton({
-  day,
-  isSelected,
-  onSelect,
-}: {
-  day: PagerDay;
-  isSelected: boolean;
-  onSelect: (columnId: string) => void;
-}) {
-  return (
-    <button
-      aria-current={day.isToday ? "date" : undefined}
-      aria-pressed={isSelected}
-      className={cn(
-        "relative flex h-11 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl px-1 font-heading text-xs leading-tight font-bold tabular-nums transition-colors motion-reduce:transition-none",
-        day.isToday
-          ? "bg-secondary text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-        isSelected &&
-          "text-foreground after:absolute after:inset-x-2 after:bottom-1.5 after:h-0.5 after:rounded-full after:bg-foreground",
-        isSelected && day.isToday && "text-primary after:bg-primary",
-      )}
-      onClick={() => {
-        onSelect(day.columnId);
-        scrollToColumn(day.columnId, preferredBehavior());
-      }}
-      type="button"
-    >
-      {day.weekdayLabel}
-    </button>
-  );
+function dayButtonClass(isSelected: boolean, isToday: boolean): string {
+  if (isSelected) return "bg-secondary text-primary";
+  if (isToday) return "text-primary hover:bg-muted";
+  return "text-muted-foreground hover:bg-muted hover:text-foreground";
 }
 
 export function PlanWeekPager({ days }: { days: PagerDay[] }) {
@@ -112,6 +108,7 @@ export function PlanWeekPager({ days }: { days: PagerDay[] }) {
     fallbackColumnId,
   );
   const [scrolledWeekId, setScrolledWeekId] = useState(todayColumnId);
+  const scrollLockRef = useRef<string | null>(null);
   const columnIdsKey = days.map((day) => day.columnId).join("\0");
 
   if (todayColumnId !== scrolledWeekId) {
@@ -125,10 +122,16 @@ export function PlanWeekPager({ days }: { days: PagerDay[] }) {
     // it never fights a scroll the member started.
     if (todayColumnId === null) return;
     if (window.matchMedia(BOARD_IS_A_GRID).matches) return;
+    scrollLockRef.current = todayColumnId;
     scrollToColumn(todayColumnId, "auto");
+    window.setTimeout(() => {
+      if (scrollLockRef.current === todayColumnId) {
+        scrollLockRef.current = null;
+      }
+    }, 50);
   }, [todayColumnId]);
 
-  useVisibleDayColumn(columnIdsKey, setSelectedColumnId);
+  useScrollLockedVisibleDay(columnIdsKey, scrollLockRef, setSelectedColumnId);
 
   return (
     <div
@@ -136,14 +139,31 @@ export function PlanWeekPager({ days }: { days: PagerDay[] }) {
       className="mt-3 flex w-full gap-1 lg:hidden"
       role="group"
     >
-      {days.map((day) => (
-        <DayPagerButton
-          day={day}
-          isSelected={day.columnId === selectedColumnId}
-          key={day.columnId}
-          onSelect={setSelectedColumnId}
-        />
-      ))}
+      {days.map((day) => {
+        const isSelected = day.columnId === selectedColumnId;
+        return (
+          <button
+            aria-current={day.isToday ? "date" : undefined}
+            aria-pressed={isSelected}
+            className={cn(
+              "flex h-11 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl px-1 font-heading text-xs leading-tight font-bold tabular-nums transition-colors motion-reduce:transition-none",
+              dayButtonClass(isSelected, day.isToday),
+            )}
+            key={day.columnId}
+            onClick={() => {
+              jumpToColumn(
+                day.columnId,
+                preferredBehavior(),
+                scrollLockRef,
+                setSelectedColumnId,
+              );
+            }}
+            type="button"
+          >
+            {day.weekdayLabel}
+          </button>
+        );
+      })}
     </div>
   );
 }
