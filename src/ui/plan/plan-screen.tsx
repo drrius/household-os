@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -82,28 +83,36 @@ export function PlanScreen({ plan }: PlanScreenProps) {
   return (
     <AppPage labelledBy="plan-title">
       <PageHeader
-        titleId="plan-title"
-        title={plan.rangeLabel}
         eyebrow={
           viewingCurrentWeek
             ? `This week · ${plan.timeZoneLabel}`
             : plan.timeZoneLabel
         }
+        titleId="plan-title"
+        title={plan.rangeLabel}
+        trailing={
+          <div className="flex items-center gap-2">
+            <PlanThisWeekJump visible={!viewingCurrentWeek} />
+            <PlanWeekArrow
+              direction="previous"
+              href={`/plan?week=${previousWeek}`}
+            />
+            <PlanWeekArrow direction="next" href={`/plan?week=${nextWeek}`} />
+            <Link
+              aria-label="Add meal"
+              className={buttonVariants({
+                size: "icon-sm",
+                className: "no-underline sm:h-9 sm:w-auto sm:gap-1 sm:px-3",
+              })}
+              href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}
+              title="Add meal"
+            >
+              <Plus aria-hidden="true" className="size-4 shrink-0 sm:hidden" />
+              <span className="hidden sm:inline">Add meal</span>
+            </Link>
+          </div>
+        }
       />
-      <div className="flex flex-wrap items-center gap-2">
-        <PlanThisWeekJump visible={!viewingCurrentWeek} />
-        <PlanWeekArrow
-          direction="previous"
-          href={`/plan?week=${previousWeek}`}
-        />
-        <PlanWeekArrow direction="next" href={`/plan?week=${nextWeek}`} />
-        <Link
-          className={buttonVariants({ className: "no-underline" })}
-          href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}
-        >
-          Add meal
-        </Link>
-      </div>
       <MealBoard days={plan.days} />
       <MealLibrary meals={plan.library} />
     </AppPage>

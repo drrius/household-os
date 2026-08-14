@@ -20,8 +20,8 @@ export function PlanWeekArrow({
     <SlowLink
       aria-label={label}
       className={buttonVariants({
-        className: "no-underline aria-busy:opacity-70",
-        size: "icon",
+        className: "no-underline aria-busy:opacity-70 sm:size-9",
+        size: "icon-sm",
         variant: "outline",
       })}
       href={href}
