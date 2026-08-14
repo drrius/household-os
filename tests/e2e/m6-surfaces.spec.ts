@@ -126,6 +126,32 @@ test("keyboard focus is visible and the global add dialog restores focus", async
   await expect(addButton).toBeFocused();
 });
 
+test("desktop shadcn sidebar keeps the global add action in view", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/m6-fixture/home");
+
+  const sidebar = page.locator('[data-slot="sidebar-container"]');
+  const addButton = page.getByRole("button", { name: "Add something" });
+
+  await expect(sidebar).toBeVisible();
+  await expect(addButton).toBeVisible();
+  await expect(sidebar).toHaveCSS("position", "fixed");
+
+  const initialButtonTop = await addButton.evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+
+  await expect(addButton).toBeInViewport();
+  await expect
+    .poll(() =>
+      addButton.evaluate((element) => element.getBoundingClientRect().top),
+    )
+    .toBe(initialButtonTop);
+});
+
 test("reduced motion removes meaningful animation and transitions", async ({
   page,
 }) => {

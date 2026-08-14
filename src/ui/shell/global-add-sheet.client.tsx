@@ -2,6 +2,7 @@
 
 import {
   CalendarCheck,
+  Plus,
   ShoppingBasket,
   UtensilsCrossed,
   Wallet,
@@ -24,7 +25,6 @@ import {
 } from "@/components/ui/dialog";
 import { GLOBAL_ADD_OPTIONS, isFormSurface } from "@/lib/ui/destinations";
 import { cn } from "@/lib/utils";
-import { PlusIcon } from "@/ui/icons/app-icons";
 
 const ADD_OPTION_ICONS = {
   routine: CalendarCheck,
@@ -39,10 +39,14 @@ const ADD_OPTION_ICONS = {
 const SCROLL_HIDE_THRESHOLD_PX = 8;
 const SCROLL_IDLE_MS = 600;
 
-function useHiddenWhileScrollingDown() {
+function useHiddenWhileScrollingDown(enabled: boolean) {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     let lastY = window.scrollY;
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -70,18 +74,60 @@ function useHiddenWhileScrollingDown() {
       window.removeEventListener("scroll", handleScroll);
       clearTimeout(idleTimer);
     };
-  }, []);
+  }, [enabled]);
 
   return { hidden, reveal: () => setHidden(false) };
 }
 
-export function GlobalAddSheet() {
+type GlobalAddSheetProps = {
+  placement?: "mobile" | "sidebar";
+};
+
+function GlobalAddOptions({ close }: { close: () => void }) {
+  return (
+    <ul
+      className="grid list-none gap-3 max-sm:px-6 max-sm:pb-2 sm:grid-cols-2 sm:gap-4"
+      role="list"
+    >
+      {GLOBAL_ADD_OPTIONS.map((option) => {
+        const Icon = ADD_OPTION_ICONS[option.id];
+
+        return (
+          <li key={option.id} className="min-w-0">
+            <Link
+              className="grid h-full min-h-11 gap-1 rounded-2xl border border-border bg-card p-4 no-underline outline-none hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              href={option.href}
+              onClick={close}
+            >
+              <span className="flex items-center gap-2 text-base sm:text-sm">
+                <Icon
+                  aria-hidden="true"
+                  className="size-4 h-lh shrink-0 stroke-primary"
+                />
+                <strong className="font-heading font-semibold text-foreground">
+                  {option.label}
+                </strong>
+              </span>
+              <span className="pl-6 text-base leading-snug text-pretty text-muted-foreground sm:text-sm">
+                {option.description}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function GlobalAddSheet({ placement = "mobile" }: GlobalAddSheetProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   // Dedicated create and edit surfaces already are the add flow, so the floating
   // trigger only duplicates them there while covering the form's own content.
   const isFormRoute = isFormSurface(pathname);
-  const { hidden, reveal } = useHiddenWhileScrollingDown();
+  const { hidden, reveal } = useHiddenWhileScrollingDown(
+    placement === "mobile",
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -90,24 +136,26 @@ export function GlobalAddSheet() {
           <Button
             aria-label="Add something"
             className={cn(
-              // `md:size-14` is load-bearing: the `icon-lg` variant is
-              // `size-11 md:size-10`, and tailwind-merge only drops the
-              // unmodified `size-11` against `size-14`. Without the `md:` half
-              // the trigger collapses to 40px between 768px and 1023px.
-              "fixed right-5 bottom-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom)))] z-20 size-12 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.24)] ring-1 ring-primary max-lg:transition-transform max-lg:duration-200 motion-reduce:transition-none md:size-12 lg:static lg:col-start-1 lg:row-start-3 lg:m-4 lg:h-11 lg:w-auto lg:px-4 lg:shadow-none",
+              placement === "mobile" &&
+                "fixed right-5 bottom-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom)))] z-20 size-12 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.24)] ring-1 ring-primary transition-transform duration-200 motion-reduce:transition-none md:size-12 lg:hidden",
+              placement === "sidebar" &&
+                "w-full justify-start rounded-xl shadow-none lg:h-11",
               // Never `display: none` while the trigger is only temporarily out
               // of the way: that would move focus off it mid-gesture.
-              hidden &&
-                "max-lg:pointer-events-none max-lg:translate-y-[calc(100%+1.5rem)] max-lg:opacity-0",
-              isFormRoute && "max-lg:hidden",
+              placement === "mobile" &&
+                hidden &&
+                "pointer-events-none translate-y-[calc(100%+1.5rem)] opacity-0",
+              placement === "mobile" && isFormRoute && "hidden",
             )}
             onFocus={reveal}
-            size="icon-lg"
+            size={placement === "sidebar" ? "default" : "icon-lg"}
           />
         }
       >
-        <PlusIcon />
-        <span className="hidden lg:inline">Add something</span>
+        <Plus data-icon="inline-start" />
+        <span className={cn(placement === "mobile" && "sr-only")}>
+          Add something
+        </span>
       </DialogTrigger>
 
       <DialogContent
@@ -123,37 +171,7 @@ export function GlobalAddSheet() {
           </DialogDescription>
         </DialogHeader>
 
-        <ul
-          className="grid list-none gap-3 max-sm:px-6 max-sm:pb-2 sm:grid-cols-2 sm:gap-4"
-          role="list"
-        >
-          {GLOBAL_ADD_OPTIONS.map((option) => {
-            const Icon = ADD_OPTION_ICONS[option.id];
-
-            return (
-              <li key={option.id} className="min-w-0">
-                <Link
-                  className="grid h-full min-h-11 gap-1 rounded-2xl border border-border bg-card p-4 no-underline outline-none hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  href={option.href}
-                  onClick={() => setOpen(false)}
-                >
-                  <span className="flex items-center gap-2 text-base sm:text-sm">
-                    <Icon
-                      aria-hidden="true"
-                      className="size-4 h-lh shrink-0 stroke-primary"
-                    />
-                    <strong className="font-heading font-semibold text-foreground">
-                      {option.label}
-                    </strong>
-                  </span>
-                  <span className="pl-6 text-base leading-snug text-pretty text-muted-foreground sm:text-sm">
-                    {option.description}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <GlobalAddOptions close={() => setOpen(false)} />
 
         <DialogFooter className="max-sm:px-6 max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:justify-stretch">
           <DialogClose
