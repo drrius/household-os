@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+
 export type PageHeaderProps = {
   eyebrow?: ReactNode;
+  mobileLayout?: "inline" | "stacked";
   title: ReactNode;
   titleId?: string;
   trailing?: ReactNode;
@@ -9,14 +12,20 @@ export type PageHeaderProps = {
 
 export function PageHeader({
   eyebrow,
+  mobileLayout = "stacked",
   title,
   titleId,
   trailing,
 }: PageHeaderProps) {
   return (
-    // The trailing slot commonly holds a non-shrinking pill, so on narrow
-    // viewports it takes its own row instead of squeezing the title column.
-    <header className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+    <header
+      className={cn(
+        "flex gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4",
+        mobileLayout === "inline"
+          ? "flex-row items-center justify-between gap-4"
+          : "flex-col items-start",
+      )}
+    >
       <div className="grid min-w-0 gap-1">
         {eyebrow !== undefined && eyebrow !== null ? (
           <p className="text-xs font-semibold text-muted-foreground">
@@ -31,7 +40,12 @@ export function PageHeader({
         </h1>
       </div>
       {trailing !== undefined && trailing !== null ? (
-        <div className="flex flex-wrap items-center gap-2 max-sm:w-full">
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2",
+            mobileLayout === "inline" ? "shrink-0" : "max-sm:w-full",
+          )}
+        >
           {trailing}
         </div>
       ) : null}
