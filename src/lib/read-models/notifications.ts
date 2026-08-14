@@ -38,6 +38,7 @@ export type InboxItemView = {
 export type InboxFeed = {
   items: InboxItemView[];
   unreadCount: number;
+  unreadIds: string[];
 };
 
 function normalizeLocalTime(value: string): string {
@@ -157,17 +158,18 @@ function kindLabel(row: z.infer<typeof inboxRowSchema>): string {
 }
 
 export async function loadDigestPreference(): Promise<DigestPreferenceView> {
-  await requireMemberContext();
+  const member = await requireMemberContext();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notification_digest_preferences")
     .select("enabled, local_time")
+    .eq("member_id", member.userId)
     .maybeSingle();
   if (error) {
     throw new Error(`Digest preference load failed: ${error.message}`);
   }
   if (!data) {
-    return { enabled: true, localTime: "08:00" };
+    return { enabled: false, localTime: "08:00" };
   }
   const parsed = digestRowSchema.parse(data);
   return {
@@ -179,19 +181,43 @@ export async function loadDigestPreference(): Promise<DigestPreferenceView> {
 export async function loadInboxFeed(limit = 40): Promise<InboxFeed> {
   const member = await requireMemberContext();
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("inbox_notifications")
-    .select(
-      "id, kind, activity_kind, entity_type, entity_id, payload, read_at, created_at",
-    )
-    .eq("recipient_member_id", member.userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) {
-    throw new Error(`Inbox load failed: ${error.message}`);
+  const [feedResult, unreadCountResult, unreadIdsResult] = await Promise.all([
+    supabase
+      .from("inbox_notifications")
+      .select(
+        "id, kind, activity_kind, entity_type, entity_id, payload, read_at, created_at",
+      )
+      .eq("recipient_member_id", member.userId)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("inbox_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient_member_id", member.userId)
+      .is("read_at", null),
+    supabase
+      .from("inbox_notifications")
+      .select("id")
+      .eq("recipient_member_id", member.userId)
+      .is("read_at", null)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (feedResult.error) {
+    throw new Error(`Inbox load failed: ${feedResult.error.message}`);
+  }
+  if (unreadCountResult.error) {
+    throw new Error(
+      `Inbox unread count failed: ${unreadCountResult.error.message}`,
+    );
+  }
+  if (unreadIdsResult.error) {
+    throw new Error(
+      `Inbox unread ids failed: ${unreadIdsResult.error.message}`,
+    );
   }
 
-  const items = (data ?? []).map((row) => {
+  const items = (feedResult.data ?? []).map((row) => {
     const parsed = inboxRowSchema.parse(row);
     return {
       id: parsed.id,
@@ -204,8 +230,17 @@ export async function loadInboxFeed(limit = 40): Promise<InboxFeed> {
     } satisfies InboxItemView;
   });
 
+  const unreadIds = (unreadIdsResult.data ?? []).map((row) => {
+    const id = Reflect.get(row, "id");
+    if (typeof id !== "string" || id.length === 0) {
+      throw new Error("Inbox unread id was missing");
+    }
+    return id;
+  });
+
   return {
     items,
-    unreadCount: items.filter((item) => !item.read).length,
+    unreadCount: unreadCountResult.count ?? unreadIds.length,
+    unreadIds,
   };
 }

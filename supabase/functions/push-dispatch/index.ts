@@ -52,6 +52,7 @@ type DrainCounts = { sent: number; skipped: number; failed: number };
 type ServiceClient = ReturnType<typeof createClient>;
 
 const MAX_ERROR_LENGTH = 1000;
+const MAX_DELIVERY_ATTEMPTS = 5;
 const DEFAULT_VAPID_SUBJECT = "mailto:household-os@localhost";
 const COUNT_KEY = {
   sent: "sent",
@@ -110,13 +111,23 @@ async function markOutbox(
             skippedError === null ? null : truncateError(skippedError),
           processed_at: processedAt,
         };
-      case "failed":
+      case "failed": {
+        const attemptCount = row.attempt_count + 1;
+        if (attemptCount >= MAX_DELIVERY_ATTEMPTS) {
+          return {
+            status: "failed",
+            last_error: truncateError(result.error),
+            attempt_count: attemptCount,
+            processed_at: processedAt,
+          };
+        }
         return {
-          status: "failed",
+          status: "pending",
           last_error: truncateError(result.error),
-          attempt_count: row.attempt_count + 1,
-          processed_at: processedAt,
+          attempt_count: attemptCount,
+          processed_at: null,
         };
+      }
       default: {
         const _exhaustive: never = result;
         return _exhaustive;

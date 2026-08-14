@@ -79,14 +79,13 @@ export function InboxList({ feed }: { feed: InboxFeed }) {
     );
   }
 
-  const unreadIds = feed.items
-    .filter((item) => !item.read)
-    .map((item) => item.id);
-
   return (
     <div className="grid gap-4">
-      {unreadIds.length > 0 ? (
-        <MarkReadButton label="Mark all read" notificationIds={unreadIds} />
+      {feed.unreadIds.length > 0 ? (
+        <MarkReadButton
+          label="Mark all read"
+          notificationIds={feed.unreadIds}
+        />
       ) : null}
       <Card>
         <CardContent>

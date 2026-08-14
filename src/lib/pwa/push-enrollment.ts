@@ -45,7 +45,14 @@ export function isIosDevice(): boolean {
   if (typeof navigator === "undefined") {
     return false;
   }
-  return /iPad|iPhone|iPod/u.test(navigator.userAgent);
+  if (/iPad|iPhone|iPod/u.test(navigator.userAgent)) {
+    return true;
+  }
+  return (
+    /Macintosh/u.test(navigator.userAgent) &&
+    typeof navigator.maxTouchPoints === "number" &&
+    navigator.maxTouchPoints > 1
+  );
 }
 
 export function pushApiSupported(): boolean {

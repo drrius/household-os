@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 
 import {
   registerPushSubscriptionAction,
@@ -29,6 +29,8 @@ async function enablePush(): Promise<PushEnrollment> {
     userAgent: navigator.userAgent,
   });
   if (!result.ok) {
+    const subscription = await registration.pushManager.getSubscription();
+    await subscription?.unsubscribe();
     throw new Error(result.error);
   }
   return { status: "subscribed", endpoint: keys.endpoint };
@@ -36,19 +38,19 @@ async function enablePush(): Promise<PushEnrollment> {
 
 async function disablePush(endpoint: string): Promise<PushEnrollment> {
   const registration = await registerHouseholdServiceWorker();
-  const subscription = await registration.pushManager.getSubscription();
-  await subscription?.unsubscribe();
   const result = await unregisterPushSubscriptionAction({ endpoint });
   if (!result.ok) {
     throw new Error(result.error);
   }
+  const subscription = await registration.pushManager.getSubscription();
+  await subscription?.unsubscribe();
   return detectPushEnrollment(registration);
 }
 
 export function usePushEnrollment() {
   const [enrollment, setEnrollment] = useState<PushEnrollment | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,36 +67,42 @@ export function usePushEnrollment() {
   }, []);
 
   function subscribe() {
+    if (pending) return;
     setError(null);
-    startTransition(() => {
-      void enablePush()
-        .then(setEnrollment)
-        .catch((failure: unknown) => {
-          setError(
-            failure instanceof Error
-              ? failure.message
-              : "Could not enable push on this device.",
-          );
-          void currentEnrollment().then(setEnrollment);
-        });
-    });
+    setPending(true);
+    void enablePush()
+      .then(setEnrollment)
+      .catch((failure: unknown) => {
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not enable push on this device.",
+        );
+        void currentEnrollment().then(setEnrollment);
+      })
+      .finally(() => {
+        setPending(false);
+      });
   }
 
   function unsubscribe() {
-    if (enrollment?.status !== "subscribed") return;
+    if (pending || enrollment?.status !== "subscribed") return;
     const endpoint = enrollment.endpoint;
     setError(null);
-    startTransition(() => {
-      void disablePush(endpoint)
-        .then(setEnrollment)
-        .catch((failure: unknown) => {
-          setError(
-            failure instanceof Error
-              ? failure.message
-              : "Could not disable push on this device.",
-          );
-        });
-    });
+    setPending(true);
+    void disablePush(endpoint)
+      .then(setEnrollment)
+      .catch((failure: unknown) => {
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not disable push on this device.",
+        );
+        void currentEnrollment().then(setEnrollment);
+      })
+      .finally(() => {
+        setPending(false);
+      });
   }
 
   return { enrollment, error, pending, subscribe, unsubscribe };

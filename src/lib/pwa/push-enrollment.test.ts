@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   detectPushEnrollment,
+  isIosDevice,
   serializePushSubscription,
   urlBase64ToUint8Array,
 } from "./push-enrollment";
@@ -29,6 +30,32 @@ describe("serializePushSubscription", () => {
       p256dh: "pk",
       auth: "ak",
     });
+  });
+});
+
+describe("isIosDevice", () => {
+  it("treats iPadOS desktop-class Safari as iOS", () => {
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: {
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
+        maxTouchPoints: 5,
+      },
+    });
+    expect(isIosDevice()).toBe(true);
+  });
+
+  it("does not treat a desktop Mac as iOS", () => {
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: {
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        maxTouchPoints: 0,
+      },
+    });
+    expect(isIosDevice()).toBe(false);
   });
 });
 
