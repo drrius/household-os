@@ -144,6 +144,24 @@ test("desktop shadcn sidebar keeps the global add action in view", async ({
     sidebar.getByRole("link", { name: "Home", exact: true }),
   ).toHaveAttribute("aria-current", "page");
 
+  const navigationLinks = sidebar
+    .getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("link");
+  const navigationRects = await navigationLinks.evaluateAll((links) =>
+    links.map((link) => {
+      const rect = link.getBoundingClientRect();
+      return { bottom: rect.bottom, height: rect.height, top: rect.top };
+    }),
+  );
+  expect(navigationRects).toHaveLength(5);
+  expect(navigationRects.every(({ height }) => height <= 36)).toBe(true);
+  expect(
+    navigationRects.slice(1).every(({ top }, index) => {
+      const previous = navigationRects[index];
+      return previous !== undefined && top - previous.bottom <= 4;
+    }),
+  ).toBe(true);
+
   const initialButtonTop = await addButton.evaluate(
     (element) => element.getBoundingClientRect().top,
   );

@@ -94,9 +94,9 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
                       <SidebarMenuItem key={destination.id}>
                         <SidebarMenuButton
                           aria-current={isActive ? "page" : undefined}
+                          className="font-heading font-semibold data-active:font-semibold"
                           isActive={isActive}
                           render={<Link href={destination.href} />}
-                          size="lg"
                           title={destination.label}
                         >
                           <Icon />
