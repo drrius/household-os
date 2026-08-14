@@ -130,7 +130,7 @@ function SplitSection({
                 describedById={statusId}
                 invalid={blocking === undefined ? undefined : true}
                 key={member.user_id}
-                label={`${member.display_name} pays`}
+                label={`${member.display_name}'s share`}
                 name={`allocation:${member.user_id}`}
                 onValueChange={(value) => onShareChange(member.user_id, value)}
                 required

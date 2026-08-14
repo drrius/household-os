@@ -162,7 +162,7 @@ describe("mapMoneyViewModel balance effects", () => {
         meta: "Sam recorded · 14 Aug 2026",
         amount: "CHF 40.00",
         balanceDelta: "+CHF 20.00",
-        balanceEffect: "Leah owes you CHF 20.00 more",
+        balanceEffect: "Balance with Leah moved in your favor by CHF 20.00",
         type: "Reversal",
       },
       {
@@ -171,7 +171,7 @@ describe("mapMoneyViewModel balance effects", () => {
         meta: "Leah paid · 13 Aug 2026",
         amount: "CHF 50.00",
         balanceDelta: "-CHF 50.00",
-        balanceEffect: "CHF 50.00 off what Leah owes you",
+        balanceEffect: "Balance with Leah moved against you by CHF 50.00",
         type: "Settlement",
       },
       {
@@ -180,7 +180,7 @@ describe("mapMoneyViewModel balance effects", () => {
         meta: "Leah paid · 12 Aug 2026",
         amount: "CHF 40.00",
         balanceDelta: "-CHF 20.00",
-        balanceEffect: "CHF 20.00 off what Leah owes you",
+        balanceEffect: "Balance with Leah moved against you by CHF 20.00",
         type: "Expense",
       },
       {
@@ -189,7 +189,7 @@ describe("mapMoneyViewModel balance effects", () => {
         meta: "Sam paid · 11 Aug 2026",
         amount: "CHF 10.00",
         balanceDelta: "+CHF 5.00",
-        balanceEffect: "Leah owes you CHF 5.00 more",
+        balanceEffect: "Balance with Leah moved in your favor by CHF 5.00",
         type: "Expense",
       },
     ]);

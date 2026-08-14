@@ -168,7 +168,7 @@ const moneyFixture: MoneyViewModel = {
       meta: "Leah paid · 12 Aug 2026",
       amount: formatCentimesAsFrancs(5000),
       balanceDelta: formatSignedCentimesAsFrancs(-5000),
-      balanceEffect: "CHF 50.00 off what Leah owes you",
+      balanceEffect: "Balance with Leah moved against you by CHF 50.00",
       type: "settlement",
     },
     {
@@ -177,7 +177,7 @@ const moneyFixture: MoneyViewModel = {
       meta: "Darius paid · 1 Aug 2026",
       amount: formatCentimesAsFrancs(185000),
       balanceDelta: formatSignedCentimesAsFrancs(92500),
-      balanceEffect: "Leah owes you CHF 925.00 more",
+      balanceEffect: "Balance with Leah moved in your favor by CHF 925.00",
       type: "expense",
     },
   ],

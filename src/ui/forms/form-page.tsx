@@ -4,11 +4,11 @@ import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
 
+export { CheckboxField } from "@/ui/forms/checkbox-field.client";
 export { FormField } from "@/ui/forms/form-field.client";
 export { FormFields } from "@/ui/forms/form-fields.client";
 
@@ -73,24 +73,5 @@ export function FormSection({
         <FieldGroup className="gap-4">{children}</FieldGroup>
       </FieldSet>
     </div>
-  );
-}
-
-export function CheckboxField({
-  defaultChecked,
-  label,
-  name,
-  value,
-}: {
-  defaultChecked?: boolean;
-  label: string;
-  name: string;
-  value?: string;
-}) {
-  return (
-    <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-      <Checkbox defaultChecked={defaultChecked} name={name} value={value} />
-      {label}
-    </label>
   );
 }

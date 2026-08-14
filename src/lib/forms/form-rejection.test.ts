@@ -64,6 +64,7 @@ describe("settleFormAction", () => {
   it("echoes the submitted fields on rejection", async () => {
     const form = new FormData();
     form.set("amount", "abc");
+    form.set("saveToLibrary", "on");
     form.append("weekdays", "1");
     form.append("weekdays", "5");
     const rejected = await settleFormAction(
@@ -76,7 +77,11 @@ describe("settleFormAction", () => {
     expect(rejected).toEqual({
       error: "Enter an amount in francs.",
       field: "amount",
-      values: { amount: "abc", weekdays: `1${echoListSeparator}5` },
+      values: {
+        amount: "abc",
+        saveToLibrary: "on",
+        weekdays: `1${echoListSeparator}5`,
+      },
       submissionId: 4,
     });
   });

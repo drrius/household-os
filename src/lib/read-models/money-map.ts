@@ -172,15 +172,14 @@ function toEventMeta(
   return `${creatorName} recorded · ${occurredOn}`;
 }
 
-/** States a signed balance movement in words, always framed as a receivable. */
 function toBalanceEffect(deltaCents: number, partnerName: string): string {
   if (deltaCents === 0) {
-    return `No change to what ${partnerName} owes you`;
+    return `No change to the balance with ${partnerName}`;
   }
   const magnitude = formatCentimesAsFrancs(Math.abs(deltaCents));
   return deltaCents > 0
-    ? `${partnerName} owes you ${magnitude} more`
-    : `${magnitude} off what ${partnerName} owes you`;
+    ? `Balance with ${partnerName} moved in your favor by ${magnitude}`
+    : `Balance with ${partnerName} moved against you by ${magnitude}`;
 }
 
 function toHero(balanceCents: number, partnerName: string): BalanceHero {

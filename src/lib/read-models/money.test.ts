@@ -129,7 +129,7 @@ describe("mapMoneyViewModel", () => {
       meta: "Sam paid · 10 Aug 2026",
       amount: "CHF 10.00",
       balanceDelta: "+CHF 5.00",
-      balanceEffect: "Leah owes you CHF 5.00 more",
+      balanceEffect: "Balance with Leah moved in your favor by CHF 5.00",
       type: "Expense",
     });
     // An opening balance stores the creditor, not a payer, so it reads as recorded.
@@ -193,7 +193,7 @@ describe("mapMoneyViewModel", () => {
       meta: "Leah paid · 10 Aug 2026",
       amount: "CHF 10.00",
       balanceDelta: "-CHF 5.00",
-      balanceEffect: "CHF 5.00 off what Leah owes you",
+      balanceEffect: "Balance with Leah moved against you by CHF 5.00",
       type: "Expense",
     });
   });
