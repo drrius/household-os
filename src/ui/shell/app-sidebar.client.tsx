@@ -27,6 +27,14 @@ type AppSidebarProps = {
 };
 
 function isDestinationActive(pathname: string, destinationHref: string) {
+  const fixturePath =
+    destinationHref === "/"
+      ? "/m6-fixture/today"
+      : `/m6-fixture${destinationHref}`;
+  if (pathname === fixturePath) {
+    return true;
+  }
+
   if (destinationHref === "/") {
     return pathname === destinationHref;
   }
@@ -42,10 +50,10 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
   return (
     <div className="hidden lg:contents">
       <Sidebar collapsible="icon">
-        <SidebarHeader className="p-4">
+        <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
           <div className="flex min-w-0 items-center gap-2">
             <Link
-              className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+              className="flex min-w-0 flex-1 items-center gap-3 no-underline group-data-[collapsible=icon]:hidden"
               href="/"
             >
               <span
@@ -65,7 +73,7 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
                 {householdName}
               </span>
             </Link>
-            <SidebarTrigger className="shrink-0 group-data-[collapsible=icon]:hidden" />
+            <SidebarTrigger className="shrink-0" />
           </div>
         </SidebarHeader>
 
@@ -77,17 +85,19 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
                 <SidebarMenu>
                   {PRODUCT_DESTINATIONS.map((destination) => {
                     const Icon = PRODUCT_DESTINATION_ICONS[destination.id];
+                    const isActive = isDestinationActive(
+                      pathname,
+                      destination.href,
+                    );
 
                     return (
                       <SidebarMenuItem key={destination.id}>
                         <SidebarMenuButton
-                          isActive={isDestinationActive(
-                            pathname,
-                            destination.href,
-                          )}
+                          aria-current={isActive ? "page" : undefined}
+                          isActive={isActive}
                           render={<Link href={destination.href} />}
                           size="lg"
-                          tooltip={destination.label}
+                          title={destination.label}
                         >
                           <Icon />
                           <span>{destination.label}</span>
@@ -101,7 +111,7 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
           </nav>
         </SidebarContent>
 
-        <SidebarFooter className="p-4">
+        <SidebarFooter className="p-4 group-data-[collapsible=icon]:p-2">
           <GlobalAddSheet placement="sidebar" />
         </SidebarFooter>
         <SidebarRail className="w-6" />

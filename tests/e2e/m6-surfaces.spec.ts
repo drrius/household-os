@@ -134,10 +134,15 @@ test("desktop shadcn sidebar keeps the global add action in view", async ({
 
   const sidebar = page.locator('[data-slot="sidebar-container"]');
   const addButton = page.getByRole("button", { name: "Add something" });
+  const toggle = page.locator('[data-sidebar="trigger"]');
+  const desktopSidebar = page.locator('[data-slot="sidebar"][data-state]');
 
   await expect(sidebar).toBeVisible();
   await expect(addButton).toBeVisible();
   await expect(sidebar).toHaveCSS("position", "fixed");
+  await expect(
+    sidebar.getByRole("link", { name: "Home", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 
   const initialButtonTop = await addButton.evaluate(
     (element) => element.getBoundingClientRect().top,
@@ -150,6 +155,51 @@ test("desktop shadcn sidebar keeps the global add action in view", async ({
       addButton.evaluate((element) => element.getBoundingClientRect().top),
     )
     .toBe(initialButtonTop);
+
+  await toggle.focus();
+  await toggle.press("Enter");
+  await expect(desktopSidebar).toHaveAttribute("data-state", "collapsed");
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toBeFocused();
+  await expect(addButton).toBeInViewport();
+
+  await expect(addButton.locator("span")).toBeHidden();
+  await expect
+    .poll(() =>
+      addButton.evaluate((element) => element.getBoundingClientRect().width),
+    )
+    .toBe(32);
+
+  const collapsedIsContained = await page.evaluate(() => {
+    const sidebarElement = document.querySelector<HTMLElement>(
+      '[data-slot="sidebar-container"]',
+    );
+    const addElement = document.querySelector<HTMLElement>(
+      '[data-sidebar="footer"] button',
+    );
+    if (sidebarElement === null || addElement === null) {
+      throw new Error("Expected the collapsed sidebar controls");
+    }
+
+    const sidebarRect = sidebarElement.getBoundingClientRect();
+    const addRect = addElement.getBoundingClientRect();
+    return (
+      addRect.left >= sidebarRect.left && addRect.right <= sidebarRect.right
+    );
+  });
+  expect(collapsedIsContained).toBe(true);
+});
+
+test("mobile Cmd+B does not open a duplicate sidebar", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/m6-fixture/home");
+
+  await page.keyboard.press("Meta+b");
+
+  await expect(page.locator('[data-mobile="true"]')).toHaveCount(0);
+  await expect(
+    page.getByRole("navigation", { name: "Primary navigation" }),
+  ).toBeVisible();
 });
 
 test("reduced motion removes meaningful animation and transitions", async ({
