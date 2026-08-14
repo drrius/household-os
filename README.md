@@ -58,8 +58,9 @@ pnpm db:fresh
 
 `admin:local` reads `.local/identity.json`, pulls the local `SECRET_KEY` from
 `supabase status`, bootstraps both members, and prints enroll URLs. Open a URL
-on `http://localhost:3000`, register a passkey, sign in. Pass `--open` to open
-the first enroll link in the browser.
+on `http://localhost:3000`, press Continue on the confirmation screen, register
+a passkey, and sign in. Pass `--open` to open the first enroll link in the
+browser.
 
 Production and one-off admin still use stdin for the secret. Pipe it from a
 password manager:
@@ -75,7 +76,8 @@ op read "op://Private/Household OS/Supabase secret key" | pnpm admin bootstrap \
 ```
 
 The command prints one enrollment URL per member. Transfer each URL privately
-to the matching member.
+to the matching member. Link previews are safe because the one-time token is
+not exchanged until the member presses Continue on the confirmation screen.
 
 Generate another one-time link for an existing member with `enroll-link` or
 `recover-link`:

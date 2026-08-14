@@ -40,3 +40,19 @@ test("auth failure and membership-denied gates remain usable", async ({
     page.getByRole("button", { name: "Sign out and return to sign in" }),
   ).toBeVisible();
 });
+
+test("a magic-link preview waits for a human before consuming the token", async ({
+  page,
+}) => {
+  await page.goto("/auth/consume?token_hash=preview-safe-token&type=magiclink");
+
+  await expect(
+    page.getByRole("heading", { name: "Set up your passkey" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue to passkey setup" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("This one-time link has not been used yet."),
+  ).toBeVisible();
+});
