@@ -47,7 +47,9 @@ export function AppShell({
 
         <main
           id="main-content"
-          className="row-start-1 mx-auto min-w-0 w-full max-w-6xl px-4 pt-6 max-lg:pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] lg:col-start-2 lg:row-[1/-1] lg:max-w-none lg:p-8 lg:pb-8"
+          // 5.75rem add-button offset + 3rem button + 1rem gap, with the same
+          // 0.75rem safe-area floor the floating chrome uses.
+          className="row-start-1 mx-auto min-w-0 w-full max-w-6xl px-4 pt-6 max-lg:pb-[calc(9.75rem+max(0.75rem,env(safe-area-inset-bottom)))] lg:col-start-2 lg:row-[1/-1] lg:max-w-none lg:p-8 lg:pb-8"
           tabIndex={-1}
         >
           {children}
