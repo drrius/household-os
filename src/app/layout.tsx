@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ServiceWorkerRegistrar } from "@/ui/pwa/service-worker-registrar.client";
 
 const uiFont = Work_Sans({
   subsets: ["latin"],
@@ -21,11 +22,24 @@ const headingFont = Nunito({
 export const metadata: Metadata = {
   title: "Household OS",
   description: "Private household coordination for two people.",
+  applicationName: "Household OS",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Household OS",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f1e8" },
+    { media: "(prefers-color-scheme: dark)", color: "#2c2924" },
+  ],
 };
 
 export default function RootLayout({
@@ -44,6 +58,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ServiceWorkerRegistrar />
           {children}
         </ThemeProvider>
       </body>

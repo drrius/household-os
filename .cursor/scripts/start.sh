@@ -69,9 +69,14 @@ write_env_local() {
     "
   )"
 
+  vapid_env="$(
+    node --experimental-strip-types scripts/ensure-vapid-keys.mts
+  )"
+
   cat >.env.local <<EOF
 NEXT_PUBLIC_SUPABASE_URL=${api_url}
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${publishable}
+${vapid_env}
 EOF
 }
 
