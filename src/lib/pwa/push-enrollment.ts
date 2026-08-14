@@ -69,6 +69,17 @@ export async function registerHouseholdServiceWorker(): Promise<ServiceWorkerReg
   });
 }
 
+export async function registerOptionalHouseholdServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator)) {
+    return null;
+  }
+  try {
+    return await registerHouseholdServiceWorker();
+  } catch {
+    return null;
+  }
+}
+
 export async function detectPushEnrollment(
   registration: ServiceWorkerRegistration | null,
 ): Promise<PushEnrollment> {
