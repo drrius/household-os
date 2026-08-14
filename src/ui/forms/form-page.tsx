@@ -30,6 +30,7 @@ export function FormPage({
     <AppPage labelledBy={titleId}>
       <div className="flex w-full max-w-2xl flex-col gap-4">
         <PageHeader
+          mobileLayout="inline"
           titleId={titleId}
           title={title}
           trailing={
