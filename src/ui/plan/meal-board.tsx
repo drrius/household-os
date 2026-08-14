@@ -1,128 +1,128 @@
-import { Plus } from "lucide-react";
-import Link from "next/link";
-
 import { Card, CardContent } from "@/components/ui/card";
-import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
+import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import { cn } from "@/lib/utils";
 import { MealBoardSlotPresence } from "@/ui/plan/meal-board-presence.client";
+import { EmptyMealTile, FilledMealTile } from "@/ui/plan/meal-board-tiles";
 import { PlanWeekPager } from "@/ui/plan/plan-week-pager.client";
 
 type PlanDay = PlanViewModel["days"][number];
-type PlanSlot = PlanDay["slots"][number];
 
 // The pager scrolls columns into view by id, so the convention lives here.
 function dayColumnId(date: string): string {
   return `plan-day-column-${date}`;
 }
 
-type MealSlotProps = {
-  date: string;
+// The rail and every day column share one row template, which is what lines the
+// three meal rows up across the week.
+const slotRows =
+  "grid-rows-[repeat(3,minmax(5.5rem,1fr))] lg:grid-rows-[repeat(3,minmax(6.5rem,1fr))]";
+const slotRowLabels = ["Breakfast", "Lunch", "Dinner"] as const;
+
+// Naming the rows once on the left lets every tile in the week drop its own
+// caption. The tiles keep their own labels for screen readers.
+function SlotRail() {
+  return (
+    <div
+      aria-hidden="true"
+      className="grid grid-rows-[auto_1fr] gap-2 pr-1 max-lg:hidden"
+    >
+      <div className="h-10" />
+      <ul className={cn("grid list-none gap-2", slotRows)} role="list">
+        {slotRowLabels.map((label) => (
+          <li
+            className="flex items-center justify-end text-sm text-muted-foreground"
+            key={label}
+          >
+            {label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DayHeading({
+  day,
+  dateLabel,
+  headingId,
+}: {
+  day: PlanDay;
   dateLabel: string;
-  mealSlot: PlanSlot;
-};
-
-function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
-  const { entry, slot } = mealSlot;
-
-  if (entry === null) {
-    return (
-      <Link
-        className="flex min-h-full items-center justify-center gap-1 rounded-xl border border-dashed p-3 font-heading font-bold text-muted-foreground no-underline transition-colors hover:border-primary hover:bg-card hover:text-secondary-foreground motion-reduce:transition-none"
-        href={`/plan/meals/new?date=${encodeURIComponent(date)}&slot=${encodeURIComponent(slot)}`}
-        aria-label={`Add ${slot} on ${dateLabel}`}
-      >
-        <Plus aria-hidden="true" className="size-4 shrink-0" />
-        <span className="truncate capitalize">{slot}</span>
-      </Link>
-    );
-  }
+  headingId: string;
+}) {
+  const [weekdayName, dayNumber] = day.weekdayLabel.split(" ");
 
   return (
-    <Link
-      aria-label={`${slot} on ${dateLabel}: ${entry.title}`}
-      className="block h-full no-underline"
-      href={`/plan/meals/${entry.id}`}
-    >
-      <Card
-        className={cn(
-          "h-full",
-          entry.isLeftover ? "bg-warning-soft" : "bg-secondary",
-        )}
-        size="sm"
-      >
-        <CardContent className="grid min-w-0 gap-2">
-          <p
+    <header className="flex h-10 items-center justify-between gap-1 px-1.5">
+      <h3 className="min-w-0" id={headingId}>
+        <time
+          className="flex items-baseline gap-1.5"
+          dateTime={day.date}
+          title={dateLabel}
+        >
+          <span
             className={cn(
-              "truncate text-xs capitalize",
-              entry.isLeftover
-                ? "font-medium text-warning-foreground"
-                : "text-muted-foreground",
+              "truncate text-sm",
+              day.isToday ? "text-primary" : "text-muted-foreground",
             )}
           >
-            {entry.isLeftover ? "Leftover" : slot}
-          </p>
-          <h4 className="wrap-anywhere text-sm leading-snug font-semibold">
-            {entry.title}
-          </h4>
-          {entry.notes !== null ? <p>{entry.notes}</p> : null}
-          {entry.cookLabel !== null ? (
-            <p className="font-heading font-bold">{entry.cookLabel}</p>
-          ) : null}
-        </CardContent>
-      </Card>
-    </Link>
+            {weekdayName ?? day.weekdayLabel}
+          </span>
+          <span
+            className={cn(
+              "font-heading text-lg font-semibold tabular-nums",
+              day.isToday && "text-primary",
+            )}
+          >
+            {dayNumber ?? ""}
+          </span>
+        </time>
+      </h3>
+      {/* Columns are too narrow for the word above lg, where the tint carries it. */}
+      {day.isToday ? (
+        <p className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-sm font-medium text-primary-foreground lg:hidden">
+          Today
+        </p>
+      ) : null}
+    </header>
   );
 }
 
 function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
   const dateLabel = formatZurichDayLabel(day.date);
+  const headingId = `plan-day-${day.date}`;
 
   return (
     <article
       aria-current={day.isToday ? "date" : undefined}
-      aria-labelledby={`plan-day-${day.date}`}
+      aria-labelledby={headingId}
       id={dayColumnId(day.date)}
       className={cn(
-        "relative grid min-w-0 snap-start grid-rows-[auto_1fr] border-r border-border p-3 last:border-r-0 lg:snap-none lg:p-2",
-        day.isToday &&
-          "before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-full before:bg-primary lg:before:inset-x-2",
+        "grid min-w-0 snap-start grid-rows-[auto_1fr] gap-2 rounded-2xl p-1.5 lg:snap-none",
+        day.isToday && "bg-primary/5 dark:bg-primary/10",
       )}
     >
-      <header className="flex h-11 items-center justify-between gap-2">
-        <h3
-          className={cn(
-            "min-w-0 truncate font-heading text-xl tabular-nums lg:text-base",
-            day.isToday && "text-primary",
-          )}
-          id={`plan-day-${day.date}`}
-        >
-          <time dateTime={day.date} title={dateLabel}>
-            {day.weekdayLabel}
-          </time>
-        </h3>
-        {day.isToday ? (
-          <p className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary lg:text-xs">
-            <span
-              aria-hidden="true"
-              className="size-1.5 shrink-0 rounded-full bg-primary"
-            />
-            Today
-          </p>
-        ) : null}
-      </header>
-      {/* Shorter rows below lg keep one whole day plus the pager inside 844px. */}
-      <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2 max-lg:grid-rows-[repeat(3,minmax(6rem,1fr))]">
+      <DayHeading dateLabel={dateLabel} day={day} headingId={headingId} />
+      <ul className={cn("grid list-none gap-2", slotRows)} role="list">
         {day.slots.map((mealSlot, slotIndex) => (
           <MealBoardSlotPresence
             index={dayIndex * day.slots.length + slotIndex}
             key={mealSlot.slot}
           >
-            <MealSlot
-              date={day.date}
-              dateLabel={dateLabel}
-              mealSlot={mealSlot}
-            />
+            {mealSlot.entry === null ? (
+              <EmptyMealTile
+                date={day.date}
+                dateLabel={dateLabel}
+                slot={mealSlot.slot}
+              />
+            ) : (
+              <FilledMealTile
+                dateLabel={dateLabel}
+                entry={mealSlot.entry}
+                slot={mealSlot.slot}
+              />
+            )}
           </MealBoardSlotPresence>
         ))}
       </ul>
@@ -133,15 +133,16 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
 export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
   return (
     <section aria-labelledby="meal-board-title">
-      <h2 id="meal-board-title" className="sr-only">
+      <h2 className="sr-only" id="meal-board-title">
         Monday to Sunday meal board
       </h2>
       <Card className="gap-0 py-0">
         <CardContent className="px-0">
           {/* A container, so the column width below lg is measured against the
               scroller instead of the viewport, which a scrollbar corrupts. */}
-          <div className="@container snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-px-3 max-lg:px-3 lg:snap-none lg:overflow-x-visible">
-            <div className="grid min-w-max auto-cols-[minmax(14rem,calc(100cqw-3.5rem))] grid-flow-col lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-7">
+          <div className="@container snap-x snap-mandatory scroll-px-3 overflow-x-auto overscroll-x-contain p-3 lg:snap-none lg:overflow-x-visible">
+            <div className="grid min-w-max auto-cols-[minmax(13rem,calc(100cqw-3.5rem))] grid-flow-col gap-2 lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-[auto_repeat(7,minmax(0,1fr))]">
+              <SlotRail />
               {days.map((day, dayIndex) => (
                 <DayColumn day={day} dayIndex={dayIndex} key={day.date} />
               ))}

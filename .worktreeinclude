@@ -1,0 +1,4 @@
+# Gitignored files Claude Code copies into every new worktree.
+.env
+.env.local
+.local/identity.json
