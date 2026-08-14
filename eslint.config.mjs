@@ -134,6 +134,8 @@ export default defineConfig([
     },
   },
   globalIgnores([
+    // Agent worktrees nest inside the repo but are their own checkouts.
+    ".claude/worktrees/**",
     "**/.next/**",
     "**/.next-verify/**",
     "coverage/**",
