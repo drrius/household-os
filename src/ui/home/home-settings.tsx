@@ -57,9 +57,15 @@ export function SettingsList({
     <Card>
       <CardContent>
         <ul className="list-none" aria-label="Household settings">
-          <SettingsRow
-            hint="Coming later · In-app notifications, optional push, and a personal digest"
+          <SettingsLinkRow
+            hint="In-app inbox, optional push, and a personal digest"
+            href="/home/notifications"
             title="Notifications & digest"
+          />
+          <SettingsLinkRow
+            hint="Partner notices, reminders, and digests"
+            href="/home/inbox"
+            title="Inbox"
           />
           <SettingsLinkRow
             hint="Manage authenticators and recovery access"
