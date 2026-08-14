@@ -89,23 +89,21 @@ export function PlanScreen({ plan }: PlanScreenProps) {
             ? `This week · ${plan.timeZoneLabel}`
             : plan.timeZoneLabel
         }
-        trailing={
-          <div className="flex flex-wrap items-center gap-2">
-            <PlanThisWeekJump visible={!viewingCurrentWeek} />
-            <PlanWeekArrow
-              direction="previous"
-              href={`/plan?week=${previousWeek}`}
-            />
-            <PlanWeekArrow direction="next" href={`/plan?week=${nextWeek}`} />
-            <Link
-              className={buttonVariants({ className: "no-underline" })}
-              href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}
-            >
-              Add meal
-            </Link>
-          </div>
-        }
       />
+      <div className="flex flex-wrap items-center gap-2">
+        <PlanThisWeekJump visible={!viewingCurrentWeek} />
+        <PlanWeekArrow
+          direction="previous"
+          href={`/plan?week=${previousWeek}`}
+        />
+        <PlanWeekArrow direction="next" href={`/plan?week=${nextWeek}`} />
+        <Link
+          className={buttonVariants({ className: "no-underline" })}
+          href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}
+        >
+          Add meal
+        </Link>
+      </div>
       <MealBoard days={plan.days} />
       <MealLibrary meals={plan.library} />
     </AppPage>

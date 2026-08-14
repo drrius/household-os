@@ -16,69 +16,57 @@ export function PlanThisWeekJump({ visible }: { visible: boolean }) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <div className="relative">
-      <span
-        aria-hidden="true"
-        className={cn(chipClassName, "invisible pointer-events-none")}
-      >
-        <CalendarCheck
-          aria-hidden="true"
-          className="size-4 shrink-0 sm:hidden"
-        />
-        <span className="hidden sm:inline">This week</span>
-      </span>
-      <AnimatePresence>
-        {visible ? (
-          <motion.div
-            animate={
-              reduceMotion
-                ? { opacity: 1 }
-                : { opacity: 1, scale: 1, filter: "blur(0px)" }
-            }
-            className="absolute inset-0 flex items-center"
-            exit={
-              reduceMotion
-                ? { opacity: 0 }
-                : { opacity: 0, scale: 0.94, filter: "blur(4px)" }
-            }
-            initial={
-              reduceMotion
-                ? { opacity: 0 }
-                : { opacity: 0, scale: 0.94, filter: "blur(4px)" }
-            }
-            key="this-week-jump"
-            transition={
-              reduceMotion
-                ? { duration: 0.12 }
-                : { type: "spring", stiffness: 420, damping: 28, mass: 0.7 }
-            }
+    <AnimatePresence initial={false}>
+      {visible ? (
+        <motion.div
+          animate={
+            reduceMotion
+              ? { opacity: 1 }
+              : { opacity: 1, scale: 1, filter: "blur(0px)" }
+          }
+          className="flex items-center"
+          exit={
+            reduceMotion
+              ? { opacity: 0 }
+              : { opacity: 0, scale: 0.94, filter: "blur(4px)" }
+          }
+          initial={
+            reduceMotion
+              ? { opacity: 0 }
+              : { opacity: 0, scale: 0.94, filter: "blur(4px)" }
+          }
+          key="this-week-jump"
+          transition={
+            reduceMotion
+              ? { duration: 0.12 }
+              : { type: "spring", stiffness: 420, damping: 28, mass: 0.7 }
+          }
+        >
+          <SlowLink
+            aria-label="This week"
+            className={cn(chipClassName, "aria-busy:opacity-70")}
+            href="/plan"
+            title="This week"
           >
-            <SlowLink
-              aria-label="This week"
-              className={cn(chipClassName, "w-full aria-busy:opacity-70")}
-              href="/plan"
-              title="This week"
-            >
-              {(pending) =>
-                pending ? (
-                  <LoaderCircle
+            {(pending) =>
+              pending ? (
+                <LoaderCircle
+                  aria-hidden="true"
+                  className="size-4 shrink-0 animate-spin motion-reduce:animate-none motion-reduce:opacity-70"
+                />
+              ) : (
+                <>
+                  <CalendarCheck
                     aria-hidden="true"
-                    className="size-4 shrink-0 animate-spin motion-reduce:animate-none motion-reduce:opacity-70"
+                    className="size-4 shrink-0 sm:hidden"
                   />
-                ) : (
-                  <>
-                    <CalendarCheck
-                      aria-hidden="true"
-                      className="size-4 shrink-0 sm:hidden"
-                    />
-                    <span className="hidden sm:inline">This week</span>
-                  </>
-                )
-              }
-            </SlowLink>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
+                  <span className="hidden sm:inline">This week</span>
+                </>
+              )
+            }
+          </SlowLink>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }
