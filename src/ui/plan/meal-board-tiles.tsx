@@ -64,13 +64,15 @@ export function FilledMealTile({
       <h4 className="wrap-anywhere text-base font-semibold lg:text-sm">
         {entry.title}
       </h4>
+      {/* Notes hold up to 4000 characters of free text, so every line breaks
+          inside words: an unbroken token would otherwise widen the carousel. */}
       {entry.notes !== null ? (
-        <p className="text-sm text-muted-foreground lg:text-xs">
+        <p className="wrap-anywhere text-sm text-muted-foreground lg:text-xs">
           {entry.notes}
         </p>
       ) : null}
       {entry.cookLabel !== null ? (
-        <p className="font-heading text-sm font-semibold lg:text-xs">
+        <p className="wrap-anywhere font-heading text-sm font-semibold lg:text-xs">
           {entry.cookLabel}
         </p>
       ) : null}
