@@ -139,7 +139,7 @@ export function GlobalAddSheet({ placement = "mobile" }: GlobalAddSheetProps) {
               placement === "mobile" &&
                 "fixed right-5 bottom-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom)))] z-20 size-12 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.24)] ring-1 ring-primary transition-transform duration-200 motion-reduce:transition-none md:size-12 lg:hidden",
               placement === "sidebar" &&
-                "w-full justify-start rounded-xl shadow-none lg:h-11 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0!",
+                "w-full justify-center rounded-xl shadow-none group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:px-0!",
               // Never `display: none` while the trigger is only temporarily out
               // of the way: that would move focus off it mid-gesture.
               placement === "mobile" &&
