@@ -1,10 +1,7 @@
 import type { ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
-
 export type PageHeaderProps = {
   eyebrow?: ReactNode;
-  mobileLayout?: "inline" | "stacked";
   title: ReactNode;
   titleId?: string;
   trailing?: ReactNode;
@@ -12,20 +9,12 @@ export type PageHeaderProps = {
 
 export function PageHeader({
   eyebrow,
-  mobileLayout = "stacked",
   title,
   titleId,
   trailing,
 }: PageHeaderProps) {
   return (
-    <header
-      className={cn(
-        "flex gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4",
-        mobileLayout === "inline"
-          ? "flex-row items-center justify-between gap-4"
-          : "flex-col items-start",
-      )}
-    >
+    <header className="flex flex-row items-center justify-between gap-4 sm:items-end sm:gap-4">
       <div className="grid min-w-0 gap-1">
         {eyebrow !== undefined && eyebrow !== null ? (
           <p className="text-xs font-semibold text-muted-foreground">
@@ -40,12 +29,7 @@ export function PageHeader({
         </h1>
       </div>
       {trailing !== undefined && trailing !== null ? (
-        <div
-          className={cn(
-            "flex flex-wrap items-center gap-2",
-            mobileLayout === "inline" ? "shrink-0" : "max-sm:w-full",
-          )}
-        >
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {trailing}
         </div>
       ) : null}
