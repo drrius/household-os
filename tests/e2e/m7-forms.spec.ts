@@ -61,10 +61,10 @@ test("expense form supports payer selection and exact centime allocations", asyn
   await expect(page.getByRole("textbox", { name: /'s share$/ })).toHaveCount(2);
   await page.getByRole("textbox", { name: "Darius's share" }).fill("7.00");
   await page.getByRole("textbox", { name: "Partner's share" }).fill("3.00");
-  await expect(page.getByRole("textbox", { name: "Darius's share" })).toHaveValue(
-    "7.00",
-  );
-  await expect(page.getByRole("textbox", { name: "Partner's share" })).toHaveValue(
-    "3.00",
-  );
+  await expect(
+    page.getByRole("textbox", { name: "Darius's share" }),
+  ).toHaveValue("7.00");
+  await expect(
+    page.getByRole("textbox", { name: "Partner's share" }),
+  ).toHaveValue("3.00");
 });
