@@ -7,6 +7,33 @@ type LocalSupabaseStatus = {
   serviceRoleKey?: string;
 };
 
+function extractLastJsonObject(stdout: string): unknown {
+  const trimmed = stdout.trim();
+  if (trimmed.length === 0) {
+    throw new Error("supabase status returned empty stdout");
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // Supabase may print non-JSON noise before the object on stdout.
+  }
+
+  for (
+    let index = trimmed.lastIndexOf("{");
+    index >= 0;
+    index = index === 0 ? -1 : trimmed.lastIndexOf("{", index - 1)
+  ) {
+    try {
+      return JSON.parse(trimmed.slice(index));
+    } catch {
+      // Try an earlier object candidate on stdout.
+    }
+  }
+
+  throw new Error("supabase status returned no JSON object on stdout");
+}
+
 function readLocalSupabaseStatus(): LocalSupabaseStatus {
   const result = spawnSync(
     "pnpm",
@@ -23,8 +50,8 @@ function readLocalSupabaseStatus(): LocalSupabaseStatus {
     );
   }
 
-  const parsed: unknown = JSON.parse(result.stdout);
-  if (typeof parsed !== "object" || parsed === null) {
+  const parsed = extractLastJsonObject(result.stdout);
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error("supabase status returned invalid JSON");
   }
 

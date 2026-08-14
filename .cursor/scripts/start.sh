@@ -89,6 +89,8 @@ VAPID_PUBLIC_KEY=${vapid_public}
 VAPID_PRIVATE_KEY=${vapid_private}
 EOF
   chmod 600 supabase/functions/.env
+
+  node --experimental-strip-types scripts/inject-edge-vapid-env.mts
 }
 
 ensure_docker_daemon
@@ -98,3 +100,7 @@ if ! pnpm exec supabase status >/dev/null 2>&1; then
 fi
 
 write_env_local
+
+if [[ -f scripts/seed-push-dispatch-vault.mts ]]; then
+  node --experimental-strip-types scripts/seed-push-dispatch-vault.mts
+fi
