@@ -6,23 +6,17 @@ import {
   type PushInboxNotification,
   type PushPayload,
 } from "./push-payload.ts";
+import {
+  classifyPushResponse,
+  evaluatePushDelivery,
+  subscriptionsRequiringDelivery,
+  type EvaluatePushDeliveryInput,
+  type PushDeliveryDecision,
+  type SubscriptionDeliveryOutcome,
+} from "./push-delivery-policy.ts";
 import { vapidKeysToPrivateJwk, type VapidPrivateJwk } from "./vapid-jwk.ts";
 
-export type PushDeliveryResult =
-  | { kind: "sent" }
-  | { kind: "skipped_no_subscription" }
-  | { kind: "failed"; error: string }
-  | { kind: "gone" };
-
-export type OutboxDeliveryResult = Exclude<
-  PushDeliveryResult,
-  { kind: "gone" }
->;
-
-type SubscriptionDeliveryResult = Exclude<
-  PushDeliveryResult,
-  { kind: "skipped_no_subscription" }
->;
+export type PushDeliveryResult = PushDeliveryDecision;
 
 export type OutboxRow = {
   id: string;
@@ -30,6 +24,8 @@ export type OutboxRow = {
   inbox_notification_id: string;
   household_id: string;
   attempt_count: number;
+  claim_token: string;
+  delivered_subscription_ids: string[];
   inbox: PushInboxNotification;
 };
 
@@ -49,25 +45,28 @@ type PushConfig =
   | { kind: "missing"; error: string }
   | { kind: "invalid"; error: string };
 
-export type DrainCounts = { sent: number; skipped: number; failed: number };
+export type DrainCounts = {
+  sent: number;
+  skipped: number;
+  retry: number;
+  deferred: number;
+  failed: number;
+};
 type ServiceClient = ReturnType<typeof createClient>;
 
-const MAX_ERROR_LENGTH = 1000;
 const MAX_DELIVERY_ATTEMPTS = 5;
 const DEFAULT_VAPID_SUBJECT = "mailto:household-os@localhost";
 
 export const DRAIN_COUNT_KEY = {
   sent: "sent",
   skipped_no_subscription: "skipped",
+  retry: "retry",
+  deferred: "deferred",
   failed: "failed",
-} satisfies Record<OutboxDeliveryResult["kind"], keyof DrainCounts>;
+} satisfies Record<PushDeliveryDecision["kind"], keyof DrainCounts>;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function truncateError(error: string): string {
-  return error.slice(0, MAX_ERROR_LENGTH);
 }
 
 export function loadPushConfig(): PushConfig {
@@ -91,72 +90,62 @@ export function loadPushConfig(): PushConfig {
   }
 }
 
-async function markOutbox(
+async function finalizeClaim(
   supabase: ServiceClient,
   row: OutboxRow,
-  result: OutboxDeliveryResult,
-  skippedError: string | null = null,
+  decision: PushDeliveryDecision,
 ): Promise<void> {
-  const processedAt = new Date().toISOString();
-  const update = (() => {
-    switch (result.kind) {
-      case "sent":
-        return {
-          status: "sent",
-          last_error: null,
-          processed_at: processedAt,
-        };
-      case "skipped_no_subscription":
-        return {
-          status: "skipped_no_subscription",
-          last_error:
-            skippedError === null ? null : truncateError(skippedError),
-          processed_at: processedAt,
-        };
-      case "failed": {
-        const attemptCount = row.attempt_count + 1;
-        if (attemptCount >= MAX_DELIVERY_ATTEMPTS) {
-          return {
-            status: "failed",
-            last_error: truncateError(result.error),
-            attempt_count: attemptCount,
-            processed_at: processedAt,
-          };
-        }
-        return {
-          status: "pending",
-          last_error: truncateError(result.error),
-          attempt_count: attemptCount,
-          processed_at: null,
-        };
-      }
-      default: {
-        const _exhaustive: never = result;
-        return _exhaustive;
-      }
-    }
-  })();
+  const error =
+    decision.kind === "retry" ||
+    decision.kind === "deferred" ||
+    decision.kind === "failed"
+      ? decision.error
+      : null;
+  const { data, error: rpcError } = await supabase
+    .rpc("finalize_push_outbox_claim", {
+      p_outbox_id: row.id,
+      p_claim_token: row.claim_token,
+      p_outcome: decision.kind === "retry" ? "failed" : decision.kind,
+      p_error: error,
+      p_delivered_subscription_ids: decision.successfulSubscriptionIds,
+    })
+    .overrideTypes<boolean, { merge: false }>();
 
-  const { error } = await supabase
-    .from("push_outbox")
-    .update(update)
-    .eq("id", row.id)
-    .eq("household_id", row.household_id)
-    .eq("status", "pending");
-
-  if (error) {
-    throw new Error(`push outbox update failed: ${error.message}`);
+  if (rpcError) {
+    throw new Error(`push outbox finalization failed: ${rpcError.message}`);
+  }
+  if (data !== true) {
+    throw new Error(`push outbox claim ${row.id} is no longer owned`);
   }
 }
 
 async function finishRow(
   supabase: ServiceClient,
   row: OutboxRow,
-  result: OutboxDeliveryResult,
-  skippedError: string | null = null,
-): Promise<OutboxDeliveryResult> {
-  await markOutbox(supabase, row, result, skippedError);
-  return result;
+  decision: PushDeliveryDecision,
+): Promise<PushDeliveryDecision> {
+  await finalizeClaim(supabase, row, decision);
+  return decision;
+}
+
+async function finishUnavailableConfiguration(
+  supabase: ServiceClient,
+  row: OutboxRow,
+  policyInput: Omit<EvaluatePushDeliveryInput, "round">,
+  config: Exclude<PushConfig, { kind: "ready" }>,
+): Promise<PushDeliveryDecision> {
+  return finishRow(
+    supabase,
+    row,
+    evaluatePushDelivery({
+      ...policyInput,
+      round: {
+        kind: "configuration_unavailable",
+        reason: config.kind,
+        error: config.error,
+      },
+    }),
+  );
 }
 
 async function sendPush(
@@ -165,7 +154,7 @@ async function sendPush(
   subscription: PushSubscriptionRow,
   payload: PushPayload,
   config: Extract<PushConfig, { kind: "ready" }>,
-): Promise<SubscriptionDeliveryResult> {
+): Promise<SubscriptionDeliveryOutcome> {
   try {
     const pushRequest = await buildPushHTTPRequest({
       privateJWK: config.privateJwk,
@@ -185,13 +174,15 @@ async function sendPush(
       method: "POST",
       headers: pushRequest.headers,
       body: pushRequest.body,
+      signal: AbortSignal.timeout(15_000),
     });
 
-    if (response.ok) {
-      return { kind: "sent" };
-    }
-
-    if (response.status === 404 || response.status === 410) {
+    const outcome = classifyPushResponse({
+      subscriptionId: subscription.id,
+      status: response.status,
+      statusText: response.statusText,
+    });
+    if (outcome.kind === "gone") {
       const { error } = await supabase
         .from("push_subscriptions")
         .update({ disabled_at: new Date().toISOString() })
@@ -200,21 +191,17 @@ async function sendPush(
         .is("disabled_at", null);
       if (error) {
         return {
-          kind: "failed",
+          kind: "transient_failure",
+          subscriptionId: subscription.id,
           error: `subscription ${subscription.id} disable failed: ${error.message}`,
         };
       }
-      return { kind: "gone" };
     }
-
-    const statusText = response.statusText ? ` ${response.statusText}` : "";
-    return {
-      kind: "failed",
-      error: `subscription ${subscription.id} returned HTTP ${response.status}${statusText}`,
-    };
+    return outcome;
   } catch (error) {
     return {
-      kind: "failed",
+      kind: "transient_failure",
+      subscriptionId: subscription.id,
       error: `subscription ${subscription.id} failed: ${errorMessage(error)}`,
     };
   }
@@ -224,7 +211,7 @@ export async function drainRow(
   supabase: ServiceClient,
   row: OutboxRow,
   config: PushConfig,
-): Promise<OutboxDeliveryResult> {
+): Promise<PushDeliveryDecision> {
   const { data: subscriptions, error } = await supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
@@ -234,29 +221,36 @@ export async function drainRow(
     .overrideTypes<PushSubscriptionRow[], { merge: false }>();
 
   if (error) {
-    return finishRow(supabase, row, {
-      kind: "failed",
-      error: error.message,
-    });
+    return finishRow(
+      supabase,
+      row,
+      evaluatePushDelivery({
+        attemptCount: row.attempt_count,
+        maxAttempts: MAX_DELIVERY_ATTEMPTS,
+        activeSubscriptionIds: [],
+        successfulSubscriptionIds: row.delivered_subscription_ids,
+        round: {
+          kind: "delivery_state_unavailable",
+          error: error.message,
+        },
+      }),
+    );
   }
 
-  if (subscriptions.length === 0) {
-    return finishRow(supabase, row, { kind: "skipped_no_subscription" });
-  }
+  const activeSubscriptionIds = subscriptions.map(
+    (subscription) => subscription.id,
+  );
+  const policyInput = {
+    attemptCount: row.attempt_count,
+    maxAttempts: MAX_DELIVERY_ATTEMPTS,
+    activeSubscriptionIds,
+    successfulSubscriptionIds: row.delivered_subscription_ids,
+  };
 
   switch (config.kind) {
     case "missing":
-      return finishRow(
-        supabase,
-        row,
-        { kind: "skipped_no_subscription" },
-        config.error,
-      );
     case "invalid":
-      return finishRow(supabase, row, {
-        kind: "failed",
-        error: config.error,
-      });
+      return finishUnavailableConfiguration(supabase, row, policyInput, config);
     case "ready":
       break;
     default: {
@@ -266,25 +260,21 @@ export async function drainRow(
   }
 
   const payload = buildPushPayload(row.inbox);
+  const pendingSubscriptions = subscriptionsRequiringDelivery(
+    subscriptions,
+    row.delivered_subscription_ids,
+  );
   const deliveries = await Promise.all(
-    subscriptions.map((subscription) =>
+    pendingSubscriptions.map((subscription) =>
       sendPush(supabase, row.household_id, subscription, payload, config),
     ),
   );
-
-  if (deliveries.some((delivery) => delivery.kind === "sent")) {
-    return finishRow(supabase, row, { kind: "sent" });
-  }
-
-  if (deliveries.every((delivery) => delivery.kind === "gone")) {
-    return finishRow(supabase, row, { kind: "skipped_no_subscription" });
-  }
-
-  const errors = deliveries.flatMap((delivery) =>
-    delivery.kind === "failed" ? [delivery.error] : [],
+  return finishRow(
+    supabase,
+    row,
+    evaluatePushDelivery({
+      ...policyInput,
+      round: { kind: "subscription_results", outcomes: deliveries },
+    }),
   );
-  return finishRow(supabase, row, {
-    kind: "failed",
-    error: errors.join("; "),
-  });
 }

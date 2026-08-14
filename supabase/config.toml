@@ -37,3 +37,6 @@ rp_origins = ["http://localhost:3000"]
 [storage]
 enabled = true
 file_size_limit = "4MiB"
+
+[functions.push-dispatch]
+verify_jwt = false

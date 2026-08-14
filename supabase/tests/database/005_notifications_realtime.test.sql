@@ -145,6 +145,58 @@ select ok(
   'clients cannot execute invoke_push_dispatch'
 );
 
+select has_function(
+  'public',
+  'claim_push_outbox',
+  array['integer', 'integer', 'uuid[]'],
+  'claim_push_outbox exists for atomic Edge delivery leases'
+);
+
+select has_function(
+  'public',
+  'finalize_push_outbox_claim',
+  array['uuid', 'uuid', 'text', 'text', 'uuid[]'],
+  'finalize_push_outbox_claim exists for owned delivery completion'
+);
+
+select ok(
+  has_function_privilege(
+    'service_role',
+    'public.claim_push_outbox(integer,integer,uuid[])',
+    'execute'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.finalize_push_outbox_claim(uuid,uuid,text,text,uuid[])',
+    'execute'
+  ),
+  'service_role can execute the push claim lease RPCs'
+);
+
+select ok(
+  not has_function_privilege(
+    'anon',
+    'public.claim_push_outbox(integer,integer,uuid[])',
+    'execute'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.claim_push_outbox(integer,integer,uuid[])',
+    'execute'
+  )
+  and not has_function_privilege(
+    'anon',
+    'public.finalize_push_outbox_claim(uuid,uuid,text,text,uuid[])',
+    'execute'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'public.finalize_push_outbox_claim(uuid,uuid,text,text,uuid[])',
+    'execute'
+  ),
+  'clients cannot execute the push claim lease RPCs'
+);
+
 select ok(
   not has_table_privilege(
     'authenticated',
@@ -351,6 +403,280 @@ select is(
   (select count(*)::integer from public.inbox_notifications),
   0,
   'a member cannot read another household inbox'
+);
+
+reset role;
+
+insert into public.push_subscriptions (
+  id,
+  household_id,
+  member_id,
+  endpoint,
+  p256dh,
+  auth,
+  user_agent
+)
+values
+  (
+    '70000000-0000-4000-8000-000000000051',
+    '10000000-0000-4000-8000-000000000051',
+    '00000000-0000-4000-8000-000000000052',
+    'https://push.example.invalid/claim-one',
+    'claim-p256dh-one',
+    'claim-auth-one',
+    'pgTAP claim one'
+  ),
+  (
+    '70000000-0000-4000-8000-000000000052',
+    '10000000-0000-4000-8000-000000000051',
+    '00000000-0000-4000-8000-000000000052',
+    'https://push.example.invalid/claim-two',
+    'claim-p256dh-two',
+    'claim-auth-two',
+    'pgTAP claim two'
+  );
+
+insert into public.inbox_notifications (
+  id,
+  household_id,
+  recipient_member_id,
+  kind,
+  activity_kind,
+  entity_type,
+  dedupe_key,
+  created_at
+)
+values
+  (
+    '60000000-0000-4000-8000-000000000051',
+    '10000000-0000-4000-8000-000000000051',
+    '00000000-0000-4000-8000-000000000052',
+    'partner_notice',
+    'expense_posted',
+    'financial_event',
+    'push-claim-test-one',
+    '2000-01-01 00:00:00+00'
+  ),
+  (
+    '60000000-0000-4000-8000-000000000052',
+    '10000000-0000-4000-8000-000000000051',
+    '00000000-0000-4000-8000-000000000052',
+    'partner_notice',
+    'expense_posted',
+    'financial_event',
+    'push-claim-test-two',
+    '2000-01-01 00:00:01+00'
+  );
+
+insert into public.push_outbox (
+  id,
+  household_id,
+  recipient_member_id,
+  inbox_notification_id,
+  created_at
+)
+values
+  (
+    '65000000-0000-4000-8000-000000000051',
+    '10000000-0000-4000-8000-000000000051',
+    '00000000-0000-4000-8000-000000000052',
+    '60000000-0000-4000-8000-000000000051',
+    '2000-01-01 00:00:00+00'
+  ),
+  (
+    '65000000-0000-4000-8000-000000000052',
+    '10000000-0000-4000-8000-000000000051',
+    '00000000-0000-4000-8000-000000000052',
+    '60000000-0000-4000-8000-000000000052',
+    '2000-01-01 00:00:01+00'
+  );
+
+set local role service_role;
+
+create temporary table first_push_claim as
+select * from public.claim_push_outbox(1, 120);
+
+create temporary table second_push_claim as
+select * from public.claim_push_outbox(1, 120);
+
+select is(
+  (select count(*)::integer from first_push_claim),
+  1,
+  'a push claim returns one bounded row'
+);
+
+select is(
+  (select count(*)::integer from second_push_claim),
+  1,
+  'an overlapping push claim returns another bounded row'
+);
+
+select isnt(
+  (select id from first_push_claim),
+  (select id from second_push_claim),
+  'overlapping claims own disjoint outbox rows'
+);
+
+update public.push_outbox
+set
+  claimed_at = now() - interval '2 seconds',
+  claim_expires_at = now() - interval '1 second'
+where id = (select id from first_push_claim);
+
+create temporary table recovered_push_claim as
+select * from public.claim_push_outbox(1, 120);
+
+select is(
+  (select id from recovered_push_claim),
+  (select id from first_push_claim),
+  'an expired push lease is reclaimed'
+);
+
+select is(
+  public.finalize_push_outbox_claim(
+    (select id from first_push_claim),
+    (select claim_token from first_push_claim),
+    'sent'
+  ),
+  false,
+  'a stale claim token cannot finalize a reclaimed row'
+);
+
+select is(
+  public.finalize_push_outbox_claim(
+    (select id from recovered_push_claim),
+    (select claim_token from recovered_push_claim),
+    'deferred',
+    'vapid secrets not configured',
+    array['70000000-0000-4000-8000-000000000051'::uuid]
+  ),
+  true,
+  'the current claim owner can defer without dropping the row'
+);
+
+select ok(
+  (
+    select status = 'pending'
+      and attempt_count = 0
+      and claim_token is null
+      and processed_at is null
+      and delivered_subscription_ids = array[
+        '70000000-0000-4000-8000-000000000051'::uuid
+      ]
+    from public.push_outbox
+    where id = (select id from recovered_push_claim)
+  ),
+  'deferred finalization releases the lease without consuming an attempt'
+);
+
+delete from public.push_subscriptions
+where id = '70000000-0000-4000-8000-000000000051';
+
+select ok(
+  not exists (
+    select 1
+    from public.push_subscriptions
+    where id = '70000000-0000-4000-8000-000000000051'
+  ),
+  'a previously successful device can be unregistered before another retry'
+);
+
+select is(
+  public.finalize_push_outbox_claim(
+    (select id from second_push_claim),
+    (select claim_token from second_push_claim),
+    'deferred',
+    'worker will continue with another row'
+  ),
+  true,
+  'the second pending row can be released for the exclusion test'
+);
+
+create temporary table excluded_push_claim as
+select *
+from public.claim_push_outbox(
+  1,
+  120,
+  array[(select id from first_push_claim)]
+);
+
+select is(
+  (select id from excluded_push_claim),
+  (select id from second_push_claim),
+  'a deferred oldest row is excluded so the worker claims the next row'
+);
+
+select is(
+  public.finalize_push_outbox_claim(
+    (select id from excluded_push_claim),
+    (select claim_token from excluded_push_claim),
+    'deferred',
+    'exclusion test complete'
+  ),
+  true,
+  'the exclusion-test claim is released'
+);
+
+create temporary table retry_push_claim as
+select * from public.claim_push_outbox(1, 120);
+
+select is(
+  public.finalize_push_outbox_claim(
+    (select id from retry_push_claim),
+    (select claim_token from retry_push_claim),
+    'failed',
+    'transient push failure',
+    array[
+      '70000000-0000-4000-8000-000000000051'::uuid,
+      '70000000-0000-4000-8000-000000000052'::uuid
+    ]
+  ),
+  true,
+  'the current claim owner can record a retryable failure'
+);
+
+select ok(
+  (
+    select status = 'pending'
+      and attempt_count = 1
+      and delivered_subscription_ids @> array[
+        '70000000-0000-4000-8000-000000000051'::uuid,
+        '70000000-0000-4000-8000-000000000052'::uuid
+      ]
+    from public.push_outbox
+    where id = (select id from retry_push_claim)
+  ),
+  'retry finalization trusts stored successes after unregister and adds new ones'
+);
+
+update public.push_outbox
+set attempt_count = 4
+where id = (select id from retry_push_claim);
+
+create temporary table exhausted_push_claim as
+select * from public.claim_push_outbox(1, 120);
+
+select is(
+  public.finalize_push_outbox_claim(
+    (select id from exhausted_push_claim),
+    (select claim_token from exhausted_push_claim),
+    'failed',
+    'final transient push failure'
+  ),
+  true,
+  'the current owner can finalize the last allowed attempt'
+);
+
+select ok(
+  (
+    select status = 'failed'
+      and attempt_count = 5
+      and processed_at is not null
+      and claim_token is null
+    from public.push_outbox
+    where id = (select id from exhausted_push_claim)
+  ),
+  'the fifth delivery failure terminally exhausts the outbox row'
 );
 
 reset role;

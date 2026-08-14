@@ -96,7 +96,6 @@ async function main(): Promise<void> {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
       apikey: serviceRoleKey,
       "Content-Type": "application/json",
     },

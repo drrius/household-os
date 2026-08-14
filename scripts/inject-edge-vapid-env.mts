@@ -187,6 +187,7 @@ function vapidAlreadyInjected(envList: string[], keys: VapidKeys): boolean {
   const pushEnv = readPushDispatchEnv(env.get(FUNCTIONS_CONFIG_ENV));
   return (
     pushEnv !== null &&
+    env.get(FUNCTIONS_CONFIG_ENV)?.includes('"verifyJWT":false') === true &&
     pushEnv[VAPID_PUBLIC_KEY] === keys.publicKey &&
     pushEnv[VAPID_PRIVATE_KEY] === keys.privateKey
   );
@@ -215,7 +216,7 @@ function injectVapidIntoFunctionsConfig(
     !Array.isArray(existingFn)
       ? { ...existingFn }
       : {
-          verifyJWT: true,
+          verifyJWT: false,
           entrypointPath: "supabase/functions/push-dispatch/index.ts",
         };
 
@@ -229,6 +230,7 @@ function injectVapidIntoFunctionsConfig(
 
   env[VAPID_PUBLIC_KEY] = keys.publicKey;
   env[VAPID_PRIVATE_KEY] = keys.privateKey;
+  fnConfig.verifyJWT = false;
   fnConfig.env = env;
   root[PUSH_DISPATCH] = fnConfig;
   return JSON.stringify(root);
