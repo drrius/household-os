@@ -16,6 +16,14 @@ function surfaceFromPath(pathname: string): AppSurface {
   if (pathname === "/money" || pathname.startsWith("/money/")) {
     return "money";
   }
+  if (
+    pathname === "/home/inbox" ||
+    pathname.startsWith("/home/inbox/") ||
+    pathname === "/home/notifications" ||
+    pathname.startsWith("/home/notifications/")
+  ) {
+    return "inbox";
+  }
   if (pathname === "/home" || pathname.startsWith("/home/")) {
     return "home";
   }

@@ -1,109 +1,67 @@
-/**
- * Free-tier Edge Function: drain pending push_outbox rows.
- * VAPID keys stay in Edge secrets. Missing secrets leave inbox intact.
- */
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
-type OutboxRow = {
-  id: string;
-  recipient_member_id: string;
-};
+import {
+  DRAIN_COUNT_KEY,
+  drainRow,
+  loadPushConfig,
+  type DrainCounts,
+  type OutboxRow,
+} from "../_shared/push-dispatch-delivery.ts";
+import { authenticatePushDispatch } from "../_shared/push-dispatch-auth.ts";
 
-type DrainCounts = { skipped: number; failed: number };
-
-async function markOutbox(
-  supabase: ReturnType<typeof createClient>,
-  id: string,
-  status: "skipped_no_subscription" | "failed",
-  lastError: string | null,
-): Promise<void> {
-  await supabase
-    .from("push_outbox")
-    .update({
-      status,
-      last_error: lastError,
-      attempt_count: status === "failed" ? 1 : 0,
-      processed_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-}
-
-async function drainRow(
-  supabase: ReturnType<typeof createClient>,
-  row: OutboxRow,
-  counts: DrainCounts,
-): Promise<void> {
-  const { data: subscriptions, error } = await supabase
-    .from("push_subscriptions")
-    .select("id")
-    .eq("member_id", row.recipient_member_id)
-    .is("disabled_at", null);
-
-  if (error) {
-    counts.failed += 1;
-    await markOutbox(supabase, row.id, "failed", error.message);
-    return;
-  }
-
-  if (!subscriptions || subscriptions.length === 0) {
-    counts.skipped += 1;
-    await markOutbox(supabase, row.id, "skipped_no_subscription", null);
-    return;
-  }
-
-  if (!Deno.env.get("VAPID_PUBLIC_KEY") || !Deno.env.get("VAPID_PRIVATE_KEY")) {
-    counts.skipped += 1;
-    await markOutbox(
-      supabase,
-      row.id,
-      "skipped_no_subscription",
-      "vapid secrets not configured",
-    );
-    return;
-  }
-
-  counts.failed += 1;
-  await markOutbox(
-    supabase,
-    row.id,
-    "failed",
-    "web push transport not configured in this runtime",
-  );
-}
+export type { PushDeliveryResult } from "../_shared/push-dispatch-delivery.ts";
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") {
     return new Response("method not allowed", { status: 405 });
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceRoleKey) {
-    return Response.json(
-      { error: "missing supabase service credentials" },
-      { status: 500 },
-    );
+  const authentication = authenticatePushDispatch(request, (name) =>
+    Deno.env.get(name),
+  );
+  if (authentication === null) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  if (!supabaseUrl) {
+    return Response.json({ error: "missing supabase url" }, { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, authentication.credential, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: rows, error } = await supabase
-    .from("push_outbox")
-    .select("id, recipient_member_id")
-    .eq("status", "pending")
-    .order("created_at", { ascending: true })
-    .limit(50);
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
-
-  const counts: DrainCounts = { skipped: 0, failed: 0 };
-  for (const row of (rows ?? []) as OutboxRow[]) {
-    await drainRow(supabase, row, counts);
+  const counts: DrainCounts = {
+    sent: 0,
+    skipped: 0,
+    retry: 0,
+    deferred: 0,
+    failed: 0,
+  };
+  const config = loadPushConfig();
+  const processedIds: string[] = [];
+  for (let processed = 0; processed < 50; processed += 1) {
+    const { data: rows, error } = await supabase
+      .rpc("claim_push_outbox", {
+        p_limit: 1,
+        p_lease_seconds: 120,
+        p_excluded_ids: processedIds,
+      })
+      .overrideTypes<OutboxRow[], { merge: false }>();
+    if (error) {
+      return Response.json(
+        { error: error.message, ...counts },
+        { status: 500 },
+      );
+    }
+    const row = rows.at(0);
+    if (row === undefined) {
+      break;
+    }
+    processedIds.push(row.id);
+    const result = await drainRow(supabase, row, config);
+    counts[DRAIN_COUNT_KEY[result.kind]] += 1;
   }
 
   return Response.json(counts);

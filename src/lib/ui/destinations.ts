@@ -43,6 +43,7 @@ const FORM_SURFACE_PATTERNS = [
   /^\/plan\/meals\/[^/]+$/,
   /^\/money\/opening-balance$/,
   /^\/home\/setup$/,
+  /^\/home\/notifications$/,
 ] as const;
 
 export function isFormSurface(pathname: string): boolean {
