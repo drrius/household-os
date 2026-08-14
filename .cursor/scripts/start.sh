@@ -91,6 +91,7 @@ EOF
   chmod 600 supabase/functions/.env
 
   node --experimental-strip-types scripts/inject-edge-vapid-env.mts
+  node --experimental-strip-types scripts/seed-push-dispatch-vault.mts
 }
 
 ensure_docker_daemon
