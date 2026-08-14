@@ -47,7 +47,7 @@ export function AppShell({
 
         <main
           id="main-content"
-          className="row-start-1 mx-auto min-w-0 w-full max-w-6xl px-4 pt-6 max-lg:pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] lg:col-start-2 lg:row-[1/-1] lg:max-w-none lg:p-8 lg:pb-8"
+          className="row-start-1 mx-auto min-w-0 w-full max-w-6xl px-4 pt-6 max-lg:pb-[calc(9rem+env(safe-area-inset-bottom,0px))] lg:col-start-2 lg:row-[1/-1] lg:max-w-none lg:p-8 lg:pb-8"
           tabIndex={-1}
         >
           {children}

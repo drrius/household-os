@@ -46,7 +46,7 @@ export function ShoppingSessionRail({
                   ? "Your shopping session is open"
                   : `${session.memberName} is shopping now`}
               </strong>
-              <p className="text-xs text-muted-foreground">{progressLabel}</p>
+              <p className="text-sm text-muted-foreground">{progressLabel}</p>
             </div>
             {session.isMine ? (
               <form action={finishAction}>
@@ -73,6 +73,7 @@ export function ShoppingSessionRail({
               max={session.totalCount}
               value={session.claimedCount}
               valueLabel={progressLabel}
+              valueText={progressLabel}
             />
           ) : null}
         </CardContent>

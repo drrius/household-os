@@ -38,13 +38,19 @@ export function EventLedger({ events }: EventLedgerProps) {
                         {toBadgeLabel(event.type)}
                       </Badge>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {event.meta}
                     </p>
                   </div>
-                  <p className="text-xl font-extrabold">
-                    <Amount value={event.amount} />
-                  </p>
+                  <div className="text-right">
+                    <p className="text-xl font-extrabold">
+                      <Amount value={event.amount} />
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                      <span aria-hidden="true">{event.balanceDelta}</span>
+                      <span className="sr-only">{event.balanceEffect}</span>
+                    </p>
+                  </div>
                 </li>
               ))}
             </ol>

@@ -1,28 +1,15 @@
 import { createGroceryItemAction } from "@/app/(product)/_actions/m7-plan-groceries";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { loadGroceryFormOptions } from "@/lib/forms/options";
-import {
-  FormField,
-  FormFields,
-  FormPage,
-  selectClassName,
-} from "@/ui/forms/form-page";
+import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
+import { FormField, FormFields, FormPage } from "@/ui/forms/form-page";
+import { EchoedSelect } from "@/ui/forms/form-select.client";
 
-export default async function NewGroceryPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const [categories, query] = await Promise.all([
-    loadGroceryFormOptions(),
-    searchParams,
-  ]);
+export default async function NewGroceryPage() {
+  const categories = await loadGroceryFormOptions();
   return (
     <FormPage
       backHref="/groceries"
-      description="Add one item without silently combining quantities or units."
-      error={query.error}
+      description="Add one item to the shopping list."
       title="New grocery item"
     >
       <FormFields
@@ -30,28 +17,38 @@ export default async function NewGroceryPage({
         submitLabel="Add to groceries"
       >
         <FormField label="Item">
-          <Input maxLength={120} name="name" required />
+          <EchoedInput maxLength={120} name="name" required />
         </FormField>
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Quantity">
-            <Input maxLength={80} name="quantity" />
+          <FormField
+            description="Just the amount, e.g. 2"
+            label="Quantity"
+            optional
+          >
+            <EchoedInput maxLength={80} name="quantity" />
           </FormField>
-          <FormField label="Unit">
-            <Input maxLength={80} name="unit" />
+          <FormField
+            description="e.g. cartons, kg, packs"
+            label="Unit"
+            optional
+          >
+            <EchoedInput maxLength={80} name="unit" />
           </FormField>
         </div>
-        <FormField label="Category">
-          <select className={selectClassName} name="categoryId">
-            <option value="">Other</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+        <FormField label="Category" optional>
+          <EchoedSelect
+            items={[
+              { label: "Other", value: "" },
+              ...categories.map((category) => ({
+                label: category.name,
+                value: category.id,
+              })),
+            ]}
+            name="categoryId"
+          />
         </FormField>
-        <FormField label="Note">
-          <Textarea maxLength={1000} name="note" />
+        <FormField label="Note" optional>
+          <EchoedTextarea maxLength={1000} name="note" />
         </FormField>
       </FormFields>
     </FormPage>

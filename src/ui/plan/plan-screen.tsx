@@ -1,4 +1,3 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,7 @@ import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
 import { MealBoard } from "@/ui/plan/meal-board";
 import { PlanThisWeekJump } from "@/ui/plan/plan-this-week-jump.client";
+import { PlanWeekArrow } from "@/ui/plan/plan-week-arrow.client";
 
 type PlanScreenProps = {
   plan: PlanViewModel;
@@ -27,7 +27,10 @@ function MealLibrary({ meals }: { meals: PlanViewModel["library"] }) {
     <section aria-labelledby="meal-library-title">
       <Card>
         <CardHeader>
-          <CardTitle id="meal-library-title">Meal library</CardTitle>
+          <CardTitle>
+            {/* CardTitle renders a div, so the region needs its own heading. */}
+            <h2 id="meal-library-title">Meal library</h2>
+          </CardTitle>
           <CardAction>
             <Badge variant="secondary">{meals.length} saved</Badge>
           </CardAction>
@@ -89,28 +92,11 @@ export function PlanScreen({ plan }: PlanScreenProps) {
         trailing={
           <div className="flex flex-wrap items-center gap-2">
             <PlanThisWeekJump visible={!viewingCurrentWeek} />
-            <Link
-              aria-label="Previous week"
-              className={buttonVariants({
-                className: "no-underline",
-                size: "icon",
-                variant: "outline",
-              })}
+            <PlanWeekArrow
+              direction="previous"
               href={`/plan?week=${previousWeek}`}
-            >
-              <ChevronLeft aria-hidden="true" className="size-4 shrink-0" />
-            </Link>
-            <Link
-              aria-label="Next week"
-              className={buttonVariants({
-                className: "no-underline",
-                size: "icon",
-                variant: "outline",
-              })}
-              href={`/plan?week=${nextWeek}`}
-            >
-              <ChevronRight aria-hidden="true" className="size-4 shrink-0" />
-            </Link>
+            />
+            <PlanWeekArrow direction="next" href={`/plan?week=${nextWeek}`} />
             <Link
               className={buttonVariants({ className: "no-underline" })}
               href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}

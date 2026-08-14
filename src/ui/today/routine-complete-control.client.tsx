@@ -44,7 +44,7 @@ export function RoutineCompleteControl({ row }: RoutineCompleteControlProps) {
           >
             {row.title}
           </strong>
-          <small className="text-xs text-muted-foreground">{row.meta}</small>
+          <small className="text-sm text-muted-foreground">{row.meta}</small>
         </span>
       </div>
       {row.canComplete && !isCompleted ? (

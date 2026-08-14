@@ -1,3 +1,4 @@
+import { EXPENSE_DRAFT_BLOCKER_COPY } from "@/lib/read-models/expense-draft-readiness";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import type { TodayViewModel } from "@/ui/today/today-view-model";
 
@@ -7,7 +8,8 @@ export const todayFixture: TodayViewModel = {
   greetingName: "Darius ☀",
   civilDate: "2026-08-12",
   dateLabel: "Wednesday 12 August",
-  progress: { completedCount: 1, totalCount: 4 },
+  // 1 completed routine plus the overdue row and the open routine below.
+  progress: { completedCount: 1, totalCount: 3 },
   balancePill: {
     kind: "partner_owes_you",
     partnerName: "Leah",
@@ -59,6 +61,7 @@ export const todayFixture: TodayViewModel = {
       title: "Coop groceries",
       source: "shopping",
       amount: formatCentimesAsFrancs(8430),
+      blocker: EXPENSE_DRAFT_BLOCKER_COPY.payer,
     },
   ],
 };

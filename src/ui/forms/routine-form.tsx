@@ -1,11 +1,11 @@
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import type { FormAction } from "@/lib/forms/action-state";
+import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
+import { FormField, FormFields, FormSection } from "@/ui/forms/form-page";
+import { EchoedSelect } from "@/ui/forms/form-select.client";
 import {
-  FormField,
-  FormFields,
-  FormSection,
-  selectClassName,
-} from "@/ui/forms/form-page";
+  RoutineResponsibilityFields,
+  type AssignmentPolicy,
+} from "@/ui/forms/routine-responsibility-fields.client";
 import {
   RoutineScheduleFields,
   type ScheduleMode,
@@ -19,7 +19,7 @@ export type RoutineFormDefaults = {
   instructions?: string | null;
   areaId?: string;
   petId?: string | null;
-  assignmentPolicy?: "assigned" | "alternating" | "shared";
+  assignmentPolicy?: AssignmentPolicy;
   memberId?: string | null;
   priority?: "pet_care" | "meal_deadline" | "cleaning" | "general";
   scheduleMode?: ScheduleMode;
@@ -38,8 +38,8 @@ function RoutineDetails({
   return (
     <FormSection legend="Routine">
       <FormField label="Title">
-        <Input
-          defaultValue={defaults.title}
+        <EchoedInput
+          initialValue={defaults.title}
           maxLength={120}
           name="title"
           required
@@ -47,96 +47,54 @@ function RoutineDetails({
       </FormField>
       <FormField
         label="Instructions"
-        description="Optional details both members can see."
+        description="Details both members can see."
+        optional
       >
-        <Textarea
-          defaultValue={defaults.instructions ?? ""}
+        <EchoedTextarea
+          initialValue={defaults.instructions ?? ""}
           maxLength={4000}
           name="instructions"
         />
       </FormField>
       <FormField label="Area">
-        <select
-          className={selectClassName}
-          defaultValue={defaults.areaId ?? areas[0]?.id}
+        <EchoedSelect
+          initialValue={defaults.areaId ?? areas[0]?.id ?? ""}
+          items={areas.map((area) => ({
+            label: area.name,
+            value: area.id,
+          }))}
           name="areaId"
           required
-        >
-          {areas.map((area) => (
-            <option key={area.id} value={area.id}>
-              {area.name}
-            </option>
-          ))}
-        </select>
+        />
       </FormField>
       <FormField
         label="Pet"
-        description="Leave blank when this routine is not pet care."
+        description="Only pet care routines need one."
+        optional
       >
-        <select
-          className={selectClassName}
-          defaultValue={defaults.petId ?? ""}
+        <EchoedSelect
+          initialValue={defaults.petId ?? ""}
+          items={[
+            { label: "No pet", value: "" },
+            ...pets.map((pet) => ({
+              label: pet.name,
+              value: pet.id,
+            })),
+          ]}
           name="petId"
-        >
-          <option value="">No pet</option>
-          {pets.map((pet) => (
-            <option key={pet.id} value={pet.id}>
-              {pet.name}
-            </option>
-          ))}
-        </select>
+        />
       </FormField>
       <FormField label="Priority">
-        <select
-          className={selectClassName}
-          defaultValue={defaults.priority ?? "general"}
+        <EchoedSelect
+          initialValue={defaults.priority ?? "general"}
+          items={[
+            { label: "General", value: "general" },
+            { label: "Cleaning", value: "cleaning" },
+            { label: "Meal deadline", value: "meal_deadline" },
+            { label: "Pet care", value: "pet_care" },
+          ]}
           name="priority"
-        >
-          <option value="general">General</option>
-          <option value="cleaning">Cleaning</option>
-          <option value="meal_deadline">Meal deadline</option>
-          <option value="pet_care">Pet care</option>
-        </select>
-      </FormField>
-    </FormSection>
-  );
-}
-
-function ResponsibilityFields({
-  defaults,
-  members,
-}: {
-  defaults: RoutineFormDefaults;
-  members: readonly Member[];
-}) {
-  return (
-    <FormSection legend="Responsibility">
-      <FormField label="Assignment">
-        <select
-          className={selectClassName}
-          defaultValue={defaults.assignmentPolicy ?? "shared"}
-          name="assignmentPolicy"
-        >
-          <option value="shared">Shared</option>
-          <option value="assigned">Assigned</option>
-          <option value="alternating">Alternating</option>
-        </select>
-      </FormField>
-      <FormField
-        label="Assigned member or rotation starter"
-        description="Ignored for a shared routine."
-      >
-        <select
-          className={selectClassName}
-          defaultValue={defaults.memberId ?? members[0]?.user_id}
-          name="memberId"
-        >
-          {members.map((member) => (
-            <option key={member.user_id} value={member.user_id}>
-              {member.display_name}
-            </option>
-          ))}
-        </select>
+        />
       </FormField>
     </FormSection>
   );
@@ -151,7 +109,7 @@ export function RoutineForm({
   pets,
   submitLabel,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: FormAction;
   areas: readonly Option[];
   defaultDate: string;
   defaults?: RoutineFormDefaults;
@@ -165,7 +123,11 @@ export function RoutineForm({
         <input name="routineId" type="hidden" value={defaults.routineId} />
       ) : null}
       <RoutineDetails areas={areas} defaults={defaults} pets={pets} />
-      <ResponsibilityFields defaults={defaults} members={members} />
+      <RoutineResponsibilityFields
+        defaultMemberId={defaults.memberId ?? null}
+        defaultPolicy={defaults.assignmentPolicy ?? "shared"}
+        members={members}
+      />
       <RoutineScheduleFields
         defaultDate={defaultDate}
         defaultMode={defaults.scheduleMode ?? "one_off"}

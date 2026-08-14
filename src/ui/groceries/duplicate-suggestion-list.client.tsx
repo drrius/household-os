@@ -59,7 +59,7 @@ export function DuplicateSuggestionList({
                     <h3 className="font-semibold">
                       {duplicate.leftName} and {duplicate.rightName}
                     </h3>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Merging keeps the first item&apos;s quantity, category,
                       and note.
                     </p>

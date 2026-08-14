@@ -1,7 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { formatCentimesAsFrancs } from "./franc-display";
+import {
+  formatCentimesAsFrancs,
+  formatSignedCentimesAsFrancs,
+} from "./franc-display";
 
 describe("formatCentimesAsFrancs", () => {
   it.each([
@@ -39,6 +42,52 @@ describe("formatCentimesAsFrancs", () => {
     "rejects invalid centime value %s",
     (centimes) => {
       expect(() => formatCentimesAsFrancs(centimes)).toThrow(
+        "Centimes must be a safe integer",
+      );
+    },
+  );
+});
+
+describe("formatSignedCentimesAsFrancs", () => {
+  it.each([
+    [92_500, "+CHF 925.00"],
+    [1, "+CHF 0.01"],
+    [0, "CHF 0.00"],
+    [-5_000, "-CHF 50.00"],
+    [-1, "-CHF 0.01"],
+  ])("formats %i centimes as %s", (centimes, expected) => {
+    expect(formatSignedCentimesAsFrancs(centimes)).toBe(expected);
+  });
+
+  it("signs every safe integer without changing its digits", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({
+          min: Number.MIN_SAFE_INTEGER,
+          max: Number.MAX_SAFE_INTEGER,
+        }),
+        (centimes) => {
+          const signed = formatSignedCentimesAsFrancs(centimes);
+
+          expect(signed).toMatch(/^[+-]?CHF \d+\.\d{2}$/);
+          expect(signed.startsWith("+")).toBe(centimes > 0);
+          expect(signed.startsWith("-")).toBe(centimes < 0);
+          expect(signed.replace(/^\+/, "")).toBe(
+            formatCentimesAsFrancs(centimes),
+          );
+        },
+      ),
+    );
+  });
+
+  it("never prints a sign on a zero delta", () => {
+    expect(formatSignedCentimesAsFrancs(-0)).toBe("CHF 0.00");
+  });
+
+  it.each([1.5, Number.MAX_SAFE_INTEGER + 1, Number.NaN])(
+    "rejects invalid centime value %s",
+    (centimes) => {
+      expect(() => formatSignedCentimesAsFrancs(centimes)).toThrow(
         "Centimes must be a safe integer",
       );
     },

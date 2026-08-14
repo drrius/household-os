@@ -37,14 +37,11 @@ function scheduleMode(rule: Record<string, unknown>) {
 
 export default async function EditRoutinePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ routineId: string }>;
-  searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ routineId }, query, member, options] = await Promise.all([
+  const [{ routineId }, member, options] = await Promise.all([
     params,
-    searchParams,
     requireMemberContext(),
     loadRoutineFormOptions(),
   ]);
@@ -65,7 +62,6 @@ export default async function EditRoutinePage({
     <FormPage
       backHref="/home"
       description="Update the definition; existing completion history remains intact."
-      error={query.error}
       title="Edit routine"
     >
       <RoutineForm

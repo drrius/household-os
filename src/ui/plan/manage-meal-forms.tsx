@@ -1,50 +1,59 @@
-import {
-  removeMealEntryAction,
-  updateMealEntryAction,
-} from "@/app/(product)/_actions/m7-plan-groceries";
+import { updateMealEntryAction } from "@/app/(product)/_actions/m7-plan-groceries";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import type { ManageMealEntry } from "@/lib/read-models/meal-entry-manage";
-import { cn } from "@/lib/utils";
-import { FormField, FormFields, selectClassName } from "@/ui/forms/form-page";
+import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
+import { DateField } from "@/ui/forms/date-field.client";
+import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
+import { FormField, FormFields } from "@/ui/forms/form-page";
+import { EchoedSelect } from "@/ui/forms/form-select.client";
+import { RemoveMealButton } from "@/ui/plan/remove-meal-button.client";
+
+const RECIPE_URL_HINT = "Must start with http:// or https://";
+
+const slotItems = [
+  { label: "Breakfast", value: "breakfast" },
+  { label: "Lunch", value: "lunch" },
+  { label: "Dinner", value: "dinner" },
+] as const;
 
 function MealEditFields({ entry }: { entry: ManageMealEntry }) {
   const slot = entry.slot ?? "dinner";
   return (
     <>
       <FormField label="Meal">
-        <Input
-          defaultValue={entry.title}
+        <EchoedInput
+          initialValue={entry.title}
           maxLength={120}
           name="title"
           required
         />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Date">
-          <Input defaultValue={entry.date} name="date" required type="date" />
-        </FormField>
+        <DateField
+          defaultValue={entry.date}
+          label="Date"
+          name="date"
+          required
+        />
         <FormField label="Slot">
-          <select className={selectClassName} defaultValue={slot} name="slot">
-            <option value="breakfast">Breakfast</option>
-            <option value="lunch">Lunch</option>
-            <option value="dinner">Dinner</option>
-          </select>
+          <EchoedSelect
+            initialValue={slot}
+            items={[...slotItems]}
+            name="slot"
+          />
         </FormField>
       </div>
-      <FormField label="Recipe link">
-        <Input
-          defaultValue={entry.recipeUrl ?? ""}
+      <FormField description={RECIPE_URL_HINT} label="Recipe link" optional>
+        <EchoedInput
+          initialValue={entry.recipeUrl ?? ""}
           maxLength={2000}
           name="recipeUrl"
           type="url"
         />
       </FormField>
-      <FormField label="Notes">
-        <Textarea
-          defaultValue={entry.notes ?? ""}
+      <FormField label="Notes" optional>
+        <EchoedTextarea
+          initialValue={entry.notes ?? ""}
           maxLength={4000}
           name="notes"
         />
@@ -70,23 +79,12 @@ export function ManageMealForms({ entry }: { entry: ManageMealEntry }) {
         />
         <MealEditFields entry={entry} />
       </FormFields>
-      <form action={removeMealEntryAction} className="grid gap-3">
-        <input name="entryId" type="hidden" value={entry.id} />
-        <input
-          name="idempotencyKey"
-          type="hidden"
-          value={crypto.randomUUID()}
-        />
-        <button
-          className={cn(
-            buttonVariants({ size: "lg", variant: "destructive" }),
-            "w-full sm:w-fit",
-          )}
-          type="submit"
-        >
-          Remove from plan
-        </button>
-      </form>
+      <RemoveMealButton
+        dateLabel={formatZurichDayLabel(entry.date)}
+        entryId={entry.id}
+        idempotencyKey={crypto.randomUUID()}
+        title={entry.title}
+      />
     </div>
   );
 }

@@ -1,31 +1,18 @@
 import Link from "next/link";
 
 import { establishOpeningBalanceAction } from "@/app/(product)/_actions/m7-money";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { loadMoneyFormOptions } from "@/lib/forms/options";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
-import {
-  FormField,
-  FormFields,
-  FormPage,
-  selectClassName,
-} from "@/ui/forms/form-page";
+import { FormField, FormFields, FormPage } from "@/ui/forms/form-page";
+import { OpeningBalanceSummary } from "@/ui/money/opening-balance-summary.client";
 
-export default async function OpeningBalancePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const [options, query] = await Promise.all([
-    loadMoneyFormOptions(),
-    searchParams,
-  ]);
+export default async function OpeningBalancePage() {
+  const options = await loadMoneyFormOptions();
   return (
     <FormPage
       backHref="/money"
-      description="Record who was owed money before Household OS started; this creates one immutable opening event."
-      error={query.error}
+      description="Record who was owed money before Household OS started. It sets the starting point for every balance after it."
       title="Opening balance"
     >
       {options.hasOpeningBalance ? (
@@ -43,34 +30,20 @@ export default async function OpeningBalancePage({
             type="hidden"
             value={crypto.randomUUID()}
           />
-          <FormField label="Member who is owed">
-            <select className={selectClassName} name="creditorMemberId">
-              {options.members.map((member) => (
-                <option key={member.user_id} value={member.user_id}>
-                  {member.display_name}
-                </option>
-              ))}
-            </select>
+          <OpeningBalanceSummary
+            defaultDate={zurichCivilDate()}
+            members={options.members.map((member) => ({
+              displayName: member.display_name,
+              id: member.user_id,
+            }))}
+          />
+          <FormField label="Note" optional>
+            <EchoedTextarea maxLength={4000} name="note" />
           </FormField>
-          <FormField label="Amount in CHF">
-            <Input
-              inputMode="decimal"
-              name="amount"
-              placeholder="0.00"
-              required
-            />
-          </FormField>
-          <FormField label="As of">
-            <Input
-              defaultValue={zurichCivilDate()}
-              name="occurredOn"
-              required
-              type="date"
-            />
-          </FormField>
-          <FormField label="Note">
-            <Textarea maxLength={4000} name="note" />
-          </FormField>
+          <p className="text-sm text-muted-foreground">
+            This is written once and cannot be edited or removed afterwards. A
+            mistake has to be corrected with a later entry that cancels it.
+          </p>
         </FormFields>
       )}
     </FormPage>

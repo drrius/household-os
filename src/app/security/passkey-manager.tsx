@@ -4,21 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import {
+  LAST_PASSKEY_LOCKOUT_COPY,
+  PasskeyItem,
+  passkeyItemKey,
+  passkeyLabel,
+} from "@/app/security/passkey-item";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemTitle,
-} from "@/components/ui/item";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ItemGroup } from "@/components/ui/item";
 import { Separator } from "@/components/ui/separator";
 import type { PasskeySummary } from "@/lib/auth/passkeys";
 import { createClient } from "@/lib/supabase/client";
-import { formatZurichTimestamp } from "@/lib/ui/zurich-date";
 import { EmptyState } from "@/ui/layout/empty-state";
 
 async function listPasskeys(): Promise<PasskeySummary[]> {
@@ -67,24 +65,18 @@ async function deletePasskey(passkeyId: string) {
   }
 }
 
-function confirmRevoke(isLastPasskey: boolean) {
-  return window.confirm(
-    isLastPasskey
-      ? "This is your last passkey. Revoking it means the household administrator must run recover-link before you can sign in again. Continue?"
-      : "Revoke this passkey?",
-  );
-}
-
 function PasskeyList({
+  isLastPasskey,
   passkeys,
   pending,
   onRename,
   onRevoke,
 }: {
+  isLastPasskey: boolean;
   passkeys: PasskeySummary[];
   pending: boolean;
   onRename: (passkeyId: string, friendlyName: string) => void;
-  onRevoke: (passkeyId: string) => void;
+  onRevoke: (passkey: PasskeySummary) => void;
 }) {
   if (passkeys.length === 0) {
     return (
@@ -98,14 +90,15 @@ function PasskeyList({
     <ItemGroup className="gap-3">
       {passkeys.map((passkey) => (
         <PasskeyItem
-          key={passkey.id}
+          key={passkeyItemKey(passkey)}
+          isLastPasskey={isLastPasskey}
           passkey={passkey}
           pending={pending}
           onRename={(friendlyName) => {
             onRename(passkey.id, friendlyName);
           }}
           onRevoke={() => {
-            onRevoke(passkey.id);
+            onRevoke(passkey);
           }}
         />
       ))}
@@ -160,6 +153,38 @@ function PasskeyManagerActions({
   );
 }
 
+function RevokeConfirmDialog({
+  isLastPasskey,
+  target,
+  onCancel,
+  onConfirm,
+}: {
+  isLastPasskey: boolean;
+  target: PasskeySummary | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <ConfirmDialog
+      confirmLabel="Revoke passkey"
+      confirmVariant="destructive"
+      description={
+        isLastPasskey
+          ? LAST_PASSKEY_LOCKOUT_COPY
+          : "This device will no longer be able to sign in with this passkey."
+      }
+      onConfirm={onConfirm}
+      onOpenChange={(open) => {
+        if (!open) {
+          onCancel();
+        }
+      }}
+      open={target !== null}
+      title={`Revoke “${passkeyLabel(target)}”?`}
+    />
+  );
+}
+
 export function PasskeyManager({
   initialPasskeys,
 }: {
@@ -169,6 +194,11 @@ export function PasskeyManager({
   const [passkeys, setPasskeys] = useState(initialPasskeys);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState<PasskeySummary | null>(null);
+
+  // ADR 0022 lets a member revoke any passkey, so the consequence is stated
+  // rather than blocked.
+  const isLastPasskey = passkeys.length <= 1;
 
   async function runPasskeyAction(
     action: () => Promise<void>,
@@ -188,15 +218,14 @@ export function PasskeyManager({
     }
   }
 
-  function revokePasskey(passkeyId: string) {
-    if (!confirmRevoke(passkeys.length <= 1)) {
+  function confirmRevoke() {
+    if (revokeTarget === null) {
       return;
     }
 
-    void runPasskeyAction(
-      () => deletePasskey(passkeyId),
-      "Unable to revoke passkey",
-    );
+    const { id } = revokeTarget;
+    setRevokeTarget(null);
+    void runPasskeyAction(() => deletePasskey(id), "Unable to revoke passkey");
   }
 
   return (
@@ -206,6 +235,7 @@ export function PasskeyManager({
       </h2>
 
       <PasskeyList
+        isLastPasskey={isLastPasskey}
         passkeys={passkeys}
         pending={pending}
         onRename={(passkeyId, friendlyName) => {
@@ -214,7 +244,9 @@ export function PasskeyManager({
             "Unable to rename passkey",
           );
         }}
-        onRevoke={revokePasskey}
+        onRevoke={(passkey) => {
+          setRevokeTarget(passkey);
+        }}
       />
 
       <PasskeyManagerActions
@@ -228,74 +260,15 @@ export function PasskeyManager({
           );
         }}
       />
-    </section>
-  );
-}
 
-function PasskeyItem({
-  passkey,
-  pending,
-  onRename,
-  onRevoke,
-}: {
-  passkey: PasskeySummary;
-  pending: boolean;
-  onRename: (friendlyName: string) => void;
-  onRevoke: () => void;
-}) {
-  return (
-    <Item
-      className="flex-col items-stretch gap-4"
-      role="listitem"
-      variant="outline"
-    >
-      <ItemContent className="gap-1">
-        <ItemTitle>
-          {passkey.friendlyName?.trim() || "Unnamed passkey"}
-        </ItemTitle>
-        <ItemDescription>
-          Created {formatZurichTimestamp(passkey.createdAt)}
-          {passkey.lastUsedAt
-            ? ` · Last used ${formatZurichTimestamp(passkey.lastUsedAt)}`
-            : null}
-        </ItemDescription>
-      </ItemContent>
-
-      <form
-        className="grid gap-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const formData = new FormData(event.currentTarget);
-          onRename(String(formData.get("friendlyName") ?? "").trim());
+      <RevokeConfirmDialog
+        isLastPasskey={isLastPasskey}
+        target={revokeTarget}
+        onCancel={() => {
+          setRevokeTarget(null);
         }}
-      >
-        <FieldGroup className="gap-3">
-          <Field>
-            <FieldLabel htmlFor={`passkey-name-${passkey.id}`}>Name</FieldLabel>
-            <Input
-              defaultValue={passkey.friendlyName ?? ""}
-              id={`passkey-name-${passkey.id}`}
-              maxLength={120}
-              name="friendlyName"
-              type="text"
-            />
-          </Field>
-        </FieldGroup>
-
-        <div className="flex flex-wrap gap-2">
-          <Button disabled={pending} type="submit" variant="outline">
-            Rename
-          </Button>
-          <Button
-            disabled={pending}
-            onClick={onRevoke}
-            type="button"
-            variant="destructive"
-          >
-            Revoke
-          </Button>
-        </div>
-      </form>
-    </Item>
+        onConfirm={confirmRevoke}
+      />
+    </section>
   );
 }

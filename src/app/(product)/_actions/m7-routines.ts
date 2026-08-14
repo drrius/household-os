@@ -4,36 +4,42 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import {
-  errorHref,
   revalidateProduct,
   uuidSchema,
 } from "@/app/(product)/_actions/m7-shared";
 import { requireMemberContext } from "@/lib/auth/member-context";
-import { parseRoutineForm, routineFormChangesSchedule } from "@/lib/forms/m7";
+import {
+  settleFormAction,
+  type FormActionState,
+} from "@/lib/forms/action-state";
+import {
+  parseRoutineForm,
+  routineFormChangesSchedule,
+} from "@/lib/forms/routine";
 import {
   createRoutine,
   updateRoutineDefinition,
 } from "@/lib/routines/commands";
 import { createClient } from "@/lib/supabase/server";
 
-export async function createRoutineAction(formData: FormData): Promise<void> {
-  let failure: unknown = null;
-  try {
+export async function createRoutineAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
     await createRoutine(parseRoutineForm(formData));
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) redirect(errorHref("/home/routines/new", failure));
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
   redirect("/home");
 }
 
-export async function updateRoutineAction(formData: FormData): Promise<void> {
-  const routineIdValue = formData.get("routineId");
-  const fallbackId = typeof routineIdValue === "string" ? routineIdValue : "";
-  let failure: unknown = null;
-  try {
-    const routineId = uuidSchema.parse(routineIdValue);
+export async function updateRoutineAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
+    const routineId = uuidSchema.parse(formData.get("routineId"));
     const parsed = parseRoutineForm(formData);
     const member = await requireMemberContext();
     const supabase = await createClient();
@@ -74,17 +80,8 @@ export async function updateRoutineAction(formData: FormData): Promise<void> {
         parsed,
       ),
     });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    redirect(
-      errorHref(
-        `/home/routines/${encodeURIComponent(fallbackId)}/edit`,
-        failure,
-      ),
-    );
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
   redirect("/home");
 }

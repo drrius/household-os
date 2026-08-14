@@ -1,20 +1,24 @@
 import { z } from "zod";
 
+import type { AllocationValidationError } from "@/domain/money/allocations";
 import {
   allocateEqualExpense,
   validateExactAllocations,
 } from "@/domain/money/allocations";
-import type { MoneyAllocationInput } from "@/lib/money/commands";
+import { chfAmountMessage, parseChfToCentimes } from "@/domain/money/chf";
 import { asMemberId } from "@/domain/money/values";
+import { FormFieldError } from "@/lib/forms/field-error";
+import type { MoneyAllocationInput } from "@/lib/money/commands";
+import { proposedAllocationSchema } from "@/lib/read-models/expense-draft-readiness";
 
 const uuidSchema = z.string().uuid("Choose a valid household option.");
 const dateSchema = z.iso.date("Choose a valid date.");
-const shortTextSchema = z.string().trim().min(1).max(120);
-const optionalText = (value: FormDataEntryValue | null): string | null => {
+
+function optionalText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
-};
+}
 
 function requiredString(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -29,59 +33,17 @@ function optionalUuid(formData: FormData, name: string): string | null {
   return value === null ? null : uuidSchema.parse(value);
 }
 
-export function parseChfToCentimes(value: string): number {
-  const normalized = value.trim().replace(",", ".");
-  const match = /^(\d{1,13})(?:\.(\d{1,2}))?$/.exec(normalized);
-  if (match === null) {
-    throw new Error("Enter a CHF amount with at most two decimal places.");
+function parseChfField(formData: FormData, name: string): number {
+  const raw = formData.get(name);
+  const value = typeof raw === "string" ? raw.trim() : "";
+  try {
+    return parseChfToCentimes(value);
+  } catch (error) {
+    throw new FormFieldError(
+      name,
+      error instanceof Error ? error.message : chfAmountMessage,
+    );
   }
-  const francs = BigInt(match[1] ?? "0");
-  const decimal = (match[2] ?? "").padEnd(2, "0");
-  const centimes = francs * 100n + BigInt(decimal || "0");
-  if (centimes > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new Error("The CHF amount is too large.");
-  }
-  return Number(centimes);
-}
-
-export function formErrorMessage(error: unknown): string {
-  if (error instanceof z.ZodError) {
-    return error.issues[0]?.message ?? "Check the form and try again.";
-  }
-  if (error instanceof Error && !/failed:/i.test(error.message)) {
-    return error.message;
-  }
-  return "We couldn't save that change. Check the details and try again.";
-}
-
-export { parseRoutineForm, routineFormChangesSchedule } from "./routine";
-export type { RoutineFormValue, StoredRoutineSchedule } from "./routine";
-export {
-  parseMealForm,
-  parsePlaceFromLibraryForm,
-  parseRemoveMealForm,
-  parseUpdateMealForm,
-} from "./meal";
-export type {
-  MealFormValue,
-  PlaceFromLibraryFormValue,
-  RemoveMealFormValue,
-  UpdateMealFormValue,
-} from "./meal";
-
-const proposedAllocationSchema = z.object({
-  memberId: z.string().min(1),
-  allocatedCents: z.number().int(),
-});
-
-export function expenseFormHref(draftId: string | null): string {
-  if (draftId === null || draftId.length === 0) return "/money/expenses/new";
-  return `/money/expenses/new?draft=${encodeURIComponent(draftId)}`;
-}
-
-export function formatCentimesField(centimes: number): string {
-  const absolute = Math.abs(centimes);
-  return `${Math.floor(absolute / 100)}.${String(absolute % 100).padStart(2, "0")}`;
 }
 
 export function draftSplitDefaults(
@@ -128,24 +90,6 @@ export function draftSplitDefaults(
   };
 }
 
-export type GroceryFormValue = {
-  name: string;
-  quantity: string | null;
-  unit: string | null;
-  categoryId: string | null;
-  note: string | null;
-};
-
-export function parseGroceryForm(formData: FormData): GroceryFormValue {
-  return {
-    name: shortTextSchema.parse(requiredString(formData, "name")),
-    quantity: optionalText(formData.get("quantity")),
-    unit: optionalText(formData.get("unit")),
-    categoryId: optionalUuid(formData, "categoryId"),
-    note: optionalText(formData.get("note")),
-  };
-}
-
 export type ExpenseFormValue = {
   description: string;
   amountCents: number;
@@ -157,13 +101,38 @@ export type ExpenseFormValue = {
   idempotencyKey: string;
 };
 
+const exactSplitMessages: Readonly<
+  Record<AllocationValidationError["code"], string>
+> = {
+  invalid_amount: "Enter an amount greater than CHF 0.00.",
+  same_member: "An expense needs two different people to share it.",
+  exact_members_required: "Each of you needs exactly one share.",
+  duplicate_member: "Each of you needs exactly one share.",
+  invalid_allocation: "Each share has to be CHF 0.00 or more.",
+  allocation_sum_mismatch: "The two shares need to add up to the total.",
+};
+
+function exactSplitError(
+  error: AllocationValidationError,
+  shareField: string,
+): FormFieldError {
+  return new FormFieldError(
+    error.code === "invalid_amount" ? "amount" : shareField,
+    exactSplitMessages[error.code],
+  );
+}
+
 export function parseExpenseForm(
   formData: FormData,
   memberIds: readonly [string, string],
 ): ExpenseFormValue {
-  const amountCents = parseChfToCentimes(requiredString(formData, "amount"));
-  if (amountCents <= 0)
-    throw new Error("Expense amount must be greater than zero.");
+  const amountCents = parseChfField(formData, "amount");
+  if (amountCents <= 0) {
+    throw new FormFieldError(
+      "amount",
+      "Enter an amount greater than CHF 0.00.",
+    );
+  }
   const payerMemberId = uuidSchema.parse(
     requiredString(formData, "payerMemberId"),
   );
@@ -171,8 +140,9 @@ export function parseExpenseForm(
     throw new Error("Choose a household member as payer.");
   }
   const otherMemberId = memberIds.find((id) => id !== payerMemberId);
-  if (otherMemberId === undefined)
+  if (otherMemberId === undefined) {
     throw new Error("Expenses require two members.");
+  }
   const splitMode = z
     .enum(["equal", "exact"])
     .parse(requiredString(formData, "splitMode"));
@@ -186,9 +156,7 @@ export function parseExpenseForm(
   } else {
     const proposed = memberIds.map((memberId) => ({
       memberId: asMemberId(memberId),
-      allocatedCents: parseChfToCentimes(
-        requiredString(formData, `allocation:${memberId}`),
-      ),
+      allocatedCents: parseChfField(formData, `allocation:${memberId}`),
     }));
     const validated = validateExactAllocations(
       amountCents,
@@ -196,7 +164,9 @@ export function parseExpenseForm(
       asMemberId(otherMemberId),
       proposed,
     );
-    if (!validated.ok) throw new Error(validated.error.message);
+    if (!validated.ok) {
+      throw exactSplitError(validated.error, `allocation:${memberIds[0]}`);
+    }
     allocations = validated.allocations;
   }
   return {
@@ -219,9 +189,13 @@ export function parseExpenseForm(
 }
 
 export function parseOpeningBalanceForm(formData: FormData) {
-  const amountCents = parseChfToCentimes(requiredString(formData, "amount"));
-  if (amountCents <= 0)
-    throw new Error("Opening balance must be greater than zero.");
+  const amountCents = parseChfField(formData, "amount");
+  if (amountCents <= 0) {
+    throw new FormFieldError(
+      "amount",
+      "Enter an amount greater than CHF 0.00.",
+    );
+  }
   return {
     creditorMemberId: uuidSchema.parse(
       requiredString(formData, "creditorMemberId"),
@@ -240,11 +214,12 @@ export function parseSettlementForm(formData: FormData) {
     .enum(["full", "partial"])
     .parse(requiredString(formData, "mode"));
   const amountCents =
-    mode === "full"
-      ? null
-      : parseChfToCentimes(requiredString(formData, "amount"));
+    mode === "full" ? null : parseChfField(formData, "amount");
   if (amountCents !== null && amountCents <= 0) {
-    throw new Error("Settlement amount must be greater than zero.");
+    throw new FormFieldError(
+      "amount",
+      "Enter an amount greater than CHF 0.00.",
+    );
   }
   return {
     mode,

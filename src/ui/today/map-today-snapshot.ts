@@ -1,6 +1,10 @@
 import { deriveMemberBalances } from "@/domain/money/balances";
 import { asFinancialEventId, asMemberId } from "@/domain/money/values";
-import { isExpenseDraftReady } from "@/lib/read-models/expense-draft-readiness";
+import { balanceHero } from "@/lib/read-models/balance-hero";
+import {
+  EXPENSE_DRAFT_BLOCKER_COPY,
+  getExpenseDraftReadiness,
+} from "@/lib/read-models/expense-draft-readiness";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import {
   addCivilDays,
@@ -85,15 +89,13 @@ function mapDraft(row: DraftSource, memberIds: readonly string[]): DraftGlance {
     title: row.description,
     source: row.source_kind,
   };
-  if (
-    row.amount_cents !== null &&
-    isExpenseDraftReady({
-      amountCents: row.amount_cents,
-      payerMemberId: row.payer_member_id,
-      memberIds,
-      proposedAllocations: row.proposed_allocations,
-    })
-  ) {
+  const readiness = getExpenseDraftReadiness({
+    amountCents: row.amount_cents,
+    payerMemberId: row.payer_member_id,
+    memberIds,
+    proposedAllocations: row.proposed_allocations,
+  });
+  if (readiness.ready && row.amount_cents !== null) {
     return {
       ...common,
       kind: "ready",
@@ -107,6 +109,9 @@ function mapDraft(row: DraftSource, memberIds: readonly string[]): DraftGlance {
       row.amount_cents === null
         ? null
         : formatCentimesAsFrancs(row.amount_cents),
+    blocker: readiness.ready
+      ? null
+      : EXPENSE_DRAFT_BLOCKER_COPY[readiness.blocker],
   };
 }
 
@@ -122,26 +127,7 @@ function deriveBalancePill(
   }));
   const balance =
     deriveMemberBalances(entries).get(asMemberId(snapshot.viewerUserId)) ?? 0;
-  const amount = formatCentimesAsFrancs(Math.abs(balance));
-  if (balance > 0) {
-    return {
-      kind: "partner_owes_you",
-      partnerName: partner.display_name,
-      amount,
-    };
-  }
-  if (balance < 0) {
-    return {
-      kind: "you_owe_partner",
-      partnerName: partner.display_name,
-      amount,
-    };
-  }
-  return {
-    kind: "settled",
-    partnerName: partner.display_name,
-    amount,
-  };
+  return balanceHero(balance, partner.display_name);
 }
 
 function mapShopping(
@@ -192,6 +178,13 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
   const completedPrepCount = prepMeals.filter(
     (meal) => meal.kind === "prep" && meal.tone === "completed",
   ).length;
+  // The meter counts exactly the household work this screen shows as due or
+  // done today: prep due tomorrow still renders on "Meal and prep" but is not
+  // outstanding today, while overdue rows are visibly outstanding.
+  const outstandingPrepCount = openPrep.filter(
+    (row) => row.due_date <= snapshot.civilDate,
+  ).length;
+  const completedCount = completed.length + completedPrepCount;
   const shopperNames = snapshot.shoppingSessions.map(
     (session) => memberNames.get(session.member_id) ?? "Someone",
   );
@@ -202,12 +195,12 @@ export function mapTodaySnapshot(snapshot: TodayReadSnapshot): TodayViewModel {
     civilDate: snapshot.civilDate,
     dateLabel: formatZurichDayLabel(snapshot.civilDate),
     progress: {
-      completedCount: completed.length + completedPrepCount,
+      completedCount,
       totalCount:
-        completed.length +
-        completedPrepCount +
+        completedCount +
+        overdue.length +
         openToday.length +
-        openPrep.length,
+        outstandingPrepCount,
     },
     balancePill: deriveBalancePill(snapshot, partner),
     overdue,

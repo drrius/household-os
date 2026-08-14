@@ -71,7 +71,7 @@ function GroceryItem({
         <div className="flex flex-wrap items-center gap-2">
           <strong className="wrap-anywhere">{item.name}</strong>
           {item.quantity !== null || item.unit !== null ? (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {[item.quantity, item.unit].filter(Boolean).join(" ")}
             </span>
           ) : null}
@@ -80,12 +80,12 @@ function GroceryItem({
           ) : null}
         </div>
         {item.note !== null ? (
-          <p className="wrap-anywhere text-xs text-muted-foreground">
+          <p className="wrap-anywhere text-sm text-muted-foreground">
             {item.note}
           </p>
         ) : null}
         {item.claimedByName !== null ? (
-          <p className="font-heading text-xs font-bold text-success">
+          <p className="font-heading text-sm font-bold text-success">
             In {item.claimedByName}&apos;s cart
           </p>
         ) : null}

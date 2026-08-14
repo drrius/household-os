@@ -3,33 +3,38 @@
 import { redirect } from "next/navigation";
 
 import {
-  errorHref,
   loadHouseholdMembers,
   revalidateProduct,
   uuidSchema,
 } from "@/app/(product)/_actions/m7-shared";
-import { requireMemberContext } from "@/lib/auth/member-context";
 import { settlementAmount } from "@/domain/money/settlements";
 import {
-  expenseFormHref,
+  settleFormAction,
+  type FormActionState,
+} from "@/lib/forms/action-state";
+import {
   parseExpenseForm,
   parseOpeningBalanceForm,
   parseSettlementForm,
-} from "@/lib/forms/m7";
+} from "@/lib/forms/money";
+import { loadSettlementContext } from "@/lib/forms/options";
 import {
   confirmExpenseDraft,
   establishOpeningBalance,
   postManualExpense,
   recordSettlement,
 } from "@/lib/money/commands";
-import { createClient } from "@/lib/supabase/server";
 
-export async function createExpenseAction(formData: FormData): Promise<void> {
-  const draftValue = formData.get("draftId");
-  const draftId =
-    typeof draftValue === "string" && draftValue.length > 0 ? draftValue : null;
-  let failure: unknown = null;
-  try {
+export async function createExpenseAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
+    const draftValue = formData.get("draftId");
+    const draftId =
+      typeof draftValue === "string" && draftValue.length > 0
+        ? draftValue
+        : null;
     const members = await loadHouseholdMembers();
     const input = parseExpenseForm(formData, [
       members[0].user_id,
@@ -46,105 +51,58 @@ export async function createExpenseAction(formData: FormData): Promise<void> {
         categoryId: input.categoryId,
         note: input.note,
       });
-    } else {
-      await postManualExpense(input);
+      return;
     }
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) redirect(errorHref(expenseFormHref(draftId), failure));
+    await postManualExpense(input);
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");
 }
 
 export async function establishOpeningBalanceAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<void> {
-  let failure: unknown = null;
-  try {
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const members = await loadHouseholdMembers();
     const input = parseOpeningBalanceForm(formData);
     if (!members.some((member) => member.user_id === input.creditorMemberId)) {
       throw new Error("Choose a household member as creditor.");
     }
     await establishOpeningBalance({ ...input, description: "Opening balance" });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) redirect(errorHref("/money/opening-balance", failure));
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");
 }
 
-async function currentSettlement() {
-  const actor = await requireMemberContext();
-  const members = await loadHouseholdMembers();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("ledger_entries")
-    .select("member_id, receivable_delta_cents")
-    .eq("household_id", actor.householdId);
-  if (error) throw new Error(`settlement_balance failed: ${error.message}`);
-  const balance = new Map(members.map((member) => [member.user_id, 0]));
-  for (const row of data ?? []) {
-    const current = balance.get(row.member_id);
-    if (
-      current === undefined ||
-      !Number.isSafeInteger(row.receivable_delta_cents)
-    ) {
-      throw new Error("The household balance could not be reconciled.");
-    }
-    const next = current + row.receivable_delta_cents;
-    if (!Number.isSafeInteger(next))
-      throw new Error("The balance is too large.");
-    balance.set(row.member_id, next);
-  }
-  const debtor = members.find(
-    (member) => (balance.get(member.user_id) ?? 0) < 0,
-  );
-  const creditor = members.find(
-    (member) => (balance.get(member.user_id) ?? 0) > 0,
-  );
-  if (debtor === undefined || creditor === undefined) {
-    throw new Error("The household is already settled up.");
-  }
-  return {
-    debtor,
-    creditor,
-    outstanding: Math.abs(balance.get(debtor.user_id) ?? 0),
-  };
-}
-
 export async function recordSettlementAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<void> {
-  const requestedMode = formData.get("mode") === "partial" ? "partial" : "full";
-  let failure: unknown = null;
-  try {
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseSettlementForm(formData);
-    const { debtor, creditor, outstanding } = await currentSettlement();
+    const settlement = await loadSettlementContext();
+    if (settlement === null) {
+      throw new Error("The household is already settled up.");
+    }
     const amountCents = settlementAmount({
-      outstandingCents: outstanding,
+      outstandingCents: settlement.outstandingCents,
       mode: input.mode,
       requestedCents: input.amountCents,
     });
     await recordSettlement({
-      payerMemberId: debtor.user_id,
+      payerMemberId: settlement.debtorMemberId,
       amountCents,
       occurredOn: input.occurredOn,
-      description: `${debtor.display_name} paid ${creditor.display_name}`,
+      description: `${settlement.debtorName} paid ${settlement.creditorName}`,
       idempotencyKey: input.idempotencyKey,
       note: input.note,
       mode: input.mode,
     });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    redirect(
-      errorHref(`/money/settlements/new?mode=${requestedMode}`, failure),
-    );
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");
 }

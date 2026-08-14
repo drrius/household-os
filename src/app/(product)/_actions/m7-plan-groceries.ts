@@ -1,17 +1,22 @@
 "use server";
 
 import { redirect } from "next/navigation";
+
 import {
   errorHref,
   revalidateProduct,
 } from "@/app/(product)/_actions/m7-shared";
 import {
-  parseGroceryForm,
+  settleFormAction,
+  type FormActionState,
+} from "@/lib/forms/action-state";
+import { parseGroceryForm } from "@/lib/forms/grocery";
+import {
   parseMealForm,
   parsePlaceFromLibraryForm,
   parseRemoveMealForm,
   parseUpdateMealForm,
-} from "@/lib/forms/m7";
+} from "@/lib/forms/meal";
 import { createGroceryItem } from "@/lib/groceries/commands";
 import {
   createAndPlaceMeal,
@@ -21,22 +26,22 @@ import {
 } from "@/lib/meals/commands";
 
 export async function createGroceryItemAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<void> {
-  let failure: unknown = null;
-  try {
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
     await createGroceryItem(parseGroceryForm(formData));
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) redirect(errorHref("/groceries/new", failure));
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/groceries"]);
   redirect("/groceries");
 }
 
-export async function createMealAction(formData: FormData): Promise<void> {
-  let failure: unknown = null;
-  try {
+export async function createMealAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseMealForm(formData);
     if (input.saveToLibrary) {
       await createAndPlaceMeal({
@@ -47,33 +52,29 @@ export async function createMealAction(formData: FormData): Promise<void> {
         recipeUrl: input.recipeUrl,
         notes: input.notes,
       });
-    } else {
-      await placeMeal({
-        date: input.date,
-        slot: input.slot,
-        sourceKind: "freeform",
-        title: input.title,
-        recipeUrl: input.recipeUrl,
-        notes: input.notes,
-        idempotencyKey: input.idempotencyKey,
-      });
+      return;
     }
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) redirect(errorHref("/plan/meals/new", failure));
+    await placeMeal({
+      date: input.date,
+      slot: input.slot,
+      sourceKind: "freeform",
+      title: input.title,
+      recipeUrl: input.recipeUrl,
+      notes: input.notes,
+      idempotencyKey: input.idempotencyKey,
+    });
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
 
 export async function placeFromLibraryAction(
+  previous: FormActionState,
   formData: FormData,
-): Promise<void> {
-  let failure: unknown = null;
-  let libraryId: string | null = null;
-  try {
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const input = parsePlaceFromLibraryForm(formData);
-    libraryId = input.libraryId;
     await placeMeal({
       date: input.date,
       slot: input.slot,
@@ -82,16 +83,8 @@ export async function placeFromLibraryAction(
       notes: input.notes,
       idempotencyKey: input.idempotencyKey,
     });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    const fallback =
-      libraryId === null
-        ? "/plan/meals/new"
-        : `/plan/meals/new?libraryId=${encodeURIComponent(libraryId)}`;
-    redirect(errorHref(fallback, failure));
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }
@@ -118,12 +111,12 @@ export async function removeMealEntryAction(formData: FormData): Promise<void> {
   redirect("/plan");
 }
 
-export async function updateMealEntryAction(formData: FormData): Promise<void> {
-  let failure: unknown = null;
-  let entryId: string | null = null;
-  try {
+export async function updateMealEntryAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseUpdateMealForm(formData);
-    entryId = input.entryId;
     await updateMealPlanEntry({
       entryId: input.entryId,
       title: input.title,
@@ -133,14 +126,8 @@ export async function updateMealEntryAction(formData: FormData): Promise<void> {
       notes: input.notes,
       idempotencyKey: input.idempotencyKey,
     });
-  } catch (error) {
-    failure = error;
-  }
-  if (failure !== null) {
-    const fallback =
-      entryId === null ? "/plan" : `/plan/meals/${encodeURIComponent(entryId)}`;
-    redirect(errorHref(fallback, failure));
-  }
+  });
+  if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
   redirect("/plan");
 }

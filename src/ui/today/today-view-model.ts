@@ -76,7 +76,12 @@ type DraftBase = {
 
 export type DraftGlance =
   | (DraftBase & { kind: "ready"; amount: FrancDisplay })
-  | (DraftBase & { kind: "incomplete"; amount: FrancDisplay | null });
+  | (DraftBase & {
+      kind: "incomplete";
+      amount: FrancDisplay | null;
+      /** One short sentence naming why Confirm is disabled. */
+      blocker: string | null;
+    });
 
 export type TodayViewModel = {
   householdId: string;

@@ -2,6 +2,9 @@ import "server-only";
 
 import { z } from "zod";
 
+import { deriveMemberBalances } from "@/domain/money/balances";
+import type { LedgerEntry } from "@/domain/money/types";
+import { asFinancialEventId, asMemberId } from "@/domain/money/values";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -92,6 +95,60 @@ export async function loadMoneyFormOptions() {
       .array(optionSchema)
       .parse(requireData("expense categories", categories)),
     hasOpeningBalance: requireData("opening balance", opening).length > 0,
+  };
+}
+
+export type SettlementContext = {
+  creditorMemberId: string;
+  creditorName: string;
+  debtorMemberId: string;
+  debtorName: string;
+  outstandingCents: number;
+};
+
+export async function loadSettlementContext(): Promise<SettlementContext | null> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const [membersResult, ledgerResult] = await Promise.all([
+    supabase
+      .from("household_members")
+      .select("user_id, display_name")
+      .eq("household_id", member.householdId)
+      .order("joined_at")
+      .order("user_id"),
+    supabase
+      .from("ledger_entries")
+      .select("financial_event_id, member_id, receivable_delta_cents")
+      .eq("household_id", member.householdId),
+  ]);
+  const members = z
+    .array(memberSchema)
+    .parse(requireData("members", membersResult));
+  if (members.length !== 2) {
+    throw new Error("This household needs exactly two members.");
+  }
+  if (ledgerResult.error) {
+    throw new Error(`settlement_balance failed: ${ledgerResult.error.message}`);
+  }
+  const entries: LedgerEntry[] = (ledgerResult.data ?? []).map((row) => ({
+    financialEventId: asFinancialEventId(row.financial_event_id),
+    memberId: asMemberId(row.member_id),
+    receivableDeltaCents: row.receivable_delta_cents,
+  }));
+  const balance = deriveMemberBalances(entries);
+  const debtor = members.find(
+    (row) => (balance.get(asMemberId(row.user_id)) ?? 0) < 0,
+  );
+  const creditor = members.find(
+    (row) => (balance.get(asMemberId(row.user_id)) ?? 0) > 0,
+  );
+  if (debtor === undefined || creditor === undefined) return null;
+  return {
+    creditorMemberId: creditor.user_id,
+    creditorName: creditor.display_name,
+    debtorMemberId: debtor.user_id,
+    debtorName: debtor.display_name,
+    outstandingCents: Math.abs(balance.get(asMemberId(debtor.user_id)) ?? 0),
   };
 }
 

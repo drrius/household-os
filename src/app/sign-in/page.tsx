@@ -18,7 +18,18 @@ export default async function SignInPage() {
 
   return (
     <GateShell
-      description="Use a discoverable passkey. No email is collected here."
+      description={
+        <>
+          <p>
+            Sign in with the passkey saved on this device or your phone. No
+            password and no email.
+          </p>
+          <p className="mt-2">
+            New device, or lost your passkey? Ask the person who set up Our Home
+            for a one-time enrollment link.
+          </p>
+        </>
+      }
       title="Sign in"
       titleId="sign-in-title"
     >
