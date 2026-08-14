@@ -67,7 +67,10 @@ export default async function NotificationsSettingsPage({
             </p>
           </div>
           <Link
-            className={cn(buttonVariants({ variant: "secondary" }), "w-fit no-underline")}
+            className={cn(
+              buttonVariants({ variant: "secondary" }),
+              "w-fit no-underline",
+            )}
             href="/home/inbox"
           >
             Open inbox
@@ -76,7 +79,9 @@ export default async function NotificationsSettingsPage({
       </Card>
       <Card>
         <CardContent className="grid gap-3">
-          <h2 className="font-heading text-lg font-bold">Push on this device</h2>
+          <h2 className="font-heading text-lg font-bold">
+            Push on this device
+          </h2>
           <PushEnrollmentPanel />
         </CardContent>
       </Card>

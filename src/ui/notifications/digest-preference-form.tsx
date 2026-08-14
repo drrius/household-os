@@ -2,11 +2,7 @@ import { saveDigestPreferenceAction } from "@/app/(product)/_actions/notificatio
 import type { DigestPreferenceView } from "@/lib/read-models/notifications";
 import { CheckboxField } from "@/ui/forms/checkbox-field.client";
 import { EchoedInput } from "@/ui/forms/echoed-control.client";
-import {
-  FormField,
-  FormFields,
-  FormSection,
-} from "@/ui/forms/form-page";
+import { FormField, FormFields, FormSection } from "@/ui/forms/form-page";
 
 type DigestPreferenceFormProps = {
   preference: DigestPreferenceView;
@@ -17,10 +13,7 @@ export function DigestPreferenceForm({
 }: DigestPreferenceFormProps) {
   return (
     <FormSection legend="Daily digest">
-      <FormFields
-        action={saveDigestPreferenceAction}
-        submitLabel="Save digest"
-      >
+      <FormFields action={saveDigestPreferenceAction} submitLabel="Save digest">
         <CheckboxField
           defaultChecked={preference.enabled}
           label="Send a calm morning digest when there is something to do"

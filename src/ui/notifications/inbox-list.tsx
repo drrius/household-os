@@ -19,7 +19,10 @@ function MarkReadButton({
       {notificationIds.map((id) => (
         <input key={id} name="notificationId" type="hidden" value={id} />
       ))}
-      <button className={cn(buttonVariants({ size: "sm", variant: "outline" }))} type="submit">
+      <button
+        className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+        type="submit"
+      >
         {label}
       </button>
     </form>
@@ -33,7 +36,9 @@ function InboxItemRow({ item }: { item: InboxItemView }) {
         <Badge variant={item.read ? "outline" : "default"}>
           {item.kindLabel}
         </Badge>
-        <span className="text-xs text-muted-foreground">{item.createdLabel}</span>
+        <span className="text-xs text-muted-foreground">
+          {item.createdLabel}
+        </span>
         {!item.read ? (
           <span className="text-xs font-medium text-primary">Unread</span>
         ) : null}
@@ -74,7 +79,9 @@ export function InboxList({ feed }: { feed: InboxFeed }) {
     );
   }
 
-  const unreadIds = feed.items.filter((item) => !item.read).map((item) => item.id);
+  const unreadIds = feed.items
+    .filter((item) => !item.read)
+    .map((item) => item.id);
 
   return (
     <div className="grid gap-4">

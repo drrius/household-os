@@ -23,10 +23,7 @@ function readInstallPromptState(): InstallPromptState {
     show: !isStandaloneDisplay(),
     ios: isIosDevice(),
   };
-  if (
-    next.show === clientSnapshot.show &&
-    next.ios === clientSnapshot.ios
-  ) {
+  if (next.show === clientSnapshot.show && next.ios === clientSnapshot.ios) {
     return clientSnapshot;
   }
   clientSnapshot = next;
@@ -49,7 +46,9 @@ export function InstallGuidance() {
       aria-label="Install Household OS"
       className="grid gap-2 rounded-xl border border-dashed border-border bg-muted/40 px-4 py-3"
     >
-      <h3 className="font-heading text-base font-bold">Install on this device</h3>
+      <h3 className="font-heading text-base font-bold">
+        Install on this device
+      </h3>
       {ios ? (
         <p className="text-sm text-muted-foreground">
           On iPhone or iPad, open the Share menu and choose Add to Home Screen.
@@ -58,8 +57,8 @@ export function InstallGuidance() {
       ) : (
         <p className="text-sm text-muted-foreground">
           Your browser can install Household OS when the manifest and HTTPS
-          checks pass. Look for the install control in the address bar or browser
-          menu.
+          checks pass. Look for the install control in the address bar or
+          browser menu.
         </p>
       )}
     </section>
