@@ -53,6 +53,11 @@ type ServiceClient = ReturnType<typeof createClient>;
 
 const MAX_ERROR_LENGTH = 1000;
 const DEFAULT_VAPID_SUBJECT = "mailto:household-os@localhost";
+const COUNT_KEY = {
+  sent: "sent",
+  skipped_no_subscription: "skipped",
+  failed: "failed",
+} satisfies Record<OutboxDeliveryResult["kind"], keyof DrainCounts>;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -131,6 +136,16 @@ async function markOutbox(
   }
 }
 
+async function finishRow(
+  supabase: ServiceClient,
+  row: OutboxRow,
+  result: OutboxDeliveryResult,
+  skippedError: string | null = null,
+): Promise<OutboxDeliveryResult> {
+  await markOutbox(supabase, row, result, skippedError);
+  return result;
+}
+
 async function sendPush(
   supabase: ServiceClient,
   householdId: string,
@@ -206,38 +221,29 @@ async function drainRow(
     .overrideTypes<PushSubscriptionRow[], { merge: false }>();
 
   if (error) {
-    const result = {
+    return finishRow(supabase, row, {
       kind: "failed",
       error: error.message,
-    } satisfies OutboxDeliveryResult;
-    await markOutbox(supabase, row, result);
-    return result;
+    });
   }
 
   if (subscriptions.length === 0) {
-    const result = {
-      kind: "skipped_no_subscription",
-    } satisfies OutboxDeliveryResult;
-    await markOutbox(supabase, row, result);
-    return result;
+    return finishRow(supabase, row, { kind: "skipped_no_subscription" });
   }
 
   switch (config.kind) {
-    case "missing": {
-      const result = {
-        kind: "skipped_no_subscription",
-      } satisfies OutboxDeliveryResult;
-      await markOutbox(supabase, row, result, config.error);
-      return result;
-    }
-    case "invalid": {
-      const result = {
+    case "missing":
+      return finishRow(
+        supabase,
+        row,
+        { kind: "skipped_no_subscription" },
+        config.error,
+      );
+    case "invalid":
+      return finishRow(supabase, row, {
         kind: "failed",
         error: config.error,
-      } satisfies OutboxDeliveryResult;
-      await markOutbox(supabase, row, result);
-      return result;
-    }
+      });
     case "ready":
       break;
     default: {
@@ -252,66 +258,22 @@ async function drainRow(
       sendPush(supabase, row.household_id, subscription, payload, config),
     ),
   );
-  let sent = false;
-  let gone = 0;
-  const errors: string[] = [];
 
-  for (const delivery of deliveries) {
-    switch (delivery.kind) {
-      case "sent":
-        sent = true;
-        break;
-      case "gone":
-        gone += 1;
-        break;
-      case "failed":
-        errors.push(delivery.error);
-        break;
-      default: {
-        const _exhaustive: never = delivery;
-        return _exhaustive;
-      }
-    }
+  if (deliveries.some((delivery) => delivery.kind === "sent")) {
+    return finishRow(supabase, row, { kind: "sent" });
   }
 
-  if (sent) {
-    const result = { kind: "sent" } satisfies OutboxDeliveryResult;
-    await markOutbox(supabase, row, result);
-    return result;
+  if (deliveries.every((delivery) => delivery.kind === "gone")) {
+    return finishRow(supabase, row, { kind: "skipped_no_subscription" });
   }
 
-  if (gone === deliveries.length) {
-    const result = {
-      kind: "skipped_no_subscription",
-    } satisfies OutboxDeliveryResult;
-    await markOutbox(supabase, row, result);
-    return result;
-  }
-
-  const result = {
+  const errors = deliveries.flatMap((delivery) =>
+    delivery.kind === "failed" ? [delivery.error] : [],
+  );
+  return finishRow(supabase, row, {
     kind: "failed",
     error: errors.join("; "),
-  } satisfies OutboxDeliveryResult;
-  await markOutbox(supabase, row, result);
-  return result;
-}
-
-function countResult(counts: DrainCounts, result: OutboxDeliveryResult): void {
-  switch (result.kind) {
-    case "sent":
-      counts.sent += 1;
-      return;
-    case "skipped_no_subscription":
-      counts.skipped += 1;
-      return;
-    case "failed":
-      counts.failed += 1;
-      return;
-    default: {
-      const _exhaustive: never = result;
-      return _exhaustive;
-    }
-  }
+  });
 }
 
 Deno.serve(async (request) => {
@@ -362,7 +324,7 @@ Deno.serve(async (request) => {
   const config = loadPushConfig();
   for (const row of rows) {
     const result = await drainRow(supabase, row, config);
-    countResult(counts, result);
+    counts[COUNT_KEY[result.kind]] += 1;
   }
 
   return Response.json(counts);
