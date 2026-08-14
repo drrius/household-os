@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import type { PlanViewModel } from "@/lib/read-models/plan";
 import { addCivilDays, startOfZurichWeek } from "@/lib/ui/zurich-date";
+import { cn } from "@/lib/utils";
 import { AppPage } from "@/ui/layout/app-page";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
@@ -99,16 +99,13 @@ export function PlanScreen({ plan }: PlanScreenProps) {
             />
             <PlanWeekArrow direction="next" href={`/plan?week=${nextWeek}`} />
             <Link
-              aria-label="Add meal"
-              className={buttonVariants({
-                size: "icon-sm",
-                className: "no-underline sm:h-9 sm:w-auto sm:gap-1 sm:px-3",
-              })}
+              className={cn(
+                buttonVariants(),
+                "hidden no-underline md:inline-flex",
+              )}
               href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}
-              title="Add meal"
             >
-              <Plus aria-hidden="true" className="size-4 shrink-0 sm:hidden" />
-              <span className="hidden sm:inline">Add meal</span>
+              Add meal
             </Link>
           </div>
         }

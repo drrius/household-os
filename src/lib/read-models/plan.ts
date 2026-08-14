@@ -70,7 +70,7 @@ const dayFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: ZURICH_TIME_ZONE,
 });
 const monthFormatter = new Intl.DateTimeFormat("en-GB", {
-  month: "long",
+  month: "short",
   timeZone: ZURICH_TIME_ZONE,
 });
 const yearFormatter = new Intl.DateTimeFormat("en-GB", {

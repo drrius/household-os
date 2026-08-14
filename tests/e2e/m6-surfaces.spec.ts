@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 const surfaces = [
   ["today", "Hoi Darius ☀"],
-  ["plan", "10 – 16 August"],
+  ["plan", "10 – 16 Aug"],
   ["groceries", "Groceries"],
   ["money", "Money"],
   ["home", "Our home"],

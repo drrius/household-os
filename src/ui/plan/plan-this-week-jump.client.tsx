@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 import { SlowLink } from "@/ui/plan/slow-link.client";
 
 const chipClassName = cn(
-  buttonVariants({ size: "icon-sm", variant: "secondary" }),
-  "shadow-sm ring-1 ring-foreground/5 no-underline sm:h-8 sm:w-auto sm:gap-1 sm:px-3",
+  buttonVariants({ size: "icon", variant: "secondary" }),
+  "shadow-sm ring-1 ring-foreground/5 no-underline md:h-9 md:w-auto md:gap-1 md:px-3",
 );
 
 export function PlanThisWeekJump({ visible }: { visible: boolean }) {
@@ -58,9 +58,9 @@ export function PlanThisWeekJump({ visible }: { visible: boolean }) {
                 <>
                   <CalendarCheck
                     aria-hidden="true"
-                    className="size-4 shrink-0 sm:hidden"
+                    className="size-4 shrink-0 md:hidden"
                   />
-                  <span className="hidden sm:inline">This week</span>
+                  <span className="hidden md:inline">This week</span>
                 </>
               )
             }
