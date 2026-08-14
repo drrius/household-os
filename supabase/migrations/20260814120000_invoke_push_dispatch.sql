@@ -133,16 +133,10 @@ begin
   if exists (
     select 1
     from unnest(coalesce(p_delivered_subscription_ids, '{}'::uuid[])) as delivered(id)
-    where not (
-      delivered.id = any(claimed.delivered_subscription_ids)
-    )
-    and not exists (
-      select 1
-      from public.push_subscriptions as subscription
-      where subscription.id = delivered.id
-        and subscription.household_id = claimed.household_id
-        and subscription.member_id = claimed.recipient_member_id
-    )
+    join public.push_subscriptions as subscription
+      on subscription.id = delivered.id
+    where subscription.household_id <> claimed.household_id
+       or subscription.member_id <> claimed.recipient_member_id
   ) then
     raise exception 'delivered subscription does not belong to claimed recipient'
       using errcode = '22023';

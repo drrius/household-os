@@ -434,6 +434,24 @@ values
     'claim-p256dh-two',
     'claim-auth-two',
     'pgTAP claim two'
+  ),
+  (
+    '70000000-0000-4000-8000-000000000053',
+    '10000000-0000-4000-8000-000000000051',
+    '00000000-0000-4000-8000-000000000052',
+    'https://push.example.invalid/claim-three',
+    'claim-p256dh-three',
+    'claim-auth-three',
+    'pgTAP claim three'
+  ),
+  (
+    '70000000-0000-4000-8000-000000000054',
+    '10000000-0000-4000-8000-000000000052',
+    '00000000-0000-4000-8000-000000000053',
+    'https://push.example.invalid/foreign-claim',
+    'foreign-claim-p256dh',
+    'foreign-claim-auth',
+    'pgTAP foreign claim'
   );
 
 insert into public.inbox_notifications (
@@ -620,6 +638,37 @@ select is(
 create temporary table retry_push_claim as
 select * from public.claim_push_outbox(1, 120);
 
+select throws_ok(
+  format(
+    $$
+      select public.finalize_push_outbox_claim(
+        %L::uuid,
+        %L::uuid,
+        'failed',
+        'foreign subscription test',
+        array['70000000-0000-4000-8000-000000000054'::uuid]
+      )
+    $$,
+    (select id from retry_push_claim),
+    (select claim_token from retry_push_claim)
+  ),
+  '22023',
+  'delivered subscription does not belong to claimed recipient',
+  'finalization rejects an existing subscription owned by another recipient'
+);
+
+delete from public.push_subscriptions
+where id = '70000000-0000-4000-8000-000000000053';
+
+select ok(
+  not exists (
+    select 1
+    from public.push_subscriptions
+    where id = '70000000-0000-4000-8000-000000000053'
+  ),
+  'a newly successful device can be unregistered before finalization'
+);
+
 select is(
   public.finalize_push_outbox_claim(
     (select id from retry_push_claim),
@@ -628,7 +677,8 @@ select is(
     'transient push failure',
     array[
       '70000000-0000-4000-8000-000000000051'::uuid,
-      '70000000-0000-4000-8000-000000000052'::uuid
+      '70000000-0000-4000-8000-000000000052'::uuid,
+      '70000000-0000-4000-8000-000000000053'::uuid
     ]
   ),
   true,
@@ -641,12 +691,13 @@ select ok(
       and attempt_count = 1
       and delivered_subscription_ids @> array[
         '70000000-0000-4000-8000-000000000051'::uuid,
-        '70000000-0000-4000-8000-000000000052'::uuid
+        '70000000-0000-4000-8000-000000000052'::uuid,
+        '70000000-0000-4000-8000-000000000053'::uuid
       ]
     from public.push_outbox
     where id = (select id from retry_push_claim)
   ),
-  'retry finalization trusts stored successes after unregister and adds new ones'
+  'retry finalization preserves stored, current, and newly unregistered successes'
 );
 
 update public.push_outbox
