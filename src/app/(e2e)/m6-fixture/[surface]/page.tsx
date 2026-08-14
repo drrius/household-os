@@ -23,7 +23,7 @@ type Surface = (typeof surfaces)[number];
 const planFixture: PlanViewModel = {
   weekStart: "2026-08-10",
   weekEnd: "2026-08-16",
-  rangeLabel: "10 – 16 August",
+  rangeLabel: "10 – 16 Aug",
   timeZoneLabel: "Europe/Zurich",
   today: "2026-08-12",
   days: (

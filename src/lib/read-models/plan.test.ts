@@ -47,7 +47,7 @@ describe("buildPlanViewModel", () => {
 
     expect(plan.weekStart).toBe("2025-08-04");
     expect(plan.weekEnd).toBe("2025-08-10");
-    expect(plan.rangeLabel).toBe("4 – 10 August");
+    expect(plan.rangeLabel).toBe("4 – 10 Aug");
     expect(plan.days.map((day) => day.date)).toEqual([
       "2025-08-04",
       "2025-08-05",
@@ -86,7 +86,7 @@ describe("buildPlanViewModel", () => {
 
     expect(plan.weekStart).toBe("2026-08-31");
     expect(plan.weekEnd).toBe("2026-09-06");
-    expect(plan.rangeLabel).toBe("31 August – 6 September");
+    expect(plan.rangeLabel).toBe("31 Aug – 6 Sept");
   });
 
   it("labels a week that crosses a year boundary", () => {
@@ -100,7 +100,7 @@ describe("buildPlanViewModel", () => {
 
     expect(plan.weekStart).toBe("2025-12-29");
     expect(plan.weekEnd).toBe("2026-01-04");
-    expect(plan.rangeLabel).toBe("29 December 2025 – 4 January 2026");
+    expect(plan.rangeLabel).toBe("29 Dec 2025 – 4 Jan 2026");
   });
 
   it("falls back to today's week for an invalid query date", () => {
