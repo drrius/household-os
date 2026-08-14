@@ -27,9 +27,9 @@ function SettingsLinkRow({
   title,
 }: SettingsRowProps & { href: string }) {
   return (
-    <li className="border-t first:border-t-0">
+    <li className="border-t py-1 first:border-t-0">
       <Link
-        className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-xl px-2 py-3 no-underline hover:bg-muted"
+        className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-2 no-underline hover:bg-muted/70"
         href={href}
       >
         <span className="grid min-w-0 gap-1">
