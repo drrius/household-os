@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
+import { CalendarCheck, LoaderCircle } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -8,21 +8,9 @@ import { cn } from "@/lib/utils";
 import { SlowLink } from "@/ui/plan/slow-link.client";
 
 const chipClassName = cn(
-  buttonVariants({ size: "sm", variant: "secondary" }),
-  "shadow-sm ring-1 ring-foreground/5 no-underline",
+  buttonVariants({ size: "icon-sm", variant: "secondary" }),
+  "shadow-sm ring-1 ring-foreground/5 no-underline sm:h-8 sm:w-auto sm:gap-1 sm:px-3",
 );
-
-function JumpSpinner({ pending }: { pending: boolean }) {
-  return (
-    <LoaderCircle
-      aria-hidden="true"
-      className={cn(
-        "size-3 shrink-0 animate-spin transition-opacity motion-reduce:animate-none motion-reduce:transition-none",
-        pending ? "opacity-100 motion-reduce:opacity-70" : "opacity-0",
-      )}
-    />
-  );
-}
 
 export function PlanThisWeekJump({ visible }: { visible: boolean }) {
   const reduceMotion = useReducedMotion();
@@ -33,8 +21,11 @@ export function PlanThisWeekJump({ visible }: { visible: boolean }) {
         aria-hidden="true"
         className={cn(chipClassName, "invisible pointer-events-none")}
       >
-        This week
-        <JumpSpinner pending={false} />
+        <CalendarCheck
+          aria-hidden="true"
+          className="size-4 shrink-0 sm:hidden"
+        />
+        <span className="hidden sm:inline">This week</span>
       </span>
       <AnimatePresence>
         {visible ? (
@@ -63,15 +54,27 @@ export function PlanThisWeekJump({ visible }: { visible: boolean }) {
             }
           >
             <SlowLink
-              className={cn(chipClassName, "aria-busy:opacity-70")}
+              aria-label="This week"
+              className={cn(chipClassName, "w-full aria-busy:opacity-70")}
               href="/plan"
+              title="This week"
             >
-              {(pending) => (
-                <>
-                  This week
-                  <JumpSpinner pending={pending} />
-                </>
-              )}
+              {(pending) =>
+                pending ? (
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="size-4 shrink-0 animate-spin motion-reduce:animate-none motion-reduce:opacity-70"
+                  />
+                ) : (
+                  <>
+                    <CalendarCheck
+                      aria-hidden="true"
+                      className="size-4 shrink-0 sm:hidden"
+                    />
+                    <span className="hidden sm:inline">This week</span>
+                  </>
+                )
+              }
             </SlowLink>
           </motion.div>
         ) : null}
