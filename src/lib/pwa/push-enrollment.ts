@@ -1,4 +1,6 @@
-export const SERVICE_WORKER_PATH = "/household-os-sw.js";
+import { SERVICE_WORKER_PATH } from "@/lib/auth/paths";
+
+export { SERVICE_WORKER_PATH };
 
 export type PushSubscriptionKeys = {
   endpoint: string;

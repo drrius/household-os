@@ -8,6 +8,8 @@ describe("auth path classification", () => {
     expect(isPublicPath("/auth/consume")).toBe(true);
     expect(isPublicPath("/auth/error")).toBe(true);
     expect(isPublicPath("/access-denied")).toBe(true);
+    expect(isPublicPath("/household-os-sw.js")).toBe(true);
+    expect(isPublicPath("/manifest.webmanifest")).toBe(true);
     expect(classifyPath("/sign-in")).toBe("public");
   });
 

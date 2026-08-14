@@ -4,20 +4,34 @@ import { useSyncExternalStore } from "react";
 
 import { isIosDevice, isStandaloneDisplay } from "@/lib/pwa/push-enrollment";
 
+type InstallPromptState = {
+  show: boolean;
+  ios: boolean;
+};
+
+const serverSnapshot: InstallPromptState = { show: false, ios: false };
+let clientSnapshot: InstallPromptState = serverSnapshot;
+
 function subscribeDisplayMode(onStoreChange: () => void): () => void {
   const media = window.matchMedia("(display-mode: standalone)");
   media.addEventListener("change", onStoreChange);
   return () => media.removeEventListener("change", onStoreChange);
 }
 
-function readInstallPromptState(): { show: boolean; ios: boolean } {
-  return {
+function readInstallPromptState(): InstallPromptState {
+  const next: InstallPromptState = {
     show: !isStandaloneDisplay(),
     ios: isIosDevice(),
   };
+  if (
+    next.show === clientSnapshot.show &&
+    next.ios === clientSnapshot.ios
+  ) {
+    return clientSnapshot;
+  }
+  clientSnapshot = next;
+  return clientSnapshot;
 }
-
-const serverSnapshot = { show: false, ios: false };
 
 export function InstallGuidance() {
   const { show, ios } = useSyncExternalStore(
