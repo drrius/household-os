@@ -45,7 +45,7 @@ ensure_docker_daemon() {
 }
 
 write_env_local() {
-  local status_json api_url publishable
+  local status_json api_url publishable vapid_env vapid_public vapid_private
 
   status_json="$(pnpm exec supabase status -o json)"
   api_url="$(
@@ -78,6 +78,17 @@ NEXT_PUBLIC_SUPABASE_URL=${api_url}
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${publishable}
 ${vapid_env}
 EOF
+
+  vapid_public="${vapid_env#NEXT_PUBLIC_VAPID_PUBLIC_KEY=}"
+  vapid_public="${vapid_public%%$'\n'*}"
+  vapid_private="${vapid_env##*$'\n'}"
+  vapid_private="${vapid_private#VAPID_PRIVATE_KEY=}"
+
+  cat >supabase/functions/.env <<EOF
+VAPID_PUBLIC_KEY=${vapid_public}
+VAPID_PRIVATE_KEY=${vapid_private}
+EOF
+  chmod 600 supabase/functions/.env
 }
 
 ensure_docker_daemon
