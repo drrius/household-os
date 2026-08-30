@@ -827,5 +827,65 @@ select is(
   'schedule updates write activity history'
 );
 
+select set_config(
+  'request.jwt.claim.sub',
+  '00000000-0000-4000-8000-000000000011',
+  true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+
+insert into public.pets (household_id, name)
+values ('10000000-0000-4000-8000-000000000011', 'Routine Edit Pet');
+
+select lives_ok(
+  $$
+    update public.routines
+    set instructions = 'Direct optional-field edit',
+        pet_id = (
+          select id
+          from public.pets
+          where name = 'Routine Edit Pet'
+        )
+    where household_id = '10000000-0000-4000-8000-000000000011'
+      and title = 'Daily kitchen'
+  $$,
+  'members can set routine instructions and pet directly under column grants'
+);
+
+select is(
+  (
+    select pet.name
+    from public.routines as routine
+    join public.pets as pet on pet.id = routine.pet_id
+    where routine.title = 'Daily kitchen'
+  ),
+  'Routine Edit Pet',
+  'the direct optional-field update persists the pet link'
+);
+
+select lives_ok(
+  $$
+    update public.routines
+    set instructions = null,
+        pet_id = null
+    where household_id = '10000000-0000-4000-8000-000000000011'
+      and title = 'Daily kitchen'
+  $$,
+  'members can clear routine instructions and pet directly'
+);
+
+select is(
+  (
+    select instructions is null and pet_id is null
+    from public.routines
+    where title = 'Daily kitchen'
+  ),
+  true,
+  'the direct optional-field update can null both fields'
+);
+
+reset role;
+
 select * from finish();
 rollback;
