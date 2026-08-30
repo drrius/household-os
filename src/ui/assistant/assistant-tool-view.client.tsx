@@ -8,8 +8,10 @@ import {
 
 import {
   Tool,
-  ToolPayload,
-  type ToolDisplayState,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
 
@@ -136,6 +138,21 @@ function ApprovalCard({
   );
 }
 
+function ToolPartHeader({ part }: { part: AnyToolPart }) {
+  const title = toolLabel(getToolOrDynamicToolName(part));
+  if (part.type === "dynamic-tool") {
+    return (
+      <ToolHeader
+        state={part.state}
+        title={title}
+        toolName={part.toolName}
+        type={part.type}
+      />
+    );
+  }
+  return <ToolHeader state={part.state} title={title} type={part.type} />;
+}
+
 export function ToolPart({
   part,
   respond,
@@ -150,21 +167,17 @@ export function ToolPart({
     return <ApprovalCard part={part} respond={respond} />;
   }
   return (
-    <Tool
-      label={toolLabel(getToolOrDynamicToolName(part))}
-      state={part.state as ToolDisplayState}
-    >
-      {part.input !== undefined && (
-        <div className="grid gap-2">
-          <ToolPayload value={part.input} />
-          {part.state === "output-available" && (
-            <ToolPayload value={part.output} />
-          )}
-          {part.state === "output-error" && (
-            <p className="text-xs text-destructive">{part.errorText}</p>
-          )}
-        </div>
-      )}
+    <Tool>
+      <ToolPartHeader part={part} />
+      <ToolContent>
+        {part.input !== undefined && <ToolInput input={part.input} />}
+        {part.state === "output-available" && (
+          <ToolOutput errorText={undefined} output={part.output} />
+        )}
+        {part.state === "output-error" && (
+          <ToolOutput errorText={part.errorText} output={undefined} />
+        )}
+      </ToolContent>
     </Tool>
   );
 }

@@ -2,8 +2,11 @@
 
 import { isToolUIPart, type UIMessage } from "ai";
 
-import { Message, MessageContent } from "@/components/ai-elements/message";
-import { Response } from "@/components/ai-elements/response";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +36,7 @@ export function AssistantEmptyState({
         {SUGGESTIONS.map((suggestion) => (
           <Suggestion
             key={suggestion}
-            onSelect={onPick}
+            onClick={onPick}
             suggestion={suggestion}
           />
         ))}
@@ -86,7 +89,7 @@ export function AssistantMessages({
                       {part.text}
                     </p>
                   ) : (
-                    <Response key={key}>{part.text}</Response>
+                    <MessageResponse key={key}>{part.text}</MessageResponse>
                   );
                 }
                 if (isToolUIPart(part)) {

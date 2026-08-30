@@ -1,42 +1,54 @@
 "use client";
 
-import * as React from "react";
-
+import { Button } from "@/components/ui/button";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import type { ComponentProps } from "react";
+import { useCallback } from "react";
 
-export function Suggestions({
+export type SuggestionsProps = ComponentProps<typeof ScrollArea>;
+
+export const Suggestions = ({
   className,
+  children,
   ...props
-}: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn("flex flex-wrap justify-center gap-2", className)}
-      {...props}
-    />
-  );
-}
+}: SuggestionsProps) => (
+  <ScrollArea className="w-full overflow-x-auto whitespace-nowrap" {...props}>
+    <div className={cn("flex w-max flex-nowrap items-center gap-2", className)}>
+      {children}
+    </div>
+    <ScrollBar className="hidden" orientation="horizontal" />
+  </ScrollArea>
+);
 
-type SuggestionProps = {
+export type SuggestionProps = Omit<ComponentProps<typeof Button>, "onClick"> & {
   suggestion: string;
-  onSelect: (suggestion: string) => void;
-  className?: string;
+  onClick?: (suggestion: string) => void;
 };
 
-export function Suggestion({
+export const Suggestion = ({
   suggestion,
-  onSelect,
+  onClick,
   className,
-}: SuggestionProps) {
+  variant = "outline",
+  size = "sm",
+  children,
+  ...props
+}: SuggestionProps) => {
+  const handleClick = useCallback(() => {
+    onClick?.(suggestion);
+  }, [onClick, suggestion]);
+
   return (
-    <button
-      className={cn(
-        "min-h-9 rounded-4xl border border-border bg-card px-3.5 py-1.5 text-sm text-foreground outline-none hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-        className,
-      )}
-      onClick={() => onSelect(suggestion)}
+    <Button
+      className={cn("cursor-pointer rounded-full px-4", className)}
+      onClick={handleClick}
+      size={size}
       type="button"
+      variant={variant}
+      {...props}
     >
-      {suggestion}
-    </button>
+      {children || suggestion}
+    </Button>
   );
-}
+};

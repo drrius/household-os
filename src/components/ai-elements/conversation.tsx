@@ -1,141 +1,168 @@
 "use client";
 
-import { ArrowDownIcon } from "lucide-react";
-import * as React from "react";
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { UIMessage } from "ai";
+import { ArrowDownIcon, DownloadIcon } from "lucide-react";
+import type { ComponentProps } from "react";
+import { useCallback } from "react";
+import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
-type ConversationContextValue = {
-  isAtBottom: boolean;
-  scrollToBottom: (behavior?: ScrollBehavior) => void;
-  containerRef: React.RefObject<HTMLDivElement | null>;
+export type ConversationProps = ComponentProps<typeof StickToBottom>;
+
+export const Conversation = ({ className, ...props }: ConversationProps) => (
+  <StickToBottom
+    className={cn("relative flex-1 overflow-y-hidden", className)}
+    initial="smooth"
+    resize="smooth"
+    role="log"
+    {...props}
+  />
+);
+
+export type ConversationContentProps = ComponentProps<
+  typeof StickToBottom.Content
+>;
+
+export const ConversationContent = ({
+  className,
+  ...props
+}: ConversationContentProps) => (
+  <StickToBottom.Content
+    className={cn("flex flex-col gap-8 p-4", className)}
+    {...props}
+  />
+);
+
+export type ConversationEmptyStateProps = ComponentProps<"div"> & {
+  title?: string;
+  description?: string;
+  icon?: React.ReactNode;
 };
 
-const ConversationContext =
-  React.createContext<ConversationContextValue | null>(null);
+export const ConversationEmptyState = ({
+  className,
+  title = "No messages yet",
+  description = "Start a conversation to see messages here",
+  icon,
+  children,
+  ...props
+}: ConversationEmptyStateProps) => (
+  <div
+    className={cn(
+      "flex size-full flex-col items-center justify-center gap-3 p-8 text-center",
+      className,
+    )}
+    {...props}
+  >
+    {children ?? (
+      <>
+        {icon && <div className="text-muted-foreground">{icon}</div>}
+        <div className="space-y-1">
+          <h3 className="font-medium text-sm">{title}</h3>
+          {description && (
+            <p className="text-muted-foreground text-sm">{description}</p>
+          )}
+        </div>
+      </>
+    )}
+  </div>
+);
 
-function useConversation(): ConversationContextValue {
-  const context = React.useContext(ConversationContext);
-  if (context === null) {
-    throw new Error("Conversation components must sit inside <Conversation>");
-  }
-  return context;
-}
+export type ConversationScrollButtonProps = ComponentProps<typeof Button>;
 
-const BOTTOM_EPSILON_PX = 32;
+export const ConversationScrollButton = ({
+  className,
+  ...props
+}: ConversationScrollButtonProps) => {
+  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
-/**
- * Scrollable message region that sticks to the bottom while new content
- * streams in, and stops following as soon as the reader scrolls up.
- */
-export function Conversation({
+  const handleScrollToBottom = useCallback(() => {
+    scrollToBottom();
+  }, [scrollToBottom]);
+
+  return (
+    !isAtBottom && (
+      <Button
+        className={cn(
+          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full dark:bg-background dark:hover:bg-muted",
+          className,
+        )}
+        onClick={handleScrollToBottom}
+        size="icon"
+        type="button"
+        variant="outline"
+        {...props}
+      >
+        <ArrowDownIcon className="size-4" />
+      </Button>
+    )
+  );
+};
+
+const getMessageText = (message: UIMessage): string =>
+  message.parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+
+export type ConversationDownloadProps = Omit<
+  ComponentProps<typeof Button>,
+  "onClick"
+> & {
+  messages: UIMessage[];
+  filename?: string;
+  formatMessage?: (message: UIMessage, index: number) => string;
+};
+
+const defaultFormatMessage = (message: UIMessage): string => {
+  const roleLabel =
+    message.role.charAt(0).toUpperCase() + message.role.slice(1);
+  return `**${roleLabel}:** ${getMessageText(message)}`;
+};
+
+export const messagesToMarkdown = (
+  messages: UIMessage[],
+  formatMessage: (
+    message: UIMessage,
+    index: number,
+  ) => string = defaultFormatMessage,
+): string => messages.map((msg, i) => formatMessage(msg, i)).join("\n\n");
+
+export const ConversationDownload = ({
+  messages,
+  filename = "conversation.md",
+  formatMessage = defaultFormatMessage,
   className,
   children,
   ...props
-}: React.ComponentProps<"div">) {
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [isAtBottom, setIsAtBottom] = React.useState(true);
-  const isAtBottomRef = React.useRef(true);
+}: ConversationDownloadProps) => {
+  const handleDownload = useCallback(() => {
+    const markdown = messagesToMarkdown(messages, formatMessage);
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [messages, filename, formatMessage]);
 
-  const scrollToBottom = React.useCallback(
-    (behavior: ScrollBehavior = "smooth") => {
-      const element = containerRef.current;
-      if (element !== null) {
-        element.scrollTo({ top: element.scrollHeight, behavior });
-      }
-    },
-    [],
-  );
-
-  const handleScroll = React.useCallback(() => {
-    const element = containerRef.current;
-    if (element === null) {
-      return;
-    }
-    const atBottom =
-      element.scrollHeight - element.scrollTop - element.clientHeight <
-      BOTTOM_EPSILON_PX;
-    isAtBottomRef.current = atBottom;
-    setIsAtBottom(atBottom);
-  }, []);
-
-  React.useEffect(() => {
-    const element = containerRef.current;
-    if (element === null) {
-      return;
-    }
-    const observer = new MutationObserver(() => {
-      if (isAtBottomRef.current) {
-        element.scrollTo({ top: element.scrollHeight });
-      }
-    });
-    observer.observe(element, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  const context = React.useMemo(
-    () => ({ isAtBottom, scrollToBottom, containerRef }),
-    [isAtBottom, scrollToBottom],
-  );
-
-  return (
-    <ConversationContext.Provider value={context}>
-      <div className={cn("relative min-h-0 flex-1", className)}>
-        <div
-          aria-live="polite"
-          aria-relevant="additions text"
-          className="h-full overflow-y-auto overscroll-contain scroll-pb-4"
-          onScroll={handleScroll}
-          ref={containerRef}
-          role="log"
-          {...props}
-        >
-          {children}
-        </div>
-      </div>
-    </ConversationContext.Provider>
-  );
-}
-
-export function ConversationContent({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn("flex flex-col gap-4 px-4 py-4 sm:px-5", className)}
-      {...props}
-    />
-  );
-}
-
-export function ConversationScrollButton({
-  className,
-}: {
-  className?: string;
-}) {
-  const { isAtBottom, scrollToBottom } = useConversation();
-  if (isAtBottom) {
-    return null;
-  }
   return (
     <Button
-      aria-label="Scroll to latest message"
       className={cn(
-        "absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full shadow-md",
+        "absolute top-4 right-4 rounded-full dark:bg-background dark:hover:bg-muted",
         className,
       )}
-      onClick={() => scrollToBottom()}
-      size="icon-sm"
+      onClick={handleDownload}
+      size="icon"
       type="button"
-      variant="secondary"
+      variant="outline"
+      {...props}
     >
-      <ArrowDownIcon />
+      {children ?? <DownloadIcon className="size-4" />}
     </Button>
   );
-}
+};

@@ -13,9 +13,10 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Loader } from "@/components/ai-elements/loader";
 import {
   PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
@@ -26,6 +27,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useAssistant } from "@/ui/assistant/assistant-context";
 import {
@@ -74,25 +76,32 @@ function AssistantComposer({
   status: "ready" | "submitted" | "streaming" | "error";
   onStop: () => void;
 }) {
+  const isBusy = status === "submitted" || status === "streaming";
   return (
     <PromptInput
-      className="pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-      onSubmit={(event) => {
-        event.preventDefault();
-        submit();
-      }}
+      className="border-t border-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5"
+      onSubmit={() => submit()}
     >
-      <PromptInputTextarea
-        onChange={(event) => setInput(event.currentTarget.value)}
-        onSubmitRequest={submit}
-        placeholder="Ask the assistant…"
-        value={input}
-      />
-      <PromptInputSubmit
-        disabled={input.trim().length === 0}
-        onStop={onStop}
-        status={status}
-      />
+      <PromptInputBody>
+        <PromptInputTextarea
+          onChange={(event) => setInput(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            // Keep the draft: Enter must not submit-and-reset mid-stream.
+            if (isBusy && event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+            }
+          }}
+          placeholder="Ask the assistant…"
+          value={input}
+        />
+      </PromptInputBody>
+      <PromptInputFooter className="justify-end">
+        <PromptInputSubmit
+          disabled={!isBusy && input.trim().length === 0}
+          onStop={onStop}
+          status={status}
+        />
+      </PromptInputFooter>
     </PromptInput>
   );
 }
@@ -149,7 +158,12 @@ export function AssistantPanel() {
               messages={messages}
               respond={chat.addToolApprovalResponse}
             />
-            {showThinking && <Loader />}
+            {showThinking && (
+              <Spinner
+                aria-label="The assistant is thinking"
+                className="text-muted-foreground"
+              />
+            )}
             {chat.error !== undefined && (
               <AssistantErrorNotice
                 message={chat.error.message}
