@@ -123,6 +123,15 @@ describe("toRoutineSchedule", () => {
   });
 });
 
+describe("biweekly schedules", () => {
+  it("maps onto the routine engine's calendar rule", () => {
+    expect(toRoutineSchedule({ kind: "biweekly", weekday: 4 })).toEqual({
+      scheduleKind: "calendar",
+      scheduleRule: { kind: "biweekly", weekday: 4 },
+    });
+  });
+});
+
 describe("assignment pairing", () => {
   const MEMBER = "11111111-1111-4111-8111-111111111111";
   const AREA = "22222222-2222-4222-8222-222222222222";

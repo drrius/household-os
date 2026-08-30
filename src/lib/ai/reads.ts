@@ -125,11 +125,24 @@ export async function readRoutines(input: {
 
 export async function readWeekPlan(input: {
   weekOf?: string;
+  librarySearch?: string;
 }): Promise<Record<string, unknown>> {
   const member = await requireMemberContext();
   const supabase = await createClient();
   const weekStart = startOfZurichWeek(input.weekOf ?? zurichCivilDate());
   const weekEnd = addCivilDays(weekStart, 6);
+  let libraryQuery = supabase
+    .from("meal_definitions")
+    .select("id, name")
+    .eq("household_id", member.householdId)
+    .is("archived_at", null)
+    .order("name")
+    // One extra row so truncation is detectable rather than silent.
+    .limit(MEAL_LIBRARY_LIMIT + 1);
+  if (input.librarySearch !== undefined) {
+    const term = input.librarySearch.replaceAll(/[\\%_]/g, "\\$&");
+    libraryQuery = libraryQuery.ilike("name", `%${term}%`);
+  }
   const [entries, library] = await Promise.all([
     supabase
       .from("meal_plan_entries")
@@ -141,14 +154,7 @@ export async function readWeekPlan(input: {
       .lte("date", weekEnd)
       .is("removed_at", null)
       .order("date"),
-    supabase
-      .from("meal_definitions")
-      .select("id, name")
-      .eq("household_id", member.householdId)
-      .is("archived_at", null)
-      .order("name")
-      // One extra row so truncation is detectable rather than silent.
-      .limit(MEAL_LIBRARY_LIMIT + 1),
+    libraryQuery,
   ]);
   const libraryRows = requireRows("meal library", library);
   return {

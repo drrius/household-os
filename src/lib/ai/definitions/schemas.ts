@@ -67,6 +67,7 @@ export const scheduleInputSchema = z
       days: z.array(isoWeekday).min(1).max(7),
     }),
     z.object({ kind: z.literal("weekly"), weekday: isoWeekday }),
+    z.object({ kind: z.literal("biweekly"), weekday: isoWeekday }),
     z.object({
       kind: z.literal("monthly"),
       dayOfMonth: z.number().int().min(1).max(31),
@@ -78,7 +79,7 @@ export const scheduleInputSchema = z
     }),
   ])
   .describe(
-    "When the routine recurs. one_off happens once on a date; daily/weekdays/weekly/monthly follow the calendar; after_completion re-arms a fixed interval after each completion.",
+    "When the routine recurs. one_off happens once on a date; daily/weekdays/weekly/biweekly/monthly follow the calendar; after_completion re-arms a fixed interval after each completion.",
   );
 
 export const expenseSplitSchema = z

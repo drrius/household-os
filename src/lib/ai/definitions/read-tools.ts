@@ -23,11 +23,18 @@ export const READ_TOOLS: readonly AiToolDefinition[] = [
     name: "get_week_plan",
     kind: "read",
     description:
-      "The meal plan for one Monday-to-Sunday week: entries per day and slot with entry ids, plus the meal library for reuse (alphabetical; mealLibraryTruncated flags an incomplete list).",
+      "The meal plan for one Monday-to-Sunday week: entries per day and slot with entry ids, plus the meal library for reuse (alphabetical; mealLibraryTruncated flags an incomplete list — narrow it with librarySearch).",
     inputSchema: z.object({
       weekOf: isoDate
         .optional()
         .describe("Any date in the wanted week; defaults to the current week"),
+      librarySearch: z
+        .string()
+        .trim()
+        .min(1)
+        .max(120)
+        .optional()
+        .describe("Case-insensitive name filter for the meal library"),
     }),
   },
   {

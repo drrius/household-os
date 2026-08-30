@@ -47,16 +47,11 @@ vi.mock("@/lib/supabase/server", () => ({
         };
       }
       if (table === "ledger_entries") {
-        return {
-          select: () => ({
-            eq: () => ({
-              order: () => ({
-                range: () =>
-                  Promise.resolve({ data: LEDGER_ROWS, error: null }),
-              }),
-            }),
-          }),
+        const chain = {
+          order: () => chain,
+          range: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
         };
+        return { select: () => ({ eq: () => chain }) };
       }
       if (table === "financial_events") {
         return {

@@ -1,4 +1,4 @@
-# ADR 0025: AI assistant and external MCP access
+# ADR 0027: AI assistant and external MCP access
 
 - Status: Accepted
 - Date: 2026-08-30

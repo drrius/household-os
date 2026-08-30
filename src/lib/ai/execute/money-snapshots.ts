@@ -20,6 +20,9 @@ const LEDGER_PAGE_SIZE = 1000;
 /**
  * Every ledger row, paged past the API row cap: balances derived from a
  * silently truncated ledger would be wrong, and possibly split mid-event.
+ * The ledger is append-only, so ordering by insertion time keeps already
+ * fetched pages stable: rows posted mid-pagination sort after the cursor
+ * instead of shifting earlier offsets.
  */
 export async function fetchAllLedgerRows(
   supabase: ServerClient,
@@ -31,6 +34,7 @@ export async function fetchAllLedgerRows(
       .from("ledger_entries")
       .select("financial_event_id, member_id, receivable_delta_cents")
       .eq("household_id", householdId)
+      .order("created_at")
       .order("id")
       .range(from, from + LEDGER_PAGE_SIZE - 1);
     if (error !== null || !Array.isArray(data)) {

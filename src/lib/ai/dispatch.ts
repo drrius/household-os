@@ -34,7 +34,7 @@ export async function executeAiTool(
     case "get_routines":
       return readRoutines(input as { includeArchived: boolean });
     case "get_week_plan":
-      return readWeekPlan(input as { weekOf?: string });
+      return readWeekPlan(input as { weekOf?: string; librarySearch?: string });
     case "get_grocery_list":
       return readGroceryList();
     case "get_money_overview":
