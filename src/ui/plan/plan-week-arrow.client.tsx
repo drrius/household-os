@@ -10,11 +10,14 @@ type WeekArrowDirection = "previous" | "next";
 export function PlanWeekArrow({
   direction,
   href,
+  rangeLabel,
 }: {
   direction: WeekArrowDirection;
   href: string;
+  rangeLabel: string;
 }) {
-  const label = direction === "previous" ? "Previous week" : "Next week";
+  // The icon alone never says where it lands, so the week goes in the name.
+  const label = `${direction === "previous" ? "Previous week" : "Next week"}, ${rangeLabel}`;
 
   return (
     <SlowLink

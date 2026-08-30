@@ -8,6 +8,14 @@ export const PRODUCT_DESTINATIONS = [
 
 export type ProductDestinationId = (typeof PRODUCT_DESTINATIONS)[number]["id"];
 
+/**
+ * The plan board opens on one day, so every route back to it names that day
+ * instead of dropping the member into the current week.
+ */
+export function planDayHref(date: string): string {
+  return `/plan?date=${encodeURIComponent(date)}`;
+}
+
 export const GLOBAL_ADD_OPTIONS = [
   {
     id: "routine",

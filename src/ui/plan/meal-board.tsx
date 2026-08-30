@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { PlanWeekPager } from "@/ui/plan/plan-week-pager.client";
 
 type PlanDay = PlanViewModel["days"][number];
 type PlanSlot = PlanDay["slots"][number];
+type WeekStep = { href: string; rangeLabel: string };
 
 // The pager scrolls columns into view by id, so the convention lives here.
 function dayColumnId(date: string): string {
@@ -84,7 +85,9 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
       aria-labelledby={`plan-day-${day.date}`}
       id={dayColumnId(day.date)}
       className={cn(
-        "relative grid min-w-0 snap-start grid-rows-[auto_1fr] border-r border-border p-3 last:border-r-0 lg:snap-none lg:p-2",
+        // Bordered on the left, so the trailing rail keeps its own separator
+        // and the grid at lg still ends flush with the card.
+        "relative grid min-w-0 snap-start grid-rows-[auto_1fr] border-l border-border p-3 first:border-l-0 lg:snap-none lg:p-2",
         day.isToday &&
           "before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-full before:bg-primary lg:before:inset-x-2",
       )}
@@ -130,7 +133,35 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
   );
 }
 
-export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
+// Below lg the board is a carousel, and Sunday used to be a dead end. This rail
+// is the track the week ends on, so it fills the peek beside the last day
+// instead of costing a swipe. The grid at lg steps weeks from the header.
+function NextWeekRail({ href, rangeLabel }: WeekStep) {
+  const label = `Next week, ${rangeLabel}`;
+
+  return (
+    <Link
+      aria-label={label}
+      className="flex flex-col items-center justify-center gap-1 border-l border-border px-1 text-center font-heading text-xs leading-tight font-bold text-muted-foreground no-underline transition-colors hover:bg-muted hover:text-primary motion-reduce:transition-none lg:hidden"
+      href={href}
+      title={label}
+    >
+      <ChevronRight
+        aria-hidden="true"
+        className="size-4 shrink-0 text-primary"
+      />
+      <span aria-hidden="true">Next week</span>
+    </Link>
+  );
+}
+
+export function MealBoard({
+  days,
+  nextWeek,
+}: {
+  days: PlanViewModel["days"];
+  nextWeek: WeekStep;
+}) {
   return (
     <section aria-labelledby="meal-board-title">
       <h2 id="meal-board-title" className="sr-only">
@@ -141,10 +172,13 @@ export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
           {/* A container, so the column width below lg is measured against the
               scroller instead of the viewport, which a scrollbar corrupts. */}
           <div className="@container snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-px-3 max-lg:px-3 lg:snap-none lg:overflow-x-visible">
-            <div className="grid min-w-max auto-cols-[minmax(14rem,calc(100cqw-3.5rem))] grid-flow-col lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-7">
+            {/* The trailing track is the next-week rail, which the last day's
+                peek would otherwise leave empty. */}
+            <div className="grid min-w-max grid-flow-col grid-cols-[repeat(7,minmax(14rem,calc(100cqw-3.5rem)))_3.5rem] lg:min-w-0 lg:grid-flow-row lg:grid-cols-7">
               {days.map((day, dayIndex) => (
                 <DayColumn day={day} dayIndex={dayIndex} key={day.date} />
               ))}
+              <NextWeekRail {...nextWeek} />
             </div>
           </div>
         </CardContent>
@@ -152,6 +186,7 @@ export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
       <PlanWeekPager
         days={days.map((day) => ({
           columnId: dayColumnId(day.date),
+          isFocused: day.isFocused,
           isToday: day.isToday,
           weekdayLabel: day.weekdayLabel,
         }))}

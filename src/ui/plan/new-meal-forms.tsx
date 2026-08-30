@@ -2,6 +2,7 @@ import {
   createMealAction,
   placeFromLibraryAction,
 } from "@/app/(product)/_actions/m7-plan-groceries";
+import { planDayHref } from "@/lib/ui/destinations";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { DateField } from "@/ui/forms/date-field.client";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
@@ -22,6 +23,11 @@ const slotItems = [
   { label: "Lunch", value: "lunch" },
   { label: "Dinner", value: "dinner" },
 ] as const;
+
+// Cancelling returns to the day the slot was tapped on, not to today's week.
+function backToPlanHref(date?: string): string {
+  return date === undefined || date === "" ? "/plan" : planDayHref(date);
+}
 
 function DateAndSlotFields({
   date,
@@ -62,7 +68,7 @@ export function PlaceLibraryMealForm({
 }) {
   return (
     <FormPage
-      backHref="/plan"
+      backHref={backToPlanHref(date)}
       description="Place a saved library meal into one weekly slot."
       title="Place saved meal"
     >
@@ -94,7 +100,7 @@ export function CreateMealForm({
 }) {
   return (
     <FormPage
-      backHref="/plan"
+      backHref={backToPlanHref(date)}
       description="Place a meal into one weekly slot and optionally keep it in the meal library."
       title="New meal"
     >

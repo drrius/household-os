@@ -24,8 +24,12 @@ const planFixture: PlanViewModel = {
   weekStart: "2026-08-10",
   weekEnd: "2026-08-16",
   rangeLabel: "10 – 16 Aug",
+  weekOffset: 0,
   timeZoneLabel: "Europe/Zurich",
   today: "2026-08-12",
+  focusedDate: "2026-08-12",
+  previousWeek: { date: "2026-08-03", rangeLabel: "3 – 9 Aug" },
+  nextWeek: { date: "2026-08-17", rangeLabel: "17 – 23 Aug" },
   days: (
     [
       ["2026-08-10", "Mon 10", "Tomato pasta"],
@@ -40,6 +44,7 @@ const planFixture: PlanViewModel = {
     date,
     weekdayLabel,
     isToday: date === "2026-08-12",
+    isFocused: date === "2026-08-12",
     slots: (["breakfast", "lunch", "dinner"] as const).map((slot) => ({
       slot,
       entry:

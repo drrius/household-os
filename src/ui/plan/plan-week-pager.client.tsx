@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 type PagerDay = {
   columnId: string;
+  isFocused: boolean;
   isToday: boolean;
   weekdayLabel: string;
 };
@@ -80,27 +81,28 @@ function dayButtonClass(isSelected: boolean, isToday: boolean): string {
 }
 
 export function PlanWeekPager({ days }: { days: PagerDay[] }) {
-  const todayColumnId = days.find((day) => day.isToday)?.columnId ?? null;
-  const fallbackColumnId = todayColumnId ?? days[0]?.columnId ?? null;
+  const focusedColumnId =
+    days.find((day) => day.isFocused)?.columnId ?? days[0]?.columnId ?? null;
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(
-    fallbackColumnId,
+    focusedColumnId,
   );
-  const [renderedWeekId, setRenderedWeekId] = useState(fallbackColumnId);
+  const [renderedWeekId, setRenderedWeekId] = useState(focusedColumnId);
   const columnIdsKey = days.map((day) => day.columnId).join("\0");
 
-  if (fallbackColumnId !== renderedWeekId) {
-    setRenderedWeekId(fallbackColumnId);
-    setSelectedColumnId(fallbackColumnId);
+  if (focusedColumnId !== renderedWeekId) {
+    setRenderedWeekId(focusedColumnId);
+    setSelectedColumnId(focusedColumnId);
   }
 
   useEffect(() => {
-    // The carousel rests on Monday, so the member's own day can sit two swipes
-    // away and out of sight. This re-runs only when the week itself changes, so
-    // it never fights a scroll the member started.
-    if (todayColumnId === null) return;
+    // The carousel rests on Monday, so the focused day — today, or the day the
+    // member navigated to — can sit several swipes away and out of sight. This
+    // re-runs only when that day changes, so it never fights a scroll the
+    // member started.
+    if (focusedColumnId === null) return;
     if (window.matchMedia(BOARD_IS_A_GRID).matches) return;
-    scrollToColumn(todayColumnId);
-  }, [todayColumnId]);
+    scrollToColumn(focusedColumnId);
+  }, [focusedColumnId]);
 
   useSelectionFollowsScroll(columnIdsKey, setSelectedColumnId);
 

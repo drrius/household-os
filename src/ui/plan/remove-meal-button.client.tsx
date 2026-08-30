@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 type RemoveMealButtonProps = {
+  date: string;
   dateLabel: string;
   entryId: string;
   idempotencyKey: string;
@@ -29,6 +30,7 @@ function RemoveSubmit() {
 }
 
 export function RemoveMealButton({
+  date,
   dateLabel,
   entryId,
   idempotencyKey,
@@ -57,6 +59,7 @@ export function RemoveMealButton({
         confirmSlot={
           <form action={removeMealEntryAction}>
             <input name="entryId" type="hidden" value={entryId} />
+            <input name="date" type="hidden" value={date} />
             <input name="idempotencyKey" type="hidden" value={idempotencyKey} />
             <RemoveSubmit />
           </form>

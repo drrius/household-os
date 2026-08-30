@@ -4,6 +4,7 @@ import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 import {
   addCivilDays,
+  formatCivilDateRangeLabel,
   startOfZurichWeek,
   zurichCivilDate,
   ZURICH_TIME_ZONE,
@@ -11,16 +12,29 @@ import {
 
 export type MealSlot = "breakfast" | "lunch" | "dinner";
 
+/** A neighbouring week the board can move to, anchored on its Monday. */
+export type PlanWeekStep = {
+  date: string;
+  rangeLabel: string;
+};
+
 export type PlanViewModel = {
   weekStart: string;
   weekEnd: string;
   rangeLabel: string;
+  /** Whole weeks between the shown week and the week holding `today`. */
+  weekOffset: number;
   timeZoneLabel: "Europe/Zurich";
   today: string;
+  /** The day the board opens on: today, or the day the member asked for. */
+  focusedDate: string;
+  previousWeek: PlanWeekStep;
+  nextWeek: PlanWeekStep;
   days: Array<{
     date: string;
     weekdayLabel: string;
     isToday: boolean;
+    isFocused: boolean;
     slots: Array<{
       slot: MealSlot;
       entry: null | {
@@ -56,7 +70,7 @@ type MealPrepRow = {
 };
 
 type BuildPlanViewModelInput = {
-  weekStartParam?: string | null;
+  dateParam?: string | null;
   today: string;
   entries: readonly MealPlanEntryRow[];
   library: readonly MealDefinitionRow[];
@@ -65,18 +79,7 @@ type BuildPlanViewModelInput = {
 
 const MEAL_SLOTS: readonly MealSlot[] = ["breakfast", "lunch", "dinner"];
 const CIVIL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const dayFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  timeZone: ZURICH_TIME_ZONE,
-});
-const monthFormatter = new Intl.DateTimeFormat("en-GB", {
-  month: "short",
-  timeZone: ZURICH_TIME_ZONE,
-});
-const yearFormatter = new Intl.DateTimeFormat("en-GB", {
-  year: "numeric",
-  timeZone: ZURICH_TIME_ZONE,
-});
+const DAYS_IN_WEEK = 7;
 const weekdayFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   timeZone: ZURICH_TIME_ZONE,
@@ -98,36 +101,35 @@ function isCivilDate(value: string): boolean {
   );
 }
 
-function resolveWeekStart(
-  weekStartParam: string | null | undefined,
+/** Any civil date focuses the board; an absent or malformed one means today. */
+function resolveFocusedDate(
+  dateParam: string | null | undefined,
   today: string,
 ): string {
-  const requestedDate =
-    weekStartParam !== null &&
-    weekStartParam !== undefined &&
-    isCivilDate(weekStartParam)
-      ? weekStartParam
-      : today;
-  return startOfZurichWeek(requestedDate);
+  return dateParam !== null && dateParam !== undefined && isCivilDate(dateParam)
+    ? dateParam
+    : today;
 }
 
-function formatRangeLabel(weekStart: string, weekEnd: string): string {
-  const start = civilDateAtNoon(weekStart);
-  const end = civilDateAtNoon(weekEnd);
-  const startDay = dayFormatter.format(start);
-  const endDay = dayFormatter.format(end);
-  const startMonth = monthFormatter.format(start);
-  const endMonth = monthFormatter.format(end);
-  const startYear = yearFormatter.format(start);
-  const endYear = yearFormatter.format(end);
+function weekStep(weekStart: string, weeks: number): PlanWeekStep {
+  const date = addCivilDays(weekStart, weeks * DAYS_IN_WEEK);
+  return {
+    date,
+    rangeLabel: formatCivilDateRangeLabel(
+      date,
+      addCivilDays(date, DAYS_IN_WEEK - 1),
+    ),
+  };
+}
 
-  if (startMonth === endMonth && startYear === endYear) {
-    return `${startDay} – ${endDay} ${endMonth}`;
-  }
-  if (startYear === endYear) {
-    return `${startDay} ${startMonth} – ${endDay} ${endMonth}`;
-  }
-  return `${startDay} ${startMonth} ${startYear} – ${endDay} ${endMonth} ${endYear}`;
+/** Whole weeks from the week holding `today` to the week holding `weekStart`. */
+function weekOffsetFromToday(weekStart: string, today: string): number {
+  const currentWeekStart = startOfZurichWeek(today);
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  const elapsed =
+    civilDateAtNoon(weekStart).valueOf() -
+    civilDateAtNoon(currentWeekStart).valueOf();
+  return Math.round(elapsed / (millisecondsPerDay * DAYS_IN_WEEK));
 }
 
 function entryKey(date: string, slot: MealSlot): string {
@@ -185,21 +187,23 @@ function indexEntries(
 }
 
 export function buildPlanViewModel({
-  weekStartParam,
+  dateParam,
   today,
   entries,
   library,
   prep,
 }: BuildPlanViewModelInput): PlanViewModel {
-  const weekStart = resolveWeekStart(weekStartParam, today);
-  const weekEnd = addCivilDays(weekStart, 6);
+  const focusedDate = resolveFocusedDate(dateParam, today);
+  const weekStart = startOfZurichWeek(focusedDate);
+  const weekEnd = addCivilDays(weekStart, DAYS_IN_WEEK - 1);
   const entriesBySlot = indexEntries(entries, cookLabelsByEntry(prep));
-  const days = Array.from({ length: 7 }, (_, offset) => {
+  const days = Array.from({ length: DAYS_IN_WEEK }, (_, offset) => {
     const date = addCivilDays(weekStart, offset);
     return {
       date,
       weekdayLabel: weekdayFormatter.format(civilDateAtNoon(date)),
       isToday: date === today,
+      isFocused: date === focusedDate,
       slots: MEAL_SLOTS.map((slot) => ({
         slot,
         entry: entriesBySlot.get(entryKey(date, slot)) ?? null,
@@ -210,22 +214,26 @@ export function buildPlanViewModel({
   return {
     weekStart,
     weekEnd,
-    rangeLabel: formatRangeLabel(weekStart, weekEnd),
+    rangeLabel: formatCivilDateRangeLabel(weekStart, weekEnd),
+    weekOffset: weekOffsetFromToday(weekStart, today),
     timeZoneLabel: ZURICH_TIME_ZONE,
     today,
+    focusedDate,
+    previousWeek: weekStep(weekStart, -1),
+    nextWeek: weekStep(weekStart, 1),
     days,
     library: library.map((meal) => ({ id: meal.id, title: meal.name })),
   };
 }
 
 export async function loadPlanViewModel(
-  weekStartParam?: string | null,
+  dateParam?: string | null,
 ): Promise<PlanViewModel> {
   const member = await requireMemberContext();
   const supabase = await createClient();
   const today = zurichCivilDate();
-  const weekStart = resolveWeekStart(weekStartParam, today);
-  const weekEnd = addCivilDays(weekStart, 6);
+  const weekStart = startOfZurichWeek(resolveFocusedDate(dateParam, today));
+  const weekEnd = addCivilDays(weekStart, DAYS_IN_WEEK - 1);
   const entriesQuery = supabase
     .from("meal_plan_entries")
     .select("id, date, slot, title_snapshot, notes, leftover_of_entry_id")
@@ -277,7 +285,7 @@ export async function loadPlanViewModel(
   }
 
   return buildPlanViewModel({
-    weekStartParam,
+    dateParam,
     today,
     entries: entriesResult.data,
     library: libraryResult.data,

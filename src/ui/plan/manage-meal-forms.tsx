@@ -80,6 +80,7 @@ export function ManageMealForms({ entry }: { entry: ManageMealEntry }) {
         <MealEditFields entry={entry} />
       </FormFields>
       <RemoveMealButton
+        date={entry.date}
         dateLabel={formatZurichDayLabel(entry.date)}
         entryId={entry.id}
         idempotencyKey={crypto.randomUUID()}

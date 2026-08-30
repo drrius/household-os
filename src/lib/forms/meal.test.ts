@@ -2,8 +2,15 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { errorField } from "./field-error";
-import { parseMealForm } from "./meal";
+import {
+  parseMealForm,
+  parsePlaceFromLibraryForm,
+  parseRemoveMealForm,
+  parseUpdateMealForm,
+} from "./meal";
 
+const entryId = "11111111-1111-4111-8111-111111111111";
+const libraryId = "33333333-3333-4333-8333-333333333333";
 const idempotencyKey = "44444444-4444-4444-8444-444444444444";
 
 function mealForm(recipeUrl: string): FormData {
@@ -56,5 +63,71 @@ describe("meal form recipe links", () => {
         },
       ),
     );
+  });
+});
+
+describe("meal form parsing", () => {
+  it("parses meal placement and optional library save", () => {
+    const form = new FormData();
+    form.set("title", "Pasta");
+    form.set("date", "2026-08-14");
+    form.set("slot", "dinner");
+    form.set("recipeUrl", "https://example.test/pasta");
+    form.set("saveToLibrary", "on");
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parseMealForm(form)).toMatchObject({
+      title: "Pasta",
+      date: "2026-08-14",
+      slot: "dinner",
+      saveToLibrary: true,
+    });
+  });
+
+  it("parses place-from-library without freeform title fields", () => {
+    const form = new FormData();
+    form.set("libraryId", libraryId);
+    form.set("date", "2026-08-14");
+    form.set("slot", "lunch");
+    form.set("notes", "  use basil  ");
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parsePlaceFromLibraryForm(form)).toEqual({
+      libraryId,
+      date: "2026-08-14",
+      slot: "lunch",
+      notes: "use basil",
+      idempotencyKey,
+    });
+  });
+
+  it("parses remove meal entry fields", () => {
+    const form = new FormData();
+    form.set("entryId", entryId);
+    form.set("date", "2026-08-14");
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parseRemoveMealForm(form)).toEqual({
+      entryId,
+      date: "2026-08-14",
+      idempotencyKey,
+    });
+  });
+
+  it("parses update meal entry fields", () => {
+    const form = new FormData();
+    form.set("entryId", entryId);
+    form.set("title", "  Chicken & Rice  ");
+    form.set("date", "2026-08-13");
+    form.set("slot", "breakfast");
+    form.set("recipeUrl", "https://example.invalid/chicken");
+    form.set("notes", "  leftovers tomorrow  ");
+    form.set("idempotencyKey", idempotencyKey);
+    expect(parseUpdateMealForm(form)).toEqual({
+      entryId,
+      title: "Chicken & Rice",
+      date: "2026-08-13",
+      slot: "breakfast",
+      recipeUrl: "https://example.invalid/chicken",
+      notes: "leftovers tomorrow",
+      idempotencyKey,
+    });
   });
 });

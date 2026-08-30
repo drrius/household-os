@@ -24,6 +24,12 @@ import {
   removeMealPlanEntry,
   updateMealPlanEntry,
 } from "@/lib/meals/commands";
+import { planDayHref } from "@/lib/ui/destinations";
+
+/** Plans land back on the day they touched, not on whatever week today is in. */
+function planReturnHref(date: string | null): string {
+  return date === null ? "/plan" : planDayHref(date);
+}
 
 export async function createGroceryItemAction(
   previous: FormActionState,
@@ -41,8 +47,10 @@ export async function createMealAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  let plannedDate: string | null = null;
   const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseMealForm(formData);
+    plannedDate = input.date;
     if (input.saveToLibrary) {
       await createAndPlaceMeal({
         name: input.title,
@@ -66,15 +74,17 @@ export async function createMealAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(planReturnHref(plannedDate));
 }
 
 export async function placeFromLibraryAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  let plannedDate: string | null = null;
   const rejected = await settleFormAction(previous, formData, async () => {
     const input = parsePlaceFromLibraryForm(formData);
+    plannedDate = input.date;
     await placeMeal({
       date: input.date,
       slot: input.slot,
@@ -86,15 +96,17 @@ export async function placeFromLibraryAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(planReturnHref(plannedDate));
 }
 
 export async function removeMealEntryAction(formData: FormData): Promise<void> {
   let failure: unknown = null;
   let entryId: string | null = null;
+  let plannedDate: string | null = null;
   try {
     const input = parseRemoveMealForm(formData);
     entryId = input.entryId;
+    plannedDate = input.date;
     await removeMealPlanEntry({
       entryId: input.entryId,
       idempotencyKey: input.idempotencyKey,
@@ -108,15 +120,17 @@ export async function removeMealEntryAction(formData: FormData): Promise<void> {
     redirect(errorHref(fallback, failure));
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(planReturnHref(plannedDate));
 }
 
 export async function updateMealEntryAction(
   previous: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  let plannedDate: string | null = null;
   const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseUpdateMealForm(formData);
+    plannedDate = input.date;
     await updateMealPlanEntry({
       entryId: input.entryId,
       title: input.title,
@@ -129,5 +143,5 @@ export async function updateMealEntryAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(planReturnHref(plannedDate));
 }

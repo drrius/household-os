@@ -4,7 +4,18 @@ import {
   GLOBAL_ADD_OPTIONS,
   PRODUCT_DESTINATIONS,
   isFormSurface,
+  planDayHref,
 } from "./destinations";
+
+describe("planDayHref", () => {
+  it("names the day the board opens on", () => {
+    expect(planDayHref("2026-08-31")).toBe("/plan?date=2026-08-31");
+  });
+
+  it("keeps an unexpected value inside the query string", () => {
+    expect(planDayHref("../money?x=1")).toBe("/plan?date=..%2Fmoney%3Fx%3D1");
+  });
+});
 
 describe("isFormSurface", () => {
   it("treats every create and edit route as a form surface", () => {

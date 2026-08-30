@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addCivilDays,
+  formatCivilDateRangeLabel,
   formatZurichDayLabel,
   formatZurichTimestamp,
   startOfZurichWeek,
@@ -41,5 +42,23 @@ describe("zurich-date", () => {
 
   it("labels a civil date for display", () => {
     expect(formatZurichDayLabel("2026-08-09")).toMatch(/August/);
+  });
+
+  it("labels a date range without repeating the shared parts", () => {
+    expect(formatCivilDateRangeLabel("2026-08-24", "2026-08-30")).toBe(
+      "24 – 30 Aug",
+    );
+    expect(formatCivilDateRangeLabel("2026-08-31", "2026-09-06")).toBe(
+      "31 Aug – 6 Sept",
+    );
+    expect(formatCivilDateRangeLabel("2025-12-29", "2026-01-04")).toBe(
+      "29 Dec 2025 – 4 Jan 2026",
+    );
+  });
+
+  it("rejects invalid civil dates", () => {
+    expect(() => addCivilDays("not-a-date", 1)).toThrow(RangeError);
+    expect(() => startOfZurichWeek("not-a-date")).toThrow(RangeError);
+    expect(() => formatZurichDayLabel("not-a-date")).toThrow(RangeError);
   });
 });

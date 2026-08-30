@@ -95,12 +95,15 @@ export function parsePlaceFromLibraryForm(
 
 export type RemoveMealFormValue = {
   entryId: string;
+  /** Only routes the member back to the day the removed meal sat on. */
+  date: string;
   idempotencyKey: string;
 };
 
 export function parseRemoveMealForm(formData: FormData): RemoveMealFormValue {
   return {
     entryId: uuidSchema.parse(requiredString(formData, "entryId")),
+    date: dateSchema.parse(requiredString(formData, "date")),
     idempotencyKey: uuidSchema.parse(
       requiredString(formData, "idempotencyKey"),
     ),

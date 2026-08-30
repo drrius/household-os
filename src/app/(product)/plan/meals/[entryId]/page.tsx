@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { loadManageMealEntry } from "@/lib/read-models/meal-entry-manage";
+import { planDayHref } from "@/lib/ui/destinations";
 import { FormPage } from "@/ui/forms/form-page";
 import { ManageMealForms } from "@/ui/plan/manage-meal-forms";
 
@@ -20,7 +21,7 @@ export default async function ManageMealPage({
 
   return (
     <FormPage
-      backHref="/plan"
+      backHref={planDayHref(entry.date)}
       description="Edit this planned meal, or remove it from the week."
       error={query.error}
       title={entry.title}
