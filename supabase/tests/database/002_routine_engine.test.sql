@@ -1059,5 +1059,593 @@ select is(
   'an assignment-only rebuild keeps the biweekly phase'
 );
 
+-- A rebuild with an unchanged schedule rule recreates the current occurrence
+-- as it was: a reschedule survives an assignment-only edit and the preview
+-- keeps following the original recurrence anchor.
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000011'::uuid,
+      p_title => 'Weekly keep reschedule',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000011'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'shared',
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"weekly","weekday":1}'::jsonb,
+      p_active_from => (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'create_routine accepts a weekly routine for reschedule preservation'
+);
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Weekly keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      (
+        select due_date + 3
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Weekly keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      'preserve-reschedule-weekly'
+    )
+  $$,
+  'a weekly current occurrence can be rescheduled before an edit'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Weekly keep reschedule'
+      ),
+      p_assignment_policy => 'assigned',
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000011',
+      p_rebuild_window => true
+    )
+  $$,
+  'assignment-only updates rebuild a rescheduled weekly window'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Weekly keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset
+    from (
+      select private.first_routine_due_date(
+        '{"kind":"weekly","weekday":1}'::jsonb,
+        private.household_today()
+      ) as due_date
+    ) as anchor,
+    (
+      values
+        ('current'::text, 3, 0),
+        ('preview'::text, 7, 7)
+    ) as occurrence(role, due_offset, original_offset)
+    order by occurrence.due_offset
+  $$,
+  'an assignment-only rebuild keeps a weekly reschedule and its anchor'
+);
+
+select is(
+  (
+    select occurrence_id is null
+    from public.routine_command_receipts
+    where household_id = '10000000-0000-4000-8000-000000000011'
+      and idempotency_key = 'preserve-reschedule-weekly'
+  ),
+  true,
+  'the reschedule receipt survives the rebuild unlinked from its occurrence'
+);
+
+select ok(
+  (
+    select occurrence.rescheduled_at is not null
+    from public.routine_occurrences as occurrence
+    where occurrence.routine_id
+        = (select id from public.routines where title = 'Weekly keep reschedule')
+      and occurrence.status = 'open'
+      and occurrence.role = 'current'
+  ),
+  'the preserved occurrence keeps its rescheduled_at timestamp'
+);
+
+select is(
+  public.reschedule_occurrence(
+    (
+      select (receipt.result ->> 'occurrence_id')::uuid
+      from public.routine_command_receipts as receipt
+      where receipt.household_id = '10000000-0000-4000-8000-000000000011'
+        and receipt.idempotency_key = 'preserve-reschedule-weekly'
+    ),
+    private.first_routine_due_date(
+      '{"kind":"weekly","weekday":1}'::jsonb,
+      private.household_today()
+    ) + 3,
+    'preserve-reschedule-weekly'
+  ),
+  (
+    select receipt.result
+    from public.routine_command_receipts as receipt
+    where receipt.household_id = '10000000-0000-4000-8000-000000000011'
+      and receipt.idempotency_key = 'preserve-reschedule-weekly'
+  ),
+  'a retried command returns its receipt after a rebuild deleted the occurrence'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Weekly keep reschedule'
+      ),
+      p_active_until => private.first_routine_due_date(
+        '{"kind":"weekly","weekday":1}'::jsonb,
+        private.household_today()
+      ) + 1,
+      p_rebuild_window => true
+    )
+  $$,
+  'a shortened active window still rebuilds a rescheduled routine'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Weekly keep reschedule'
+    )
+      and status = 'open'
+  $$,
+  $$
+    select
+      'current'::text,
+      anchor.due_date,
+      anchor.due_date
+    from (
+      select private.first_routine_due_date(
+        '{"kind":"weekly","weekday":1}'::jsonb,
+        private.household_today()
+      ) as due_date
+    ) as anchor
+  $$,
+  'an excluded reschedule falls back to re-anchoring inside the new window'
+);
+
+-- Daily cadence: the recreated preview must stay on the recurrence anchor
+-- (anchor + 1), even though that now precedes the rescheduled current.
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000011'::uuid,
+      p_title => 'Daily keep reschedule',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000011'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'shared',
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"daily"}'::jsonb,
+      p_active_from => (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'create_routine accepts a daily routine for reschedule preservation'
+);
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Daily keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      (
+        select due_date + 3
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Daily keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      'preserve-reschedule-daily'
+    )
+  $$,
+  'a daily current occurrence can be rescheduled before an edit'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Daily keep reschedule'
+      ),
+      p_assignment_policy => 'assigned',
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000011',
+      p_rebuild_window => true
+    )
+  $$,
+  'assignment-only updates rebuild a rescheduled daily window'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Daily keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset
+    from (
+      select private.household_today() as due_date
+    ) as anchor,
+    (
+      values
+        ('preview'::text, 1, 1),
+        ('current'::text, 3, 0)
+    ) as occurrence(role, due_offset, original_offset)
+    order by occurrence.due_offset
+  $$,
+  'an assignment-only rebuild keeps the daily preview on the anchor'
+);
+
+-- A later active_from that still admits the rescheduled current must not
+-- recreate the anchor-derived preview outside the window: the preview
+-- advances to the first phase-correct date on or after active_from.
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Daily keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      private.household_today() + 10,
+      'preserve-reschedule-daily-2'
+    )
+  $$,
+  'a preserved daily occurrence can be rescheduled again'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Daily keep reschedule'
+      ),
+      p_active_from => private.household_today() + 5,
+      p_rebuild_window => true
+    )
+  $$,
+  'a later active_from still rebuilds a rescheduled daily routine'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Daily keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset
+    from (
+      select private.household_today() as due_date
+    ) as anchor,
+    (
+      values
+        ('preview'::text, 5, 5),
+        ('current'::text, 10, 0)
+    ) as occurrence(role, due_offset, original_offset)
+    order by occurrence.due_offset
+  $$,
+  'a preserved window advances its preview to the new active_from'
+);
+
+-- An active-window-only edit must not restart an alternating rotation: the
+-- preserved current keeps its planned assignee and the preview alternates
+-- from it.
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000011'::uuid,
+      p_title => 'Alternating keep reschedule',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000011'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'alternating',
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"daily"}'::jsonb,
+      p_rotation_anchor_member_id => '00000000-0000-4000-8000-000000000011'::uuid,
+      p_active_from => (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'create_routine accepts an alternating routine for reschedule preservation'
+);
+
+select lives_ok(
+  $$
+    select public.complete_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Alternating keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      'preserve-alternating-complete',
+      private.household_today()
+    )
+  $$,
+  'the alternating rotation advances past its anchor'
+);
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Alternating keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      private.household_today() + 4,
+      'preserve-reschedule-alternating'
+    )
+  $$,
+  'an alternating current occurrence can be rescheduled before an edit'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Alternating keep reschedule'
+      ),
+      p_active_until => private.household_today() + 30,
+      p_rebuild_window => true
+    )
+  $$,
+  'an active-window-only edit rebuilds a rescheduled alternating routine'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date, planned_assignee_id
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Alternating keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset,
+      occurrence.assignee
+    from (
+      select private.household_today() as due_date
+    ) as anchor,
+    (
+      values
+        (
+          'preview'::text,
+          2,
+          2,
+          '00000000-0000-4000-8000-000000000011'::uuid
+        ),
+        (
+          'current'::text,
+          4,
+          1,
+          '00000000-0000-4000-8000-000000000012'::uuid
+        )
+    ) as occurrence(role, due_offset, original_offset, assignee)
+    order by occurrence.due_offset
+  $$,
+  'a window-only rebuild keeps the alternating assignee and rotation'
+);
+
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000011'::uuid,
+      p_title => 'Biweekly keep reschedule',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000011'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'shared',
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"biweekly","weekday":1}'::jsonb,
+      p_active_from => (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'create_routine accepts a biweekly routine for reschedule preservation'
+);
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Biweekly keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      (
+        select due_date + 3
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Biweekly keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      'preserve-reschedule-biweekly'
+    )
+  $$,
+  'a biweekly current occurrence can be rescheduled before an edit'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Biweekly keep reschedule'
+      ),
+      p_assignment_policy => 'assigned',
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000012',
+      p_rebuild_window => true
+    )
+  $$,
+  'assignment-only updates rebuild a rescheduled biweekly window'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Biweekly keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset
+    from (
+      select private.first_routine_due_date(
+        '{"kind":"biweekly","weekday":1}'::jsonb,
+        private.household_today()
+      ) as due_date
+    ) as anchor,
+    (
+      values
+        ('current'::text, 3, 0),
+        ('preview'::text, 14, 14)
+    ) as occurrence(role, due_offset, original_offset)
+    order by occurrence.due_offset
+  $$,
+  'an assignment-only rebuild keeps a biweekly reschedule and its anchor'
+);
+
+-- A changed schedule rule still re-anchors: the pending reschedule on the
+-- biweekly routine above is discarded and the window rebuilds from today.
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Biweekly keep reschedule'
+      ),
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"biweekly","weekday":2}'::jsonb,
+      p_rebuild_window => true
+    )
+  $$,
+  'a schedule-rule change rebuilds a rescheduled window'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Biweekly keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.due_offset
+    from (
+      select private.first_routine_due_date(
+        '{"kind":"biweekly","weekday":2}'::jsonb,
+        private.household_today()
+      ) as due_date
+    ) as anchor,
+    (
+      values
+        ('current'::text, 0),
+        ('preview'::text, 14)
+    ) as occurrence(role, due_offset)
+    order by occurrence.due_offset
+  $$,
+  'a schedule-rule change re-anchors and discards the reschedule'
+);
+
 select * from finish();
 rollback;
