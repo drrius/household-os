@@ -2,6 +2,8 @@ name: CI
 
 on:
   pull_request:
+    # labeled: applying the `e2e` label starts a run without a new push.
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
   workflow_dispatch:
@@ -9,18 +11,21 @@ on:
 permissions:
   contents: read
 
-# One live run per ref: rapid pushes to a PR cancel the outdated run instead
-# of stacking full suites. Runs on main are never cancelled.
+# One live run per ref for PRs: rapid pushes cancel the outdated run instead
+# of stacking full suites. Non-PR runs get a unique group each, because a
+# shared group holds at most one *pending* run even with cancel-in-progress
+# off — back-to-back main pushes could silently replace a queued run.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Classifies the diff so downstream jobs only run when their inputs changed.
-  # db:test is hermetic to supabase/**, so it is path-gated everywhere. The
+  # db:test depends only on supabase/** plus its tooling (package.json,
+  # pnpm-lock.yaml, this workflow), so it is path-gated everywhere. The
   # Playwright suite exercises all app code, so PRs skip it unless e2e files
-  # changed or the PR carries the `e2e` label; every merge to main and every
-  # manual dispatch runs it as the backstop.
+  # changed or the PR carries the `e2e` label. Pushes to main are the
+  # integration gate: they always run full verify and e2e as the backstop.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -71,14 +76,18 @@ jobs:
               *) docs_only=false ;;
             esac
             case "$f" in
-              supabase/*) db=true ;;
+              supabase/* | package.json | pnpm-lock.yaml | .github/workflows/ci.yml) db=true ;;
             esac
             case "$f" in
               tests/e2e/* | playwright.config.ts) e2e=true ;;
             esac
           done
 
-          if [ "$EVENT" = "push" ] || [ "$HAS_E2E_LABEL" = "true" ]; then
+          if [ "$EVENT" = "push" ]; then
+            docs_only=false
+            e2e=true
+          fi
+          if [ "$HAS_E2E_LABEL" = "true" ]; then
             e2e=true
           fi
 
@@ -105,8 +114,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
 
-  # Docs-only changes skip verify (and its build) but still gate on
-  # formatting so main stays green for the full verify run at merge.
+  # Docs-only PR pushes skip verify (and its build) but still gate on
+  # formatting. Markdown cannot affect typecheck, tests, or the build, and
+  # the push to main always runs full verify as the integration gate.
   format-docs:
     needs: changes
     if: needs.changes.outputs.docs_only == 'true'
