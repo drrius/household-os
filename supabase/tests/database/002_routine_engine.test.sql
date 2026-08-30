@@ -918,5 +918,85 @@ select is(
   'a biweekly window previews fourteen days after the current occurrence'
 );
 
+select is(
+  private.first_rebuild_due_date(
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    date '2026-08-10',
+    date '2026-08-17'
+  ),
+  date '2026-08-24',
+  'an unchanged biweekly rule rebuilds on the anchored cadence'
+);
+
+select is(
+  private.first_rebuild_due_date(
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    date '2026-08-24',
+    date '2026-08-17'
+  ),
+  date '2026-08-24',
+  'a future biweekly anchor is kept as the rebuilt first due date'
+);
+
+select is(
+  private.first_rebuild_due_date(
+    '{"kind":"biweekly","weekday":2}'::jsonb,
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    date '2026-08-10',
+    date '2026-08-17'
+  ),
+  date '2026-08-18',
+  'a changed biweekly rule re-anchors from the rebuild day'
+);
+
+select is(
+  private.first_rebuild_due_date(
+    '{"kind":"weekly","weekday":1}'::jsonb,
+    '{"kind":"weekly","weekday":1}'::jsonb,
+    date '2026-08-10',
+    date '2026-08-17'
+  ),
+  date '2026-08-17',
+  'non-biweekly rules rebuild from the rebuild day as before'
+);
+
+-- Simulate an elapsed biweekly cycle so the open window sits on the other
+-- week of the cadence, then rebuild for an assignment-only change.
+update public.routine_occurrences
+set due_date = due_date + 14,
+    original_due_date = original_due_date + 14
+where routine_id = (select id from public.routines where title = 'Daily kitchen')
+  and status = 'open';
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (select id from public.routines where title = 'Daily kitchen'),
+      p_assignment_policy => 'assigned',
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000012',
+      p_rebuild_window => true
+    )
+  $$,
+  'assignment-only updates rebuild the biweekly window'
+);
+
+select is(
+  (
+    select occurrence.due_date
+    from public.routine_occurrences as occurrence
+    where occurrence.routine_id
+        = (select id from public.routines where title = 'Daily kitchen')
+      and occurrence.status = 'open'
+      and occurrence.role = 'current'
+  ),
+  private.first_routine_due_date(
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    private.household_today()
+  ) + 14,
+  'an assignment-only rebuild keeps the biweekly phase'
+);
+
 select * from finish();
 rollback;
