@@ -25,6 +25,8 @@ const LEDGER_ROWS = [
 ];
 const DRAFT_ROW = { amount_cents: 2400, payer_member_id: PAYER };
 const EVENT_ROW = {
+  description: "Original groceries",
+  amount_cents: 1600,
   payer_member_id: PAYER,
   category_id: "44444444-4444-4444-8444-444444444444",
   note: "original note",
@@ -48,7 +50,12 @@ vi.mock("@/lib/supabase/server", () => ({
       if (table === "ledger_entries") {
         return {
           select: () => ({
-            eq: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
+            eq: () => ({
+              order: () => ({
+                range: () =>
+                  Promise.resolve({ data: LEDGER_ROWS, error: null }),
+              }),
+            }),
           }),
         };
       }

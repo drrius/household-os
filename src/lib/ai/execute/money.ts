@@ -229,6 +229,8 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
   correct_financial_event: async (input, { idempotencyKey }) => {
     const value = input as {
       eventId: string;
+      originalDescription: string;
+      originalAmountCents: number;
       replacement?: {
         description: string;
         amountCents: number;
@@ -240,6 +242,17 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       } | null;
     };
     const replacement = value.replacement ?? null;
+    // The echoed original binds the approval card to the event actually
+    // being reversed; refuse when it drifted from the ledger.
+    const original = await readEventSnapshot(value.eventId);
+    if (
+      original.description !== value.originalDescription ||
+      original.amountCents !== value.originalAmountCents
+    ) {
+      throw new Error(
+        "originalDescription/originalAmountCents must match the event being corrected (see get_money_overview)",
+      );
+    }
     if (replacement === null) {
       return correctFinancialEvent({
         eventId: value.eventId,
@@ -250,7 +263,6 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
     // A correction that only changes one field must not lose the rest:
     // omitted category/note keep the original's values (null clears), and
     // the receipt always carries over since the tool cannot set one.
-    const original = await readEventSnapshot(value.eventId);
     return correctFinancialEvent({
       eventId: value.eventId,
       idempotencyKey,

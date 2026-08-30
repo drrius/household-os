@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   assignmentFields,
+  withAssignmentCheck,
   centimes,
   expenseSplitSchema,
   isoDate,
@@ -138,14 +139,16 @@ export const MEAL_TOOLS: readonly AiToolDefinition[] = [
     kind: "write",
     description:
       "Attach a one-off preparation task (e.g. defrost, marinate) to a planned meal entry. It shows up as a routine occurrence due on the given day.",
-    inputSchema: z.object({
-      mealPlanEntryId: uuid,
-      title: z.string().trim().min(1).max(120),
-      instructions: z.string().max(2000).nullish(),
-      dueOn: isoDate,
-      areaId: uuid,
-      ...assignmentFields,
-    }),
+    inputSchema: withAssignmentCheck(
+      z.object({
+        mealPlanEntryId: uuid,
+        title: z.string().trim().min(1).max(120),
+        instructions: z.string().max(2000).nullish(),
+        dueOn: isoDate,
+        areaId: uuid,
+        ...assignmentFields,
+      }),
+    ),
   },
 ];
 

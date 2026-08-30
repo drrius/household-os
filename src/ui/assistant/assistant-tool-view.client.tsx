@@ -130,7 +130,9 @@ function approvalSummary(
     lines.push(`on ${value.occurredOn}`);
   }
   if (value.mode === "full") {
-    lines.push("settles the full balance");
+    // Exactly this amount posts (or nothing does): the executor checks it
+    // against the ledger and the RPC re-checks inside the lock.
+    lines.push("settles the outstanding balance (posts exactly this amount)");
   }
   return lines;
 }
@@ -150,14 +152,20 @@ function correctionSummary(
   ) {
     return [];
   }
-  const replacement = (input as Record<string, unknown>).replacement;
+  const value = input as Record<string, unknown>;
+  const amount = formatChf(value.originalAmountCents);
+  const source =
+    typeof value.originalDescription === "string"
+      ? `"${value.originalDescription}"${amount === null ? "" : ` (${amount})`}`
+      : "the event";
+  const replacement = value.replacement;
   if (replacement === null || replacement === undefined) {
-    return ["reverses the event without a replacement"];
+    return [`reverses ${source} without a replacement`];
   }
   const details = approvalSummary(replacement, nameOf);
   return details.length > 0
-    ? [`reverses the event and replaces it with: ${details.join(" · ")}`]
-    : ["reverses the event and replaces it"];
+    ? [`reverses ${source} and replaces it with: ${details.join(" · ")}`]
+    : [`reverses ${source} and replaces it`];
 }
 
 function ApprovalCard({

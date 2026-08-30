@@ -157,9 +157,20 @@ export const FINANCIAL_TOOLS: readonly AiToolDefinition[] = [
     name: "correct_financial_event",
     kind: "financial",
     description:
-      "Correct a financial event by reversal (and optional replacement). History stays append-only: the original is never edited. Omitted categoryId/note keep the original's values (null clears them) and the receipt carries over. Requires the member's explicit approval before it executes.",
+      "Correct a financial event by reversal (and optional replacement). History stays append-only: the original is never edited. Echo the event's current description and amount from get_money_overview; they are shown on the approval card and checked. Omitted categoryId/note keep the original's values (null clears them) and the receipt carries over. Requires the member's explicit approval before it executes.",
     inputSchema: z.object({
       eventId: uuid,
+      originalDescription: z
+        .string()
+        .trim()
+        .min(1)
+        .max(200)
+        .describe(
+          "The corrected event's current description (from get_money_overview); shown on the approval card and checked against the event",
+        ),
+      originalAmountCents: centimes.describe(
+        "The corrected event's current amount; shown and checked likewise",
+      ),
       replacement: withSplitAmountCheck(
         z.object({
           description: z.string().trim().min(1).max(200),

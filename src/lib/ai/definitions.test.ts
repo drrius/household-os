@@ -122,3 +122,44 @@ describe("toRoutineSchedule", () => {
     });
   });
 });
+
+describe("assignment pairing", () => {
+  const MEMBER = "11111111-1111-4111-8111-111111111111";
+  const AREA = "22222222-2222-4222-8222-222222222222";
+  const base = {
+    title: "Water the plants",
+    areaId: AREA,
+    schedule: { kind: "daily" },
+  };
+
+  function parseCreateRoutine(extra: Record<string, unknown>) {
+    return getAiToolDefinition("create_routine")?.inputSchema.safeParse({
+      ...base,
+      ...extra,
+    });
+  }
+
+  it("requires the member id its policy depends on", () => {
+    expect(parseCreateRoutine({ assignmentPolicy: "assigned" })?.success).toBe(
+      false,
+    );
+    expect(
+      parseCreateRoutine({ assignmentPolicy: "alternating" })?.success,
+    ).toBe(false);
+    expect(
+      parseCreateRoutine({
+        assignmentPolicy: "shared",
+        assignedMemberId: MEMBER,
+      })?.success,
+    ).toBe(false);
+    expect(
+      parseCreateRoutine({
+        assignmentPolicy: "assigned",
+        assignedMemberId: MEMBER,
+      })?.success,
+    ).toBe(true);
+    expect(parseCreateRoutine({ assignmentPolicy: "shared" })?.success).toBe(
+      true,
+    );
+  });
+});

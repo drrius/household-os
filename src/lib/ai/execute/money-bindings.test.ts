@@ -24,6 +24,8 @@ const LEDGER_ROWS = [
 ];
 const DRAFT_ROW = { amount_cents: 2400, payer_member_id: PAYER };
 const EVENT_ROW = {
+  description: "Original groceries",
+  amount_cents: 1600,
   payer_member_id: PAYER,
   category_id: "44444444-4444-4444-8444-444444444444",
   note: "original note",
@@ -47,7 +49,12 @@ vi.mock("@/lib/supabase/server", () => ({
       if (table === "ledger_entries") {
         return {
           select: () => ({
-            eq: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
+            eq: () => ({
+              order: () => ({
+                range: () =>
+                  Promise.resolve({ data: LEDGER_ROWS, error: null }),
+              }),
+            }),
           }),
         };
       }
@@ -241,6 +248,8 @@ describe("correct_financial_event", () => {
   it("resolves the replacement's split and forwards the reversal target", async () => {
     const input = parseToolInput("correct_financial_event", {
       eventId: EVENT,
+      originalDescription: EVENT_ROW.description,
+      originalAmountCents: EVENT_ROW.amount_cents,
       replacement: {
         description: "Corrected groceries",
         amountCents: 1500,
@@ -269,10 +278,28 @@ describe("correct_financial_event", () => {
   });
 
   it("supports a bare reversal without a replacement", async () => {
-    const input = parseToolInput("correct_financial_event", { eventId: EVENT });
+    const input = parseToolInput("correct_financial_event", {
+      eventId: EVENT,
+      originalDescription: EVENT_ROW.description,
+      originalAmountCents: EVENT_ROW.amount_cents,
+    });
     await financialHandler("correct_financial_event")(input, context);
     expect(correctFinancialEvent).toHaveBeenCalledWith(
       expect.objectContaining({ eventId: EVENT, replacement: null }),
     );
+  });
+});
+
+describe("correction source binding", () => {
+  it("refuses when the echoed original drifted from the event", async () => {
+    const input = parseToolInput("correct_financial_event", {
+      eventId: EVENT,
+      originalDescription: "Something else",
+      originalAmountCents: 999,
+    });
+    await expect(
+      financialHandler("correct_financial_event")(input, context),
+    ).rejects.toThrow(/must match the event being corrected/);
+    expect(correctFinancialEvent).not.toHaveBeenCalled();
   });
 });

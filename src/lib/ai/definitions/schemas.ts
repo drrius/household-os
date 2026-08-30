@@ -143,6 +143,49 @@ export function withSplitAmountCheck<
   }) as T;
 }
 
+type AssignmentLike = {
+  assignmentPolicy?: string | null;
+  assignedMemberId?: string | null;
+  rotationAnchorMemberId?: string | null;
+};
+
+/** The pairing rule the routine RPCs enforce; fail it at validation. */
+export function assignmentIssue(value: AssignmentLike): string | null {
+  const policy = value.assignmentPolicy;
+  if (policy == null) {
+    return null;
+  }
+  if (policy === "assigned" && value.assignedMemberId == null) {
+    return "assignmentPolicy assigned requires assignedMemberId";
+  }
+  if (policy === "alternating" && value.rotationAnchorMemberId == null) {
+    return "assignmentPolicy alternating requires rotationAnchorMemberId";
+  }
+  if (
+    policy === "shared" &&
+    (value.assignedMemberId != null || value.rotationAnchorMemberId != null)
+  ) {
+    return "assignmentPolicy shared takes no member ids";
+  }
+  return null;
+}
+
+/** Attaches the assignment pairing rule to a schema carrying the fields. */
+export function withAssignmentCheck<T extends z.ZodType<AssignmentLike>>(
+  schema: T,
+): T {
+  return schema.superRefine((value, ctx) => {
+    const issue = assignmentIssue(value);
+    if (issue !== null) {
+      ctx.addIssue({
+        code: "custom",
+        message: issue,
+        path: ["assignmentPolicy"],
+      });
+    }
+  }) as T;
+}
+
 export const assignmentFields = {
   assignmentPolicy: assignmentPolicy.describe(
     "assigned = always the same member, alternating = members take turns, shared = either member",

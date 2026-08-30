@@ -1,8 +1,11 @@
 import "server-only";
 
 import { deriveMemberBalances } from "@/domain/money/balances";
-import { asFinancialEventId, asMemberId } from "@/domain/money/values";
-import type { LedgerEntry } from "@/domain/money/types";
+import { asMemberId } from "@/domain/money/values";
+import {
+  fetchAllLedgerRows,
+  toLedgerEntries,
+} from "@/lib/ai/execute/money-snapshots";
 import { memberDirectory, requireRows } from "@/lib/ai/reads";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
@@ -68,12 +71,9 @@ export async function readMoneyOverview(input: {
   if (input.eventsBefore !== undefined) {
     eventQuery = eventQuery.lt("occurred_on", input.eventsBefore);
   }
-  const [members, ledger, events, drafts, rules] = await Promise.all([
+  const [members, ledgerRows, events, drafts, rules] = await Promise.all([
     memberDirectory(supabase, member.householdId),
-    supabase
-      .from("ledger_entries")
-      .select("financial_event_id, member_id, receivable_delta_cents")
-      .eq("household_id", member.householdId),
+    fetchAllLedgerRows(supabase, member.householdId),
     eventQuery,
     supabase
       .from("expense_drafts")
@@ -90,17 +90,7 @@ export async function readMoneyOverview(input: {
       .eq("household_id", member.householdId)
       .order("description"),
   ]);
-  const ledgerRows = requireRows<{
-    financial_event_id: string;
-    member_id: string;
-    receivable_delta_cents: number;
-  }>("ledger entries", ledger);
-  const entries: LedgerEntry[] = ledgerRows.map((row) => ({
-    financialEventId: asFinancialEventId(row.financial_event_id),
-    memberId: asMemberId(row.member_id),
-    receivableDeltaCents: row.receivable_delta_cents,
-  }));
-  const balances = deriveMemberBalances(entries);
+  const balances = deriveMemberBalances(toLedgerEntries(ledgerRows));
   const eventRows = requireRows<Record<string, unknown> & { id: string }>(
     "financial events",
     events,
