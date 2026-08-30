@@ -162,3 +162,40 @@ export async function readEventAllocations(
   }
   return shares;
 }
+
+/**
+ * Centimes already refunded against a source event, net of reversals of
+ * those refunds, so cumulative refunds cannot exceed the original.
+ */
+export async function readRefundedCents(eventId: string): Promise<number> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("financial_events")
+    .select("id, type, amount_cents, related_event_id")
+    .eq("household_id", member.householdId)
+    .in("type", ["refund", "reversal"]);
+  if (error !== null || !Array.isArray(data)) {
+    throw new Error(`refund query failed: ${error?.message ?? "no data"}`);
+  }
+  const rows = data as {
+    id: string;
+    type: "refund" | "reversal";
+    amount_cents: number;
+    related_event_id: string | null;
+  }[];
+  const refunds = rows.filter(
+    (row) => row.type === "refund" && row.related_event_id === eventId,
+  );
+  const refundIds = new Set(refunds.map((row) => row.id));
+  const reversed = rows
+    .filter(
+      (row) =>
+        row.type === "reversal" &&
+        row.related_event_id !== null &&
+        refundIds.has(row.related_event_id),
+    )
+    .reduce((sum, row) => sum + row.amount_cents, 0);
+  const refunded = refunds.reduce((sum, row) => sum + row.amount_cents, 0);
+  return refunded - reversed;
+}

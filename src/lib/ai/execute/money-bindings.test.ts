@@ -27,6 +27,7 @@ const DRAFT_ROW = {
   amount_cents: 2400,
   payer_member_id: PAYER,
 };
+const PRIOR_REFUNDS: never[] = [];
 const EVENT_ALLOCATIONS = [
   { member_id: PAYER, allocated_cents: 1000 },
   { member_id: OTHER, allocated_cents: 600 },
@@ -78,6 +79,7 @@ vi.mock("@/lib/supabase/server", () => ({
               eq: () => ({
                 single: () => Promise.resolve({ data: EVENT_ROW, error: null }),
               }),
+              in: () => Promise.resolve({ data: PRIOR_REFUNDS, error: null }),
             }),
           }),
         };

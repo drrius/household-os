@@ -95,6 +95,17 @@ describe("update_routine coupled parameters", () => {
     );
   });
 
+  it("refuses a clear that the RPC would silently ignore", async () => {
+    await expect(
+      updateRoutine({
+        routineId: ROUTINE,
+        activeFrom: null,
+        activeUntil: null,
+      }),
+    ).rejects.toThrow(/not supported in one step/);
+    expect(updateRoutineDefinition).not.toHaveBeenCalled();
+  });
+
   it("leaves untouched fields alone on a plain rename", async () => {
     await updateRoutine({ routineId: ROUTINE, title: "New title" });
     expect(updateRoutineDefinition).toHaveBeenCalledWith(

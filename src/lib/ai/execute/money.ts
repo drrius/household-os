@@ -9,6 +9,7 @@ import {
   readEventAllocations,
   readEventSnapshot,
   readOutstandingDebtCents,
+  readRefundedCents,
 } from "@/lib/ai/execute/money-snapshots";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
 import { recurringStartMatchesSchedule } from "@/lib/ai/schedule";
@@ -131,10 +132,15 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       );
     }
     // Mirroring the original shares: nobody gets back more than they were
-    // allocated, and a refund cannot exceed the original amount. A full
-    // refund therefore reproduces the source split exactly.
-    if (value.amountCents > source.amountCents) {
-      throw new Error("a refund cannot exceed the original event's amount");
+    // allocated, and cumulative refunds (net of reversed ones) cannot
+    // exceed the original amount. A single full refund therefore
+    // reproduces the source split exactly, and a second one is refused.
+    const remaining =
+      source.amountCents - (await readRefundedCents(value.relatedEventId));
+    if (value.amountCents > remaining) {
+      throw new Error(
+        `only ${formatCentimesAsFrancs(Math.max(remaining, 0))} of this event remains refundable`,
+      );
     }
     const sourceShares = await readEventAllocations(value.relatedEventId);
     for (const share of value.split.allocations) {

@@ -83,17 +83,32 @@ async function resolveRoutinePatch(value: RoutineUpdateValue): Promise<{
     };
   }
   const current = await readRoutineSnapshot(value.routineId);
+  const activeFrom = !windowTouched
+    ? null
+    : value.activeFrom === undefined
+      ? current.activeFrom
+      : value.activeFrom;
+  const activeUntil = !windowTouched
+    ? null
+    : value.activeUntil === undefined
+      ? current.activeUntil
+      : value.activeUntil;
+  // The RPC reads an all-null window pair as "keep both", so a clear that
+  // resolves to two nulls would silently succeed without clearing; the
+  // database cannot express it in one call.
+  if (
+    windowTouched &&
+    activeFrom === null &&
+    activeUntil === null &&
+    (value.activeFrom === null || value.activeUntil === null)
+  ) {
+    throw new Error(
+      "clearing this window is not supported in one step: set activeFrom to a date in the same call, or clear the boundaries in separate calls while one keeps a date",
+    );
+  }
   return {
-    activeFrom: !windowTouched
-      ? null
-      : value.activeFrom === undefined
-        ? current.activeFrom
-        : value.activeFrom,
-    activeUntil: !windowTouched
-      ? null
-      : value.activeUntil === undefined
-        ? current.activeUntil
-        : value.activeUntil,
+    activeFrom,
+    activeUntil,
     areaId: petClearNeedsArea ? current.areaId : (value.areaId ?? null),
     petId: petAtRisk ? current.petId : value.petId,
   };

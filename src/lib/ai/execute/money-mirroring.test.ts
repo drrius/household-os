@@ -27,6 +27,12 @@ const DRAFT_ROW = {
   amount_cents: 2400,
   payer_member_id: PAYER,
 };
+let PRIOR_REFUNDS: {
+  id: string;
+  type: string;
+  amount_cents: number;
+  related_event_id: string | null;
+}[] = [];
 const EVENT_ALLOCATIONS = [
   { member_id: PAYER, allocated_cents: 1000 },
   { member_id: OTHER, allocated_cents: 600 },
@@ -78,6 +84,7 @@ vi.mock("@/lib/supabase/server", () => ({
               eq: () => ({
                 single: () => Promise.resolve({ data: EVENT_ROW, error: null }),
               }),
+              in: () => Promise.resolve({ data: PRIOR_REFUNDS, error: null }),
             }),
           }),
         };
@@ -132,6 +139,7 @@ function parseToolInput(name: string, raw: unknown): unknown {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  PRIOR_REFUNDS = [];
 });
 
 describe("record_refund bindings", () => {
@@ -236,6 +244,70 @@ describe("draft and refund mirroring", () => {
     });
     await expect(
       financialHandler("record_refund")(input, context),
-    ).rejects.toThrow(/cannot exceed the original/);
+    ).rejects.toThrow(/remains refundable/);
+  });
+});
+
+describe("cumulative refund cap", () => {
+  it("refuses a second full refund of the same event", async () => {
+    PRIOR_REFUNDS = [
+      {
+        id: "refund-1",
+        type: "refund",
+        amount_cents: 1600,
+        related_event_id: EVENT,
+      },
+    ];
+    const input = parseToolInput("record_refund", {
+      relatedEventId: EVENT,
+      payerMemberId: PAYER,
+      description: "Second refund",
+      amountCents: 1600,
+      split: {
+        kind: "custom",
+        allocations: [
+          { memberId: PAYER, allocatedCents: 1000 },
+          { memberId: OTHER, allocatedCents: 600 },
+        ],
+      },
+    });
+    await expect(
+      financialHandler("record_refund")(input, context),
+    ).rejects.toThrow(/CHF 0\.00 of this event remains refundable/);
+    expect(postRefund).not.toHaveBeenCalled();
+  });
+
+  it("allows refunding what a reversed refund gave back", async () => {
+    PRIOR_REFUNDS = [
+      {
+        id: "refund-1",
+        type: "refund",
+        amount_cents: 1600,
+        related_event_id: EVENT,
+      },
+      {
+        id: "reversal-1",
+        type: "reversal",
+        amount_cents: 1600,
+        related_event_id: "refund-1",
+      },
+    ];
+    const input = parseToolInput("record_refund", {
+      relatedEventId: EVENT,
+      payerMemberId: PAYER,
+      description: "Refund after reversal",
+      amountCents: 400,
+      split: {
+        kind: "custom",
+        allocations: [
+          { memberId: PAYER, allocatedCents: 300 },
+          { memberId: OTHER, allocatedCents: 100 },
+        ],
+      },
+    });
+    await financialHandler("record_refund")(input, context);
+    expect(postRefund).toHaveBeenCalledWith(
+      expect.objectContaining({ amountCents: 400 }),
+    );
   });
 });

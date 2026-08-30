@@ -6,6 +6,7 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from "ai";
 import { SparklesIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import {
@@ -114,9 +115,13 @@ export function AssistantPanel() {
     () => new DefaultChatTransport({ api: "/api/assistant/chat" }),
     [],
   );
+  const router = useRouter();
   const chat = useChat({
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    // Tool calls mutate data the route behind the panel may render, and
+    // revalidatePath alone cannot repaint an already-open client route.
+    onFinish: () => router.refresh(),
   });
   const { messages, sendMessage, status } = chat;
 
