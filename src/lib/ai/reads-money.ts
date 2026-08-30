@@ -58,7 +58,7 @@ export async function readMoneyOverview(input: {
   let eventQuery = supabase
     .from("financial_events")
     .select(
-      "id, type, occurred_on, description, amount_cents, payer_member_id, related_event_id",
+      "id, type, occurred_on, description, amount_cents, payer_member_id, related_event_id, category_id, note",
     )
     .eq("household_id", member.householdId)
     .order("occurred_on", { ascending: false })

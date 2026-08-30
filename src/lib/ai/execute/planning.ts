@@ -35,15 +35,17 @@ import {
 
 type MealSlot = "breakfast" | "lunch" | "dinner";
 
-/** Current recipe/notes of an entry, so partial updates can keep them. */
-async function readMealEntrySnapshot(
-  entryId: string,
-): Promise<{ recipeUrl: string | null; notes: string | null }> {
+/** Current slot/recipe/notes of an entry, so partial updates keep them. */
+async function readMealEntrySnapshot(entryId: string): Promise<{
+  slot: MealSlot | null;
+  recipeUrl: string | null;
+  notes: string | null;
+}> {
   const member = await requireMemberContext();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("meal_plan_entries")
-    .select("recipe_url_snapshot, notes")
+    .select("slot, recipe_url_snapshot, notes")
     .eq("household_id", member.householdId)
     .eq("id", entryId)
     .single();
@@ -51,10 +53,15 @@ async function readMealEntrySnapshot(
     throw new Error(`meal entry lookup failed: ${error.message}`);
   }
   const row = data as {
+    slot: MealSlot | null;
     recipe_url_snapshot: string | null;
     notes: string | null;
   };
-  return { recipeUrl: row.recipe_url_snapshot, notes: row.notes };
+  return {
+    slot: row.slot,
+    recipeUrl: row.recipe_url_snapshot,
+    notes: row.notes,
+  };
 }
 
 type MealSource =
@@ -175,7 +182,8 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
     };
     return moveMealPlanEntry({
       entryId: value.entryId,
-      date: value.date,
+      // Unslotted entries anchor to the week's Monday in the database.
+      date: value.slot == null ? startOfZurichWeek(value.date) : value.date,
       slot: value.slot ?? null,
       idempotencyKey,
     });
@@ -185,18 +193,20 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
       entryId: string;
       title: string;
       date: string;
-      slot: MealSlot;
+      slot?: MealSlot | null;
       recipeUrl?: string | null;
       notes?: string | null;
     };
-    // A rename must not erase metadata: omitted (undefined) keeps the
-    // stored value, explicit null clears it.
+    // A rename must not erase anything: omitted (undefined) slot, recipe
+    // URL, and notes keep their stored values; explicit null clears (or,
+    // for slot, turns the entry into an unslotted week note).
     const current = await readMealEntrySnapshot(value.entryId);
+    const slot = value.slot === undefined ? current.slot : value.slot;
     return updateMealPlanEntry({
       entryId: value.entryId,
       title: value.title,
-      date: value.date,
-      slot: value.slot,
+      date: slot === null ? startOfZurichWeek(value.date) : value.date,
+      slot,
       recipeUrl:
         value.recipeUrl === undefined ? current.recipeUrl : value.recipeUrl,
       notes: value.notes === undefined ? current.notes : value.notes,

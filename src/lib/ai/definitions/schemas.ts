@@ -95,6 +95,54 @@ export const expenseSplitSchema = z
     "How the amount is shared. equal splits it evenly (odd centime goes to the payer); custom allocations must cover both members and sum to the amount.",
   );
 
+type SplitLike =
+  | {
+      kind: string;
+      allocations?: readonly { memberId: string; allocatedCents: number }[];
+    }
+  | null
+  | undefined;
+
+/**
+ * Cross-field rule a custom split must satisfy against its amount, so
+ * invalid proposals die at validation instead of after the member approves
+ * them. Returns the problem, or null when the split is valid or not custom.
+ */
+export function splitAmountIssue(
+  split: SplitLike,
+  amountCents: number,
+): string | null {
+  if (split == null || split.kind !== "custom" || !split.allocations) {
+    return null;
+  }
+  const [first, second] = split.allocations;
+  if (first === undefined || second === undefined) {
+    return null;
+  }
+  if (first.memberId === second.memberId) {
+    return "custom allocations must name two different members";
+  }
+  if (first.allocatedCents + second.allocatedCents !== amountCents) {
+    return "custom allocations must sum to amountCents";
+  }
+  return null;
+}
+
+/** Attaches the custom-split rule to a schema with amountCents + split. */
+export function withSplitAmountCheck<
+  T extends z.ZodType<{
+    amountCents: number;
+    split?: SplitLike;
+  }>,
+>(schema: T): T {
+  return schema.superRefine((value, ctx) => {
+    const issue = splitAmountIssue(value.split, value.amountCents);
+    if (issue !== null) {
+      ctx.addIssue({ code: "custom", message: issue, path: ["split"] });
+    }
+  }) as T;
+}
+
 export const assignmentFields = {
   assignmentPolicy: assignmentPolicy.describe(
     "assigned = always the same member, alternating = members take turns, shared = either member",

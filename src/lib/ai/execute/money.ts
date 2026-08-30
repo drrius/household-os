@@ -1,16 +1,16 @@
 import "server-only";
 
-import { deriveMemberBalances } from "@/domain/money/balances";
-import { asFinancialEventId, asMemberId } from "@/domain/money/values";
-import type { LedgerEntry } from "@/domain/money/types";
 import {
   resolveAllocations,
   type ExpenseSplit,
 } from "@/lib/ai/execute/allocations";
+import {
+  readDraftSnapshot,
+  readEventSnapshot,
+  readOutstandingDebtCents,
+} from "@/lib/ai/execute/money-snapshots";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
 import { recurringStartMatchesSchedule } from "@/lib/ai/schedule";
-import { requireMemberContext } from "@/lib/auth/member-context";
-import { createClient } from "@/lib/supabase/server";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import {
   confirmExpenseDraft,
@@ -23,57 +23,6 @@ import {
   recordSettlement,
   setRecurringExpenseRuleActive,
 } from "@/lib/money/commands";
-
-/**
- * The debtor's current outstanding amount, derived from the ledger exactly
- * like the money overview, so approvals can be checked against reality.
- */
-async function readOutstandingDebtCents(
-  payerMemberId: string,
-): Promise<number> {
-  const member = await requireMemberContext();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("ledger_entries")
-    .select("financial_event_id, member_id, receivable_delta_cents")
-    .eq("household_id", member.householdId);
-  if (error !== null || !Array.isArray(data)) {
-    throw new Error(`ledger query failed: ${error?.message ?? "no data"}`);
-  }
-  const entries: LedgerEntry[] = (
-    data as {
-      financial_event_id: string;
-      member_id: string;
-      receivable_delta_cents: number;
-    }[]
-  ).map((row) => ({
-    financialEventId: asFinancialEventId(row.financial_event_id),
-    memberId: asMemberId(row.member_id),
-    receivableDeltaCents: row.receivable_delta_cents,
-  }));
-  const balance =
-    deriveMemberBalances(entries).get(asMemberId(payerMemberId)) ?? 0;
-  return -balance;
-}
-
-/** The stored draft values a confirmation must be checked against. */
-async function readDraftSnapshot(
-  draftId: string,
-): Promise<{ amountCents: number; payerMemberId: string }> {
-  const member = await requireMemberContext();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("expense_drafts")
-    .select("amount_cents, payer_member_id")
-    .eq("household_id", member.householdId)
-    .eq("id", draftId)
-    .single();
-  if (error !== null) {
-    throw new Error(`expense draft lookup failed: ${error.message}`);
-  }
-  const row = data as { amount_cents: number; payer_member_id: string };
-  return { amountCents: row.amount_cents, payerMemberId: row.payer_member_id };
-}
 
 export const MONEY_DRAFT_HANDLERS: Record<string, AiWriteHandler> = {
   dismiss_expense_draft: (input) => {
@@ -157,9 +106,10 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       note: value.note ?? null,
     });
   },
-  record_refund: (input, { idempotencyKey, today }) => {
+  record_refund: async (input, { idempotencyKey, today }) => {
     const value = input as {
       relatedEventId: string;
+      payerMemberId: string;
       description: string;
       amountCents: number;
       split: ExpenseSplit;
@@ -169,6 +119,14 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
     if (value.split.kind === "equal") {
       throw new Error(
         "record_refund needs custom allocations mirroring the original expense shares",
+      );
+    }
+    // The ledger derives the refund's payer from the source event; the
+    // echoed payer binds the approval card to that reality.
+    const source = await readEventSnapshot(value.relatedEventId);
+    if (source.payerMemberId !== value.payerMemberId) {
+      throw new Error(
+        "payerMemberId must match the original event's payer (see get_money_overview)",
       );
     }
     return postRefund({
@@ -282,24 +240,37 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       } | null;
     };
     const replacement = value.replacement ?? null;
+    if (replacement === null) {
+      return correctFinancialEvent({
+        eventId: value.eventId,
+        idempotencyKey,
+        replacement: null,
+      });
+    }
+    // A correction that only changes one field must not lose the rest:
+    // omitted category/note keep the original's values (null clears), and
+    // the receipt always carries over since the tool cannot set one.
+    const original = await readEventSnapshot(value.eventId);
     return correctFinancialEvent({
       eventId: value.eventId,
       idempotencyKey,
-      replacement: replacement
-        ? {
-            description: replacement.description,
-            amountCents: replacement.amountCents,
-            payerMemberId: replacement.payerMemberId,
-            allocations: await resolveAllocations(
-              replacement.split,
-              replacement.amountCents,
-              replacement.payerMemberId,
-            ),
-            occurredOn: replacement.occurredOn,
-            categoryId: replacement.categoryId ?? null,
-            note: replacement.note ?? null,
-          }
-        : null,
+      replacement: {
+        description: replacement.description,
+        amountCents: replacement.amountCents,
+        payerMemberId: replacement.payerMemberId,
+        allocations: await resolveAllocations(
+          replacement.split,
+          replacement.amountCents,
+          replacement.payerMemberId,
+        ),
+        occurredOn: replacement.occurredOn,
+        categoryId:
+          replacement.categoryId === undefined
+            ? original.categoryId
+            : replacement.categoryId,
+        note: replacement.note === undefined ? original.note : replacement.note,
+        receiptPath: original.receiptPath,
+      },
     });
   },
 };

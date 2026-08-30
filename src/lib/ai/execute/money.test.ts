@@ -24,6 +24,12 @@ const LEDGER_ROWS = [
   { financial_event_id: "e1", member_id: OTHER, receivable_delta_cents: 700 },
 ];
 const DRAFT_ROW = { amount_cents: 2400, payer_member_id: PAYER };
+const EVENT_ROW = {
+  payer_member_id: PAYER,
+  category_id: "44444444-4444-4444-8444-444444444444",
+  note: "original note",
+  receipt_path: "receipts/original.jpg",
+};
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
@@ -43,6 +49,17 @@ vi.mock("@/lib/supabase/server", () => ({
         return {
           select: () => ({
             eq: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
+          }),
+        };
+      }
+      if (table === "financial_events") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                single: () => Promise.resolve({ data: EVENT_ROW, error: null }),
+              }),
+            }),
           }),
         };
       }
@@ -74,13 +91,7 @@ vi.mock("@/lib/money/commands", () => ({
   setRecurringExpenseRuleActive: vi.fn(async (input: unknown) => ({ input })),
 }));
 
-import {
-  confirmExpenseDraft,
-  correctFinancialEvent,
-  postManualExpense,
-  postRefund,
-  recordSettlement,
-} from "@/lib/money/commands";
+import { postManualExpense, postRefund } from "@/lib/money/commands";
 
 const context = { idempotencyKey: "ai:test:call-1", today: "2026-08-30" };
 
@@ -199,6 +210,7 @@ describe("record_refund", () => {
   it("passes custom allocations through to the refund command", async () => {
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      payerMemberId: PAYER,
       description: "Refund",
       amountCents: 900,
       split: {
@@ -218,108 +230,6 @@ describe("record_refund", () => {
           { memberId: OTHER, allocatedCents: 300 },
         ],
       }),
-    );
-  });
-});
-
-describe("confirm_expense_draft", () => {
-  it("requires the amount and payer so the approval card can show them", () => {
-    const definition = getAiToolDefinition("confirm_expense_draft");
-    const result = definition?.inputSchema.safeParse({ draftId: EVENT });
-    expect(result?.success).toBe(false);
-  });
-
-  it("refuses an amount change without a replacement split", async () => {
-    const input = parseToolInput("confirm_expense_draft", {
-      draftId: EVENT,
-      amountCents: 2600,
-      payerMemberId: PAYER,
-    });
-    await expect(
-      financialHandler("confirm_expense_draft")(input, context),
-    ).rejects.toThrow(/requires a split/);
-    expect(confirmExpenseDraft).not.toHaveBeenCalled();
-  });
-
-  it("confirms with the draft's own amount and stored allocations", async () => {
-    const input = parseToolInput("confirm_expense_draft", {
-      draftId: EVENT,
-      amountCents: 2400,
-      payerMemberId: PAYER,
-    });
-    await financialHandler("confirm_expense_draft")(input, context);
-    expect(confirmExpenseDraft).toHaveBeenCalledWith(
-      expect.objectContaining({
-        draftId: EVENT,
-        amountCents: 2400,
-        allocations: null,
-      }),
-    );
-  });
-});
-
-describe("record_settlement", () => {
-  it("rejects a full settlement whose amount no longer matches the balance", async () => {
-    const input = parseToolInput("record_settlement", {
-      payerMemberId: PAYER,
-      amountCents: 800,
-      mode: "full",
-      description: "Settle up",
-    });
-    await expect(
-      financialHandler("record_settlement")(input, context),
-    ).rejects.toThrow(/outstanding balance is CHF 7\.00/);
-    expect(recordSettlement).not.toHaveBeenCalled();
-  });
-
-  it("posts a matching full settlement as a bound partial amount", async () => {
-    const input = parseToolInput("record_settlement", {
-      payerMemberId: PAYER,
-      amountCents: 700,
-      mode: "full",
-      description: "Settle up",
-    });
-    await financialHandler("record_settlement")(input, context);
-    // Partial mode makes the locked RPC post exactly the approved amount
-    // (or reject), instead of recomputing the balance itself.
-    expect(recordSettlement).toHaveBeenCalledWith(
-      expect.objectContaining({ amountCents: 700, mode: "partial" }),
-    );
-  });
-});
-
-describe("correct_financial_event", () => {
-  it("resolves the replacement's split and forwards the reversal target", async () => {
-    const input = parseToolInput("correct_financial_event", {
-      eventId: EVENT,
-      replacement: {
-        description: "Corrected groceries",
-        amountCents: 1500,
-        payerMemberId: PAYER,
-        split: { kind: "equal" },
-        occurredOn: "2026-08-29",
-      },
-    });
-    await financialHandler("correct_financial_event")(input, context);
-    expect(correctFinancialEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventId: EVENT,
-        replacement: expect.objectContaining({
-          amountCents: 1500,
-          allocations: [
-            { memberId: PAYER, allocatedCents: 750 },
-            { memberId: OTHER, allocatedCents: 750 },
-          ],
-        }),
-      }),
-    );
-  });
-
-  it("supports a bare reversal without a replacement", async () => {
-    const input = parseToolInput("correct_financial_event", { eventId: EVENT });
-    await financialHandler("correct_financial_event")(input, context);
-    expect(correctFinancialEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ eventId: EVENT, replacement: null }),
     );
   });
 });

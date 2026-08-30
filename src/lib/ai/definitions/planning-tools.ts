@@ -117,12 +117,12 @@ export const MEAL_TOOLS: readonly AiToolDefinition[] = [
     name: "update_meal_entry",
     kind: "write",
     description:
-      "Rename a planned meal entry or change its recipe URL/notes. Omitted recipeUrl/notes keep their current values; pass null to clear them.",
+      "Rename a planned meal entry or change its recipe URL/notes. Omitted slot/recipeUrl/notes keep their current values; null clears the URL or notes, and a null slot makes it an unslotted week note.",
     inputSchema: z.object({
       entryId: uuid,
       title: z.string().trim().min(1).max(120),
       date: isoDate,
-      slot: mealSlot,
+      slot: mealSlot.nullish(),
       recipeUrl: webUrl.nullish(),
       notes: z.string().max(500).nullish(),
     }),
