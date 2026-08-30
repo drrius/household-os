@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
+import { getBearerSession } from "@/lib/auth/bearer-context";
 import { ACCESS_DENIED_PATH, SIGN_IN_PATH } from "@/lib/auth/paths";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -31,6 +32,13 @@ type MembershipRow = {
 
 export const getVerifiedIdentity = cache(
   async (): Promise<VerifiedIdentity | null> => {
+    const bearer = getBearerSession();
+    if (bearer !== null) {
+      // The MCP bridge verified the grant's signature before entering the
+      // bearer scope; Supabase re-verifies the access token on every query.
+      return { userId: asUserId(bearer.userId), email: bearer.email };
+    }
+
     const supabase = await createClient();
     const { data, error } = await supabase.auth.getClaims();
 
