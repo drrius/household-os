@@ -1,5 +1,6 @@
 import "server-only";
 
+import { windowIssue } from "@/lib/ai/definitions/schemas";
 import { toRoutineSchedule, type AiScheduleInput } from "@/lib/ai/schedule";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
 import { requireMemberContext } from "@/lib/auth/member-context";
@@ -106,6 +107,10 @@ async function resolveRoutinePatch(value: RoutineUpdateValue): Promise<{
       "clearing this window is not supported in one step: set activeFrom to a date in the same call, or clear the boundaries in separate calls while one keeps a date",
     );
   }
+  const orderingIssue = windowIssue({ activeFrom, activeUntil });
+  if (orderingIssue !== null) {
+    throw new Error(orderingIssue);
+  }
   return {
     activeFrom,
     activeUntil,
@@ -129,6 +134,14 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       activeFrom?: string | null;
       activeUntil?: string | null;
     };
+    const activeFrom = value.activeFrom ?? today;
+    const createIssue = windowIssue({
+      activeFrom,
+      activeUntil: value.activeUntil,
+    });
+    if (createIssue !== null) {
+      throw new Error(createIssue);
+    }
     return createRoutine({
       title: value.title,
       areaId: value.areaId,
@@ -139,7 +152,7 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       priority: value.priority,
       instructions: value.instructions ?? null,
       petId: value.petId ?? null,
-      activeFrom: value.activeFrom ?? today,
+      activeFrom,
       activeUntil: value.activeUntil ?? null,
     });
   },

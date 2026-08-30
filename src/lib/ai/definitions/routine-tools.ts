@@ -8,6 +8,7 @@ import {
   scheduleInputSchema,
   uuid,
   withAssignmentCheck,
+  withWindowCheck,
   type AiToolDefinition,
 } from "@/lib/ai/definitions/schemas";
 
@@ -17,20 +18,22 @@ export const ROUTINE_TOOLS: readonly AiToolDefinition[] = [
     kind: "write",
     description:
       "Create a recurring or one-off household routine. Needs an area id (see get_household). Pet-care routines should reference the pet and use priority pet_care.",
-    inputSchema: withAssignmentCheck(
-      z.object({
-        title: z.string().trim().min(1).max(120),
-        areaId: uuid,
-        schedule: scheduleInputSchema,
-        ...assignmentFields,
-        priority: routinePriority.optional().default("general"),
-        instructions: z.string().max(2000).nullish(),
-        petId: uuid.nullish(),
-        activeFrom: isoDate
-          .nullish()
-          .describe("First day the routine is active; defaults to today"),
-        activeUntil: isoDate.nullish(),
-      }),
+    inputSchema: withWindowCheck(
+      withAssignmentCheck(
+        z.object({
+          title: z.string().trim().min(1).max(120),
+          areaId: uuid,
+          schedule: scheduleInputSchema,
+          ...assignmentFields,
+          priority: routinePriority.optional().default("general"),
+          instructions: z.string().max(2000).nullish(),
+          petId: uuid.nullish(),
+          activeFrom: isoDate
+            .nullish()
+            .describe("First day the routine is active; defaults to today"),
+          activeUntil: isoDate.nullish(),
+        }),
+      ),
     ),
   },
   {
@@ -38,21 +41,23 @@ export const ROUTINE_TOOLS: readonly AiToolDefinition[] = [
     kind: "write",
     description:
       "Change a routine's title, schedule, assignment, priority, instructions, area, pet, or activity window. Only provided fields change; omitted fields keep their current values, and passing null for instructions, petId, or a window boundary clears it.",
-    inputSchema: withAssignmentCheck(
-      z.object({
-        routineId: uuid,
-        title: z.string().trim().min(1).max(120).nullish(),
-        schedule: scheduleInputSchema.nullish(),
-        assignmentPolicy: assignmentPolicy.nullish(),
-        assignedMemberId: uuid.nullish(),
-        rotationAnchorMemberId: uuid.nullish(),
-        priority: routinePriority.nullish(),
-        instructions: z.string().max(2000).nullish(),
-        areaId: uuid.nullish(),
-        petId: uuid.nullish(),
-        activeFrom: isoDate.nullish(),
-        activeUntil: isoDate.nullish(),
-      }),
+    inputSchema: withWindowCheck(
+      withAssignmentCheck(
+        z.object({
+          routineId: uuid,
+          title: z.string().trim().min(1).max(120).nullish(),
+          schedule: scheduleInputSchema.nullish(),
+          assignmentPolicy: assignmentPolicy.nullish(),
+          assignedMemberId: uuid.nullish(),
+          rotationAnchorMemberId: uuid.nullish(),
+          priority: routinePriority.nullish(),
+          instructions: z.string().max(2000).nullish(),
+          areaId: uuid.nullish(),
+          petId: uuid.nullish(),
+          activeFrom: isoDate.nullish(),
+          activeUntil: isoDate.nullish(),
+        }),
+      ),
     ),
   },
   {

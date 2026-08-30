@@ -1,10 +1,8 @@
 import "server-only";
 
 import { getAiToolDefinition } from "@/lib/ai/definitions";
-import {
-  FINANCIAL_HANDLERS,
-  MONEY_DRAFT_HANDLERS,
-} from "@/lib/ai/execute/money";
+import { FINANCIAL_HANDLERS } from "@/lib/ai/execute/money";
+import { MONEY_DRAFT_HANDLERS } from "@/lib/ai/execute/money-drafts";
 import {
   GROCERY_HANDLERS,
   HOUSEHOLD_HANDLERS,

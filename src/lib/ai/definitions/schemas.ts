@@ -193,6 +193,33 @@ export function withAssignmentCheck<T extends z.ZodType<AssignmentLike>>(
   }) as T;
 }
 
+type WindowLike = {
+  activeFrom?: string | null;
+  activeUntil?: string | null;
+};
+
+/** ISO dates compare lexicographically; the table enforces this order. */
+export function windowIssue(value: WindowLike): string | null {
+  if (
+    value.activeFrom != null &&
+    value.activeUntil != null &&
+    value.activeUntil < value.activeFrom
+  ) {
+    return "activeUntil must not precede activeFrom";
+  }
+  return null;
+}
+
+/** Attaches the activity-window ordering rule to a schema. */
+export function withWindowCheck<T extends z.ZodType<WindowLike>>(schema: T): T {
+  return schema.superRefine((value, ctx) => {
+    const issue = windowIssue(value);
+    if (issue !== null) {
+      ctx.addIssue({ code: "custom", message: issue, path: ["activeUntil"] });
+    }
+  }) as T;
+}
+
 export const assignmentFields = {
   assignmentPolicy: assignmentPolicy.describe(
     "assigned = always the same member, alternating = members take turns, shared = either member",

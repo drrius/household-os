@@ -104,6 +104,7 @@ export async function readDraftSnapshot(draftId: string): Promise<{
 
 /** Stored fields of a financial event that corrections must not lose. */
 export async function readEventSnapshot(eventId: string): Promise<{
+  type: string;
   description: string;
   amountCents: number;
   payerMemberId: string | null;
@@ -116,7 +117,7 @@ export async function readEventSnapshot(eventId: string): Promise<{
   const { data, error } = await supabase
     .from("financial_events")
     .select(
-      "description, amount_cents, payer_member_id, category_id, note, receipt_path",
+      "type, description, amount_cents, payer_member_id, category_id, note, receipt_path",
     )
     .eq("household_id", member.householdId)
     .eq("id", eventId)
@@ -125,6 +126,7 @@ export async function readEventSnapshot(eventId: string): Promise<{
     throw new Error(`financial event lookup failed: ${error.message}`);
   }
   const row = data as {
+    type: string;
     description: string;
     amount_cents: number;
     payer_member_id: string | null;
@@ -133,6 +135,7 @@ export async function readEventSnapshot(eventId: string): Promise<{
     receipt_path: string | null;
   };
   return {
+    type: row.type,
     description: row.description,
     amountCents: row.amount_cents,
     payerMemberId: row.payer_member_id,
@@ -163,39 +166,107 @@ export async function readEventAllocations(
   return shares;
 }
 
+/** How much of a source event refunds have already consumed. */
+export type RefundUsage = {
+  /** A correction reversed the source itself. */
+  sourceReversed: boolean;
+  refundedCents: number;
+  refundedByMember: ReadonlyMap<string, number>;
+};
+
 /**
- * Centimes already refunded against a source event, net of reversals of
- * those refunds, so cumulative refunds cannot exceed the original.
+ * Prior refunds against a source event, net of reversals of those
+ * refunds, totalled and per member — so cumulative refunds can neither
+ * exceed the original amount nor any member's original share. The
+ * children query pages past the API row cap like the ledger read.
  */
-export async function readRefundedCents(eventId: string): Promise<number> {
-  const member = await requireMemberContext();
-  const supabase = await createClient();
+async function fetchReversedIds(
+  supabase: ServerClient,
+  householdId: string,
+  refundIds: readonly string[],
+): Promise<ReadonlySet<string | null>> {
   const { data, error } = await supabase
     .from("financial_events")
-    .select("id, type, amount_cents, related_event_id")
-    .eq("household_id", member.householdId)
-    .in("type", ["refund", "reversal"]);
+    .select("related_event_id")
+    .eq("household_id", householdId)
+    .eq("type", "reversal")
+    .in("related_event_id", refundIds);
   if (error !== null || !Array.isArray(data)) {
-    throw new Error(`refund query failed: ${error?.message ?? "no data"}`);
+    throw new Error(
+      `refund reversal query failed: ${error?.message ?? "no data"}`,
+    );
   }
-  const rows = data as {
-    id: string;
-    type: "refund" | "reversal";
-    amount_cents: number;
-    related_event_id: string | null;
-  }[];
-  const refunds = rows.filter(
-    (row) => row.type === "refund" && row.related_event_id === eventId,
+  return new Set(
+    (data as { related_event_id: string | null }[]).map(
+      (row) => row.related_event_id,
+    ),
   );
-  const refundIds = new Set(refunds.map((row) => row.id));
-  const reversed = rows
-    .filter(
-      (row) =>
-        row.type === "reversal" &&
-        row.related_event_id !== null &&
-        refundIds.has(row.related_event_id),
-    )
-    .reduce((sum, row) => sum + row.amount_cents, 0);
-  const refunded = refunds.reduce((sum, row) => sum + row.amount_cents, 0);
-  return refunded - reversed;
+}
+
+export async function readRefundUsage(eventId: string): Promise<RefundUsage> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const children: { id: string; type: string; amount_cents: number }[] = [];
+  for (let from = 0; ; from += LEDGER_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("financial_events")
+      .select("id, type, amount_cents")
+      .eq("household_id", member.householdId)
+      .eq("related_event_id", eventId)
+      .order("created_at")
+      .order("id")
+      .range(from, from + LEDGER_PAGE_SIZE - 1);
+    if (error !== null || !Array.isArray(data)) {
+      throw new Error(
+        `refund history query failed: ${error?.message ?? "no data"}`,
+      );
+    }
+    children.push(
+      ...(data as { id: string; type: string; amount_cents: number }[]),
+    );
+    if (data.length < LEDGER_PAGE_SIZE) {
+      break;
+    }
+  }
+  const sourceReversed = children.some((row) => row.type === "reversal");
+  const refunds = children.filter((row) => row.type === "refund");
+  if (refunds.length === 0) {
+    return { sourceReversed, refundedCents: 0, refundedByMember: new Map() };
+  }
+  const reversedIds = await fetchReversedIds(
+    supabase,
+    member.householdId,
+    refunds.map((row) => row.id),
+  );
+  const active = refunds.filter((row) => !reversedIds.has(row.id));
+  const refundedByMember = new Map<string, number>();
+  if (active.length > 0) {
+    const { data: shareRows, error: shareError } = await supabase
+      .from("financial_allocations")
+      .select("member_id, allocated_cents")
+      .eq("household_id", member.householdId)
+      .in(
+        "financial_event_id",
+        active.map((row) => row.id),
+      );
+    if (shareError !== null || !Array.isArray(shareRows)) {
+      throw new Error(
+        `refund allocation query failed: ${shareError?.message ?? "no data"}`,
+      );
+    }
+    for (const row of shareRows as {
+      member_id: string;
+      allocated_cents: number;
+    }[]) {
+      refundedByMember.set(
+        row.member_id,
+        (refundedByMember.get(row.member_id) ?? 0) + row.allocated_cents,
+      );
+    }
+  }
+  return {
+    sourceReversed,
+    refundedCents: active.reduce((sum, row) => sum + row.amount_cents, 0),
+    refundedByMember,
+  };
 }

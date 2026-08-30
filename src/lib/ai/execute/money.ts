@@ -9,7 +9,7 @@ import {
   readEventAllocations,
   readEventSnapshot,
   readOutstandingDebtCents,
-  readRefundedCents,
+  readRefundUsage,
 } from "@/lib/ai/execute/money-snapshots";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
 import { recurringStartMatchesSchedule } from "@/lib/ai/schedule";
@@ -17,70 +17,11 @@ import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import {
   confirmExpenseDraft,
   correctFinancialEvent,
-  createRecurringExpenseRule,
-  dismissExpenseDraft,
   establishOpeningBalance,
   postManualExpense,
   postRefund,
   recordSettlement,
-  setRecurringExpenseRuleActive,
 } from "@/lib/money/commands";
-
-export const MONEY_DRAFT_HANDLERS: Record<string, AiWriteHandler> = {
-  dismiss_expense_draft: (input) => {
-    const value = input as { draftId: string };
-    return dismissExpenseDraft({
-      draftId: value.draftId,
-      idempotencyKey: `dismiss-expense-draft:${value.draftId}`,
-    });
-  },
-  create_recurring_expense_rule: async (input, { idempotencyKey }) => {
-    const value = input as {
-      description: string;
-      amountCents: number;
-      payerMemberId: string;
-      split: ExpenseSplit;
-      schedule:
-        | { kind: "weekly"; isoWeekday: 1 | 2 | 3 | 4 | 5 | 6 | 7 }
-        | { kind: "monthly"; dayOfMonth: number };
-      nextOccurrenceOn: string;
-      categoryId?: string | null;
-    };
-    // Fail with a usable message instead of the database's, which would
-    // otherwise reject the rule after the tool call already ran.
-    if (
-      !recurringStartMatchesSchedule(value.schedule, value.nextOccurrenceOn)
-    ) {
-      throw new Error(
-        value.schedule.kind === "weekly"
-          ? "nextOccurrenceOn must fall on the schedule's weekday"
-          : "nextOccurrenceOn must match the schedule's day of month (clamped to the month's length)",
-      );
-    }
-    return createRecurringExpenseRule({
-      description: value.description,
-      amountCents: value.amountCents,
-      payerMemberId: value.payerMemberId,
-      allocations: await resolveAllocations(
-        value.split,
-        value.amountCents,
-        value.payerMemberId,
-      ),
-      schedule: value.schedule,
-      nextOccurrenceOn: value.nextOccurrenceOn,
-      idempotencyKey,
-      categoryId: value.categoryId ?? null,
-    });
-  },
-  set_recurring_expense_rule_active: (input, { idempotencyKey }) => {
-    const value = input as { ruleId: string; active: boolean };
-    return setRecurringExpenseRuleActive({
-      ruleId: value.ruleId,
-      active: value.active,
-      idempotencyKey: `${idempotencyKey}:${value.active}`,
-    });
-  },
-};
 
 export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
   record_expense: async (input, { idempotencyKey, today }) => {
@@ -131,12 +72,16 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
         "payerMemberId must match the original event's payer (see get_money_overview)",
       );
     }
-    // Mirroring the original shares: nobody gets back more than they were
-    // allocated, and cumulative refunds (net of reversed ones) cannot
-    // exceed the original amount. A single full refund therefore
-    // reproduces the source split exactly, and a second one is refused.
-    const remaining =
-      source.amountCents - (await readRefundedCents(value.relatedEventId));
+    // Mirroring the original shares: cumulative refunds (net of reversed
+    // ones) can neither exceed the original amount nor any member's
+    // original share, and a corrected (reversed) source is not refundable.
+    const usage = await readRefundUsage(value.relatedEventId);
+    if (usage.sourceReversed) {
+      throw new Error(
+        "this event was corrected (reversed); refund its replacement instead (see get_money_overview)",
+      );
+    }
+    const remaining = source.amountCents - usage.refundedCents;
     if (value.amountCents > remaining) {
       throw new Error(
         `only ${formatCentimesAsFrancs(Math.max(remaining, 0))} of this event remains refundable`,
@@ -144,10 +89,12 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
     }
     const sourceShares = await readEventAllocations(value.relatedEventId);
     for (const share of value.split.allocations) {
-      const original = sourceShares.get(share.memberId) ?? 0;
-      if (share.allocatedCents > original) {
+      const cap =
+        (sourceShares.get(share.memberId) ?? 0) -
+        (usage.refundedByMember.get(share.memberId) ?? 0);
+      if (share.allocatedCents > cap) {
         throw new Error(
-          "refund allocations must mirror the original shares: each member at most their original allocation (see get_money_overview)",
+          "refund allocations must mirror the original shares: each member at most their remaining original allocation (see get_money_overview)",
         );
       }
     }
@@ -287,6 +234,13 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
         idempotencyKey,
         replacement: null,
       });
+    }
+    // The RPC only accepts replacements for expenses (or replacements of
+    // expenses); fail with guidance instead of its constraint error.
+    if (original.type !== "expense" && original.type !== "replacement") {
+      throw new Error(
+        `a ${original.type} cannot be replaced; propose a reversal without a replacement, then record the corrected event with its own tool`,
+      );
     }
     // A correction that only changes one field must not lose the rest:
     // omitted category/note keep the original's values (null clears), and

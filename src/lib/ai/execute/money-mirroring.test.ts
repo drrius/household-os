@@ -4,106 +4,29 @@ vi.mock("server-only", () => ({}));
 
 import { getAiToolDefinition } from "@/lib/ai/definitions";
 import { FINANCIAL_HANDLERS } from "@/lib/ai/execute/money";
-
-const PAYER = "11111111-1111-4111-8111-111111111111";
-const OTHER = "22222222-2222-4222-8222-222222222222";
-const EVENT = "33333333-3333-4333-8333-333333333333";
+import {
+  EVENT,
+  EVENT_ROW,
+  OTHER,
+  PAYER,
+  refundState,
+  resetRefundState,
+} from "@/lib/ai/execute/money-fixtures";
 
 vi.mock("@/lib/auth/member-context", () => ({
   requireMemberContext: vi.fn(async () => ({
-    userId: PAYER,
+    userId: "11111111-1111-4111-8111-111111111111",
     householdId: "household-1",
     displayName: "Darius",
   })),
 }));
 
-// The payer owes 700 centimes; the stored draft proposes CHF 24.00.
-const LEDGER_ROWS = [
-  { financial_event_id: "e1", member_id: PAYER, receivable_delta_cents: -700 },
-  { financial_event_id: "e1", member_id: OTHER, receivable_delta_cents: 700 },
-];
-const DRAFT_ROW = {
-  description: "Saturday groceries",
-  amount_cents: 2400,
-  payer_member_id: PAYER,
-};
-let PRIOR_REFUNDS: {
-  id: string;
-  type: string;
-  amount_cents: number;
-  related_event_id: string | null;
-}[] = [];
-const EVENT_ALLOCATIONS = [
-  { member_id: PAYER, allocated_cents: 1000 },
-  { member_id: OTHER, allocated_cents: 600 },
-];
-const EVENT_ROW = {
-  description: "Original groceries",
-  amount_cents: 1600,
-  payer_member_id: PAYER,
-  category_id: "44444444-4444-4444-8444-444444444444",
-  note: "original note",
-  receipt_path: "receipts/original.jpg",
-};
-
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({
-    from: (table: string) => {
-      if (table === "household_members") {
-        return {
-          select: () => ({
-            eq: () =>
-              Promise.resolve({
-                data: [{ user_id: PAYER }, { user_id: OTHER }],
-                error: null,
-              }),
-          }),
-        };
-      }
-      if (table === "ledger_entries") {
-        const chain = {
-          order: () => chain,
-          range: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
-        };
-        return { select: () => ({ eq: () => chain }) };
-      }
-      if (table === "financial_allocations") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () =>
-                Promise.resolve({ data: EVENT_ALLOCATIONS, error: null }),
-            }),
-          }),
-        };
-      }
-      if (table === "financial_events") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                single: () => Promise.resolve({ data: EVENT_ROW, error: null }),
-              }),
-              in: () => Promise.resolve({ data: PRIOR_REFUNDS, error: null }),
-            }),
-          }),
-        };
-      }
-      if (table === "expense_drafts") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                single: () => Promise.resolve({ data: DRAFT_ROW, error: null }),
-              }),
-            }),
-          }),
-        };
-      }
-      throw new Error(`unexpected table in test: ${table}`);
-    },
-  })),
-}));
+vi.mock("@/lib/supabase/server", async () => {
+  const fixtures = await import("@/lib/ai/execute/money-fixtures");
+  return {
+    createClient: vi.fn(async () => ({ from: fixtures.mockFrom })),
+  };
+});
 
 vi.mock("@/lib/money/commands", () => ({
   postManualExpense: vi.fn(async (input: unknown) => ({ input })),
@@ -116,8 +39,6 @@ vi.mock("@/lib/money/commands", () => ({
   dismissExpenseDraft: vi.fn(async (input: unknown) => ({ input })),
   setRecurringExpenseRuleActive: vi.fn(async (input: unknown) => ({ input })),
 }));
-
-import { confirmExpenseDraft, postRefund } from "@/lib/money/commands";
 
 const context = { idempotencyKey: "ai:test:call-1", today: "2026-08-30" };
 
@@ -139,8 +60,10 @@ function parseToolInput(name: string, raw: unknown): unknown {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  PRIOR_REFUNDS = [];
+  resetRefundState();
 });
+
+import { confirmExpenseDraft, postRefund } from "@/lib/money/commands";
 
 describe("record_refund bindings", () => {
   it("rejects a payer that does not match the source event", async () => {
@@ -250,13 +173,12 @@ describe("draft and refund mirroring", () => {
 
 describe("cumulative refund cap", () => {
   it("refuses a second full refund of the same event", async () => {
-    PRIOR_REFUNDS = [
-      {
-        id: "refund-1",
-        type: "refund",
-        amount_cents: 1600,
-        related_event_id: EVENT,
-      },
+    refundState.children = [
+      { id: "refund-1", type: "refund", amount_cents: 1600 },
+    ];
+    refundState.shares = [
+      { member_id: PAYER, allocated_cents: 1000 },
+      { member_id: OTHER, allocated_cents: 600 },
     ];
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
@@ -277,21 +199,56 @@ describe("cumulative refund cap", () => {
     expect(postRefund).not.toHaveBeenCalled();
   });
 
-  it("allows refunding what a reversed refund gave back", async () => {
-    PRIOR_REFUNDS = [
-      {
-        id: "refund-1",
-        type: "refund",
-        amount_cents: 1600,
-        related_event_id: EVENT,
-      },
-      {
-        id: "reversal-1",
-        type: "reversal",
-        amount_cents: 1600,
-        related_event_id: "refund-1",
-      },
+  it("refuses shares beyond a member's remaining allocation", async () => {
+    refundState.children = [
+      { id: "refund-1", type: "refund", amount_cents: 600 },
     ];
+    refundState.shares = [{ member_id: PAYER, allocated_cents: 600 }];
+    const input = parseToolInput("record_refund", {
+      relatedEventId: EVENT,
+      payerMemberId: PAYER,
+      description: "Over the member cap",
+      amountCents: 600,
+      split: {
+        kind: "custom",
+        allocations: [
+          { memberId: PAYER, allocatedCents: 500 },
+          { memberId: OTHER, allocatedCents: 100 },
+        ],
+      },
+    });
+    await expect(
+      financialHandler("record_refund")(input, context),
+    ).rejects.toThrow(/remaining original allocation/);
+  });
+
+  it("refuses refunds against a corrected source", async () => {
+    refundState.children = [
+      { id: "rev-1", type: "reversal", amount_cents: 1600 },
+    ];
+    const input = parseToolInput("record_refund", {
+      relatedEventId: EVENT,
+      payerMemberId: PAYER,
+      description: "After correction",
+      amountCents: 100,
+      split: {
+        kind: "custom",
+        allocations: [
+          { memberId: PAYER, allocatedCents: 100 },
+          { memberId: OTHER, allocatedCents: 0 },
+        ],
+      },
+    });
+    await expect(
+      financialHandler("record_refund")(input, context),
+    ).rejects.toThrow(/refund its replacement instead/);
+  });
+
+  it("allows refunding what a reversed refund gave back", async () => {
+    refundState.children = [
+      { id: "refund-1", type: "refund", amount_cents: 1600 },
+    ];
+    refundState.reversals = [{ related_event_id: "refund-1" }];
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
       payerMemberId: PAYER,
@@ -309,5 +266,30 @@ describe("cumulative refund cap", () => {
     expect(postRefund).toHaveBeenCalledWith(
       expect.objectContaining({ amountCents: 400 }),
     );
+  });
+});
+
+describe("correction targets", () => {
+  it("refuses replacements for non-expense events", async () => {
+    EVENT_ROW.type = "settlement";
+    try {
+      const input = parseToolInput("correct_financial_event", {
+        eventId: EVENT,
+        originalDescription: EVENT_ROW.description,
+        originalAmountCents: EVENT_ROW.amount_cents,
+        replacement: {
+          description: "Replaced settlement",
+          amountCents: 700,
+          payerMemberId: PAYER,
+          split: { kind: "equal" },
+          occurredOn: "2026-08-30",
+        },
+      });
+      await expect(
+        financialHandler("correct_financial_event")(input, context),
+      ).rejects.toThrow(/cannot be replaced/);
+    } finally {
+      EVENT_ROW.type = "expense";
+    }
   });
 });
