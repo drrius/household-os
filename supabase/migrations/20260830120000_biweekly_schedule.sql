@@ -177,10 +177,11 @@ $$;
 -- Biweekly phase is invisible in the weekday alone, so succession needs the
 -- closed occurrence's pre-reschedule anchor. Replace the three-argument
 -- signature rather than overloading it: a default fourth argument alongside
--- the old signature would make three-argument calls ambiguous.
-drop function private.next_routine_due_date(jsonb, date, date);
+-- the old signature would make three-argument calls ambiguous. Guarded so the
+-- migration stays idempotent if it is ever re-applied.
+drop function if exists private.next_routine_due_date(jsonb, date, date);
 
-create function private.next_routine_due_date(
+create or replace function private.next_routine_due_date(
   p_schedule_rule jsonb,
   p_closed_due_date date,
   p_completed_on date default null,
