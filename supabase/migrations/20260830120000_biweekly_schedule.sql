@@ -227,7 +227,10 @@ revoke all on function private.next_routine_due_date(jsonb, date, date, date)
 from public, anon, authenticated;
 
 -- Callers that close or regenerate occurrences pass the original due date so
--- biweekly succession survives reschedules.
+-- biweekly succession survives reschedules. ensure_routine_window is based on
+-- 20260809210000_routine_engine.sql and apply_routine_closure on its latest
+-- replacement in 20260812090000_notifications_realtime.sql; a future
+-- replacement of either must start from the newest definition.
 create or replace function private.ensure_routine_window(
   p_routine_id uuid,
   p_first_due_date date default null,
@@ -391,6 +394,9 @@ declare
   current_occurrence_id uuid;
   preview_occurrence_id uuid;
   new_current public.routine_occurrences%rowtype;
+  activity_payload jsonb;
+  activity_event_id uuid;
+  notice_member_ids uuid[] := array[]::uuid[];
 begin
   if p_idempotency_key is null
     or length(trim(p_idempotency_key)) not between 1 and 200
@@ -490,8 +496,14 @@ begin
     set status = 'cancelled'
     where occurrence_id = occurrence.id
       and status = 'pending';
+    perform private.cancel_inbox_reminder_for_occurrence(occurrence.id);
     perform private.create_reminder_candidates_for_occurrence(occurrence.id);
 
+    activity_payload := jsonb_build_object(
+      'routine_id', routine.id,
+      'from_due_date', occurrence.due_date,
+      'to_due_date', p_new_due_date
+    );
     insert into public.activity_events (
       household_id,
       actor_member_id,
@@ -506,11 +518,31 @@ begin
       'occurrence_rescheduled',
       'routine_occurrence',
       occurrence.id,
-      jsonb_build_object(
-        'routine_id', routine.id,
-        'from_due_date', occurrence.due_date,
-        'to_due_date', p_new_due_date
+      activity_payload
+    )
+    returning id into activity_event_id;
+
+    if occurrence.planned_assignee_id is null then
+      select coalesce(
+        array_agg(member.user_id order by member.user_id),
+        '{}'::uuid[]
       )
+      into notice_member_ids
+      from public.household_members as member
+      where member.household_id = routine.household_id;
+    else
+      notice_member_ids := array[occurrence.planned_assignee_id];
+    end if;
+
+    perform private.deliver_partner_notice(
+      routine.household_id,
+      actor_member_id,
+      'occurrence_rescheduled',
+      'routine_occurrence',
+      occurrence.id,
+      activity_payload,
+      activity_event_id,
+      notice_member_ids
     );
   else
     if p_command_kind = 'complete' and p_completed_on is null then
@@ -550,6 +582,8 @@ begin
     set status = 'cancelled'
     where occurrence_id = occurrence.id
       and status = 'pending';
+
+    perform private.cancel_inbox_reminder_for_occurrence(occurrence.id);
 
     if routine_active then
       first_due_date := private.next_routine_due_date(
