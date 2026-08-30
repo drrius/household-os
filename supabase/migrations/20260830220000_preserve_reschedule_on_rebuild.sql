@@ -47,7 +47,8 @@ create or replace function private.insert_open_routine_occurrence(
   p_due_date date,
   p_previous_planned_assignee_id uuid,
   p_original_due_date date default null,
-  p_rescheduled_at timestamptz default null
+  p_rescheduled_at timestamptz default null,
+  p_planned_assignee_id uuid default null
 )
 returns uuid
 language plpgsql
@@ -62,13 +63,20 @@ begin
     raise exception 'unknown occurrence role %', p_role;
   end if;
 
-  planned_assignee_id := private.next_routine_assignee(
-    p_routine.household_id,
-    p_routine.assignment_policy,
-    p_routine.assigned_member_id,
-    p_routine.rotation_anchor_member_id,
-    p_previous_planned_assignee_id
-  );
+  -- A non-null p_planned_assignee_id recreates a preserved occurrence with
+  -- its exact assignee instead of advancing the assignment policy. Shared
+  -- occurrences carry a null assignee, which the policy re-derives anyway.
+  if p_planned_assignee_id is not null then
+    planned_assignee_id := p_planned_assignee_id;
+  else
+    planned_assignee_id := private.next_routine_assignee(
+      p_routine.household_id,
+      p_routine.assignment_policy,
+      p_routine.assigned_member_id,
+      p_routine.rotation_anchor_member_id,
+      p_previous_planned_assignee_id
+    );
+  end if;
 
   insert into public.routine_occurrences (
     household_id,
@@ -98,7 +106,7 @@ end;
 $$;
 
 revoke all on function private.insert_open_routine_occurrence(
-  public.routines, text, date, uuid, date, timestamptz
+  public.routines, text, date, uuid, date, timestamptz, uuid
 ) from public, anon, authenticated;
 
 drop function if exists private.ensure_routine_window(uuid, date, uuid);
@@ -108,7 +116,8 @@ create or replace function private.ensure_routine_window(
   p_first_due_date date default null,
   p_previous_planned_assignee_id uuid default null,
   p_first_original_due_date date default null,
-  p_first_rescheduled_at timestamptz default null
+  p_first_rescheduled_at timestamptz default null,
+  p_first_planned_assignee_id uuid default null
 )
 returns void
 language plpgsql
@@ -127,6 +136,9 @@ declare
   end;
   first_rescheduled_at timestamptz := case
     when p_first_due_date is not null then p_first_rescheduled_at
+  end;
+  first_planned_assignee_id uuid := case
+    when p_first_due_date is not null then p_first_planned_assignee_id
   end;
   second_due_date date;
   previous_assignee_id uuid := p_previous_planned_assignee_id;
@@ -171,6 +183,20 @@ begin
       null,
       current_occurrence.original_due_date
     );
+    -- An anchor-derived preview can land before a later active_from (a
+    -- rescheduled current may sit past it while the anchor does not); advance
+    -- it to the first phase-correct date inside the window.
+    if second_due_date is not null
+      and routine.active_from is not null
+      and second_due_date < routine.active_from
+    then
+      second_due_date := private.first_rebuild_due_date(
+        routine.schedule_rule,
+        routine.schedule_rule,
+        current_occurrence.original_due_date,
+        routine.active_from
+      );
+    end if;
     if second_due_date is not null
       and (routine.active_until is null or second_due_date <= routine.active_until)
     then
@@ -226,7 +252,8 @@ begin
     first_due_date,
     previous_assignee_id,
     first_original_due_date,
-    first_rescheduled_at
+    first_rescheduled_at,
+    first_planned_assignee_id
   );
 
   select occurrence.*
@@ -241,6 +268,17 @@ begin
     current_occurrence.original_due_date
   );
   if second_due_date is not null
+    and routine.active_from is not null
+    and second_due_date < routine.active_from
+  then
+    second_due_date := private.first_rebuild_due_date(
+      routine.schedule_rule,
+      routine.schedule_rule,
+      current_occurrence.original_due_date,
+      routine.active_from
+    );
+  end if;
+  if second_due_date is not null
     and (routine.active_until is null or second_due_date <= routine.active_until)
   then
     perform private.insert_open_routine_occurrence(
@@ -254,7 +292,7 @@ end;
 $$;
 
 revoke all on function private.ensure_routine_window(
-  uuid, date, uuid, date, timestamptz
+  uuid, date, uuid, date, timestamptz, uuid
 ) from public, anon, authenticated;
 
 -- A rebuild that deletes a rescheduled occurrence leaves its command receipt
@@ -494,6 +532,10 @@ begin
     perform private.cancel_inbox_reminder_for_occurrence(occurrence.id);
 
     if routine_active then
+      -- Succession after closure advances from the occurrence's actual due
+      -- date for phase-free kinds and consults the anchor only for biweekly
+      -- (ADR 0025). ADR 0026 preserves a reschedule across rebuilds; it does
+      -- not change what follows once the occurrence closes.
       first_due_date := private.next_routine_due_date(
         routine.schedule_rule,
         occurrence.due_date,
@@ -672,6 +714,8 @@ declare
   window_due_date date;
   window_anchor date;
   window_rescheduled_at timestamptz;
+  window_assignee_id uuid;
+  assignment_unchanged boolean;
   affect_member_ids uuid[] := array[]::uuid[];
   schedule_or_assignment_changed boolean := false;
   activity_payload jsonb;
@@ -759,8 +803,9 @@ begin
     select
       occurrence.due_date,
       occurrence.original_due_date,
-      occurrence.rescheduled_at
-    into window_due_date, window_anchor, window_rescheduled_at
+      occurrence.rescheduled_at,
+      occurrence.planned_assignee_id
+    into window_due_date, window_anchor, window_rescheduled_at, window_assignee_id
     from public.routine_occurrences as occurrence
     where occurrence.routine_id = p_routine_id
       and occurrence.status = 'open'
@@ -791,13 +836,21 @@ begin
       -- exactly as it was: the due date keeps any reschedule, the original
       -- due date keeps the recurrence anchor the preview follows, and the
       -- reschedule timestamp survives. A preserved date pushed outside the
-      -- new active window falls through to re-anchoring instead.
+      -- new active window falls through to re-anchoring instead. When no
+      -- assignment field changed either, the planned assignee carries over
+      -- so an alternating rotation does not restart at its anchor.
+      assignment_unchanged :=
+        previous_routine.assignment_policy is not distinct from routine.assignment_policy
+        and previous_routine.assigned_member_id is not distinct from routine.assigned_member_id
+        and previous_routine.rotation_anchor_member_id
+          is not distinct from routine.rotation_anchor_member_id;
       perform private.ensure_routine_window(
         routine.id,
         window_due_date,
         null,
         window_anchor,
-        window_rescheduled_at
+        window_rescheduled_at,
+        case when assignment_unchanged then window_assignee_id end
       );
     else
       first_due := private.first_rebuild_due_date(

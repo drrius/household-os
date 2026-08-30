@@ -1331,6 +1331,183 @@ select results_eq(
   'an assignment-only rebuild keeps the daily preview on the anchor'
 );
 
+-- A later active_from that still admits the rescheduled current must not
+-- recreate the anchor-derived preview outside the window: the preview
+-- advances to the first phase-correct date on or after active_from.
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Daily keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      private.household_today() + 10,
+      'preserve-reschedule-daily-2'
+    )
+  $$,
+  'a preserved daily occurrence can be rescheduled again'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Daily keep reschedule'
+      ),
+      p_active_from => private.household_today() + 5,
+      p_rebuild_window => true
+    )
+  $$,
+  'a later active_from still rebuilds a rescheduled daily routine'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Daily keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset
+    from (
+      select private.household_today() as due_date
+    ) as anchor,
+    (
+      values
+        ('preview'::text, 5, 5),
+        ('current'::text, 10, 0)
+    ) as occurrence(role, due_offset, original_offset)
+    order by occurrence.due_offset
+  $$,
+  'a preserved window advances its preview to the new active_from'
+);
+
+-- An active-window-only edit must not restart an alternating rotation: the
+-- preserved current keeps its planned assignee and the preview alternates
+-- from it.
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000011'::uuid,
+      p_title => 'Alternating keep reschedule',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000011'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'alternating',
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"daily"}'::jsonb,
+      p_rotation_anchor_member_id => '00000000-0000-4000-8000-000000000011'::uuid,
+      p_active_from => (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'create_routine accepts an alternating routine for reschedule preservation'
+);
+
+select lives_ok(
+  $$
+    select public.complete_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Alternating keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      'preserve-alternating-complete',
+      private.household_today()
+    )
+  $$,
+  'the alternating rotation advances past its anchor'
+);
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Alternating keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      private.household_today() + 4,
+      'preserve-reschedule-alternating'
+    )
+  $$,
+  'an alternating current occurrence can be rescheduled before an edit'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Alternating keep reschedule'
+      ),
+      p_active_until => private.household_today() + 30,
+      p_rebuild_window => true
+    )
+  $$,
+  'an active-window-only edit rebuilds a rescheduled alternating routine'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date, planned_assignee_id
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Alternating keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset,
+      occurrence.assignee
+    from (
+      select private.household_today() as due_date
+    ) as anchor,
+    (
+      values
+        (
+          'preview'::text,
+          2,
+          2,
+          '00000000-0000-4000-8000-000000000011'::uuid
+        ),
+        (
+          'current'::text,
+          4,
+          1,
+          '00000000-0000-4000-8000-000000000012'::uuid
+        )
+    ) as occurrence(role, due_offset, original_offset, assignee)
+    order by occurrence.due_offset
+  $$,
+  'a window-only rebuild keeps the alternating assignee and rotation'
+);
+
 select lives_ok(
   $$
     select public.create_routine(
