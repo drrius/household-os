@@ -18,15 +18,18 @@ import {
 type AssignmentPolicy = "assigned" | "alternating" | "shared";
 type Priority = "pet_care" | "meal_deadline" | "cleaning" | "general";
 
-/** Current activity window, so changing one boundary keeps the other. */
-async function readRoutineWindow(
-  routineId: string,
-): Promise<{ activeFrom: string | null; activeUntil: string | null }> {
+/** Stored fields whose RPC parameters are pairwise-coupled. */
+async function readRoutineSnapshot(routineId: string): Promise<{
+  activeFrom: string | null;
+  activeUntil: string | null;
+  areaId: string;
+  petId: string | null;
+}> {
   const member = await requireMemberContext();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("routines")
-    .select("active_from, active_until")
+    .select("active_from, active_until, area_id, pet_id")
     .eq("household_id", member.householdId)
     .eq("id", routineId)
     .single();
@@ -36,8 +39,64 @@ async function readRoutineWindow(
   const row = data as {
     active_from: string | null;
     active_until: string | null;
+    area_id: string;
+    pet_id: string | null;
   };
-  return { activeFrom: row.active_from, activeUntil: row.active_until };
+  return {
+    activeFrom: row.active_from,
+    activeUntil: row.active_until,
+    areaId: row.area_id,
+    petId: row.pet_id,
+  };
+}
+
+type RoutineUpdateValue = {
+  routineId: string;
+  areaId?: string | null;
+  petId?: string | null;
+  activeFrom?: string | null;
+  activeUntil?: string | null;
+};
+
+/**
+ * The RPC couples its parameters: the window writes both boundaries when
+ * either is provided, and a non-null area with a null pet clears the pet.
+ * Fill the side the model omitted from the stored routine so partial
+ * updates stay partial, while explicit nulls still clear.
+ */
+async function resolveRoutinePatch(value: RoutineUpdateValue): Promise<{
+  activeFrom: string | null;
+  activeUntil: string | null;
+  areaId: string | null;
+  petId: string | null | undefined;
+}> {
+  const windowTouched =
+    value.activeFrom !== undefined || value.activeUntil !== undefined;
+  const petAtRisk = value.areaId != null && value.petId === undefined;
+  const petClearNeedsArea = value.petId === null && value.areaId == null;
+  if (!windowTouched && !petAtRisk && !petClearNeedsArea) {
+    return {
+      activeFrom: null,
+      activeUntil: null,
+      areaId: value.areaId ?? null,
+      petId: value.petId,
+    };
+  }
+  const current = await readRoutineSnapshot(value.routineId);
+  return {
+    activeFrom: !windowTouched
+      ? null
+      : value.activeFrom === undefined
+        ? current.activeFrom
+        : value.activeFrom,
+    activeUntil: !windowTouched
+      ? null
+      : value.activeUntil === undefined
+        ? current.activeUntil
+        : value.activeUntil,
+    areaId: petClearNeedsArea ? current.areaId : (value.areaId ?? null),
+    petId: petAtRisk ? current.petId : value.petId,
+  };
 }
 
 export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
@@ -85,34 +144,23 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       activeUntil?: string | null;
     };
     const schedule = value.schedule ? toRoutineSchedule(value.schedule) : null;
-    // The RPC writes both window boundaries whenever either is provided,
-    // so fill the omitted one from the stored routine.
-    let activeFrom = value.activeFrom ?? null;
-    let activeUntil = value.activeUntil ?? null;
-    if (
-      (value.activeFrom != null && value.activeUntil == null) ||
-      (value.activeFrom == null && value.activeUntil != null)
-    ) {
-      const window = await readRoutineWindow(value.routineId);
-      activeFrom = value.activeFrom ?? window.activeFrom;
-      activeUntil = value.activeUntil ?? window.activeUntil;
-    }
-    // instructions/petId pass through untouched: omitted (undefined) keeps
-    // the stored value, explicit null clears it.
+    const patch = await resolveRoutinePatch(value);
+    // instructions pass through untouched: omitted (undefined) keeps the
+    // stored value, explicit null clears it.
     return updateRoutineDefinition({
       routineId: value.routineId,
       title: value.title ?? null,
       instructions: value.instructions,
-      areaId: value.areaId ?? null,
-      petId: value.petId,
+      areaId: patch.areaId,
+      petId: patch.petId,
       assignmentPolicy: value.assignmentPolicy ?? null,
       assignedMemberId: value.assignedMemberId ?? null,
       rotationAnchorMemberId: value.rotationAnchorMemberId ?? null,
       scheduleKind: schedule?.scheduleKind ?? null,
       scheduleRule: schedule?.scheduleRule ?? null,
       priority: value.priority ?? null,
-      activeFrom,
-      activeUntil,
+      activeFrom: patch.activeFrom,
+      activeUntil: patch.activeUntil,
     });
   },
   pause_routine: (input) =>

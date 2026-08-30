@@ -74,22 +74,32 @@ export async function readOutstandingDebtCents(
 }
 
 /** The stored draft values a confirmation must be checked against. */
-export async function readDraftSnapshot(
-  draftId: string,
-): Promise<{ amountCents: number; payerMemberId: string }> {
+export async function readDraftSnapshot(draftId: string): Promise<{
+  description: string;
+  amountCents: number;
+  payerMemberId: string;
+}> {
   const member = await requireMemberContext();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("expense_drafts")
-    .select("amount_cents, payer_member_id")
+    .select("description, amount_cents, payer_member_id")
     .eq("household_id", member.householdId)
     .eq("id", draftId)
     .single();
   if (error !== null) {
     throw new Error(`expense draft lookup failed: ${error.message}`);
   }
-  const row = data as { amount_cents: number; payer_member_id: string };
-  return { amountCents: row.amount_cents, payerMemberId: row.payer_member_id };
+  const row = data as {
+    description: string;
+    amount_cents: number;
+    payer_member_id: string;
+  };
+  return {
+    description: row.description,
+    amountCents: row.amount_cents,
+    payerMemberId: row.payer_member_id,
+  };
 }
 
 /** Stored fields of a financial event that corrections must not lose. */
@@ -130,4 +140,25 @@ export async function readEventSnapshot(eventId: string): Promise<{
     note: row.note,
     receiptPath: row.receipt_path,
   };
+}
+
+/** The source event's stored allocations, which refunds must mirror. */
+export async function readEventAllocations(
+  eventId: string,
+): Promise<ReadonlyMap<string, number>> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("financial_allocations")
+    .select("member_id, allocated_cents")
+    .eq("household_id", member.householdId)
+    .eq("financial_event_id", eventId);
+  if (error !== null || !Array.isArray(data)) {
+    throw new Error(`allocations query failed: ${error?.message ?? "no data"}`);
+  }
+  const shares = new Map<string, number>();
+  for (const row of data as { member_id: string; allocated_cents: number }[]) {
+    shares.set(row.member_id, row.allocated_cents);
+  }
+  return shares;
 }

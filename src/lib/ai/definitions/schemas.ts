@@ -64,7 +64,13 @@ export const scheduleInputSchema = z
     z.object({ kind: z.literal("daily") }),
     z.object({
       kind: z.literal("weekdays"),
-      days: z.array(isoWeekday).min(1).max(7),
+      days: z
+        .array(isoWeekday)
+        .min(1)
+        .max(7)
+        .refine((days) => new Set(days).size === days.length, {
+          message: "weekdays must be unique",
+        }),
     }),
     z.object({ kind: z.literal("weekly"), weekday: isoWeekday }),
     z.object({ kind: z.literal("biweekly"), weekday: isoWeekday }),

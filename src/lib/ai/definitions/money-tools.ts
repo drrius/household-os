@@ -142,6 +142,14 @@ export const FINANCIAL_TOOLS: readonly AiToolDefinition[] = [
     inputSchema: withSplitAmountCheck(
       z.object({
         draftId: uuid,
+        description: z
+          .string()
+          .trim()
+          .min(1)
+          .max(200)
+          .describe(
+            "The stored draft's description (from get_money_overview); shown on the approval card and checked against the draft",
+          ),
         amountCents: centimes.describe(
           "The draft's amount, or a corrected amount (then split is required)",
         ),

@@ -1,4 +1,3 @@
-import fc from "fast-check";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -56,16 +55,11 @@ vi.mock("@/lib/supabase/server", () => ({
         };
       }
       if (table === "ledger_entries") {
-        return {
-          select: () => ({
-            eq: () => ({
-              order: () => ({
-                range: () =>
-                  Promise.resolve({ data: LEDGER_ROWS, error: null }),
-              }),
-            }),
-          }),
+        const chain = {
+          order: () => chain,
+          range: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
         };
+        return { select: () => ({ eq: () => chain }) };
       }
       if (table === "financial_allocations") {
         return {
@@ -116,7 +110,7 @@ vi.mock("@/lib/money/commands", () => ({
   setRecurringExpenseRuleActive: vi.fn(async (input: unknown) => ({ input })),
 }));
 
-import { postManualExpense, postRefund } from "@/lib/money/commands";
+import { confirmExpenseDraft, postRefund } from "@/lib/money/commands";
 
 const context = { idempotencyKey: "ai:test:call-1", today: "2026-08-30" };
 
@@ -140,102 +134,11 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("record_expense", () => {
-  it("resolves an equal split into exact allocations with today as default", async () => {
-    const input = parseToolInput("record_expense", {
-      description: "Coffee beans",
-      amountCents: 2001,
-      payerMemberId: PAYER,
-      split: { kind: "equal" },
-    });
-    await financialHandler("record_expense")(input, context);
-    expect(postManualExpense).toHaveBeenCalledWith(
-      expect.objectContaining({
-        amountCents: 2001,
-        occurredOn: "2026-08-30",
-        allocations: [
-          { memberId: PAYER, allocatedCents: 1001 },
-          { memberId: OTHER, allocatedCents: 1000 },
-        ],
-      }),
-    );
-  });
-
-  it("equal-split allocations always cover the exact amount, odd centime to the payer", async () => {
-    await fc.assert(
-      fc.asyncProperty(
-        fc.integer({ min: 1, max: 10_000_000 }),
-        async (amountCents) => {
-          vi.mocked(postManualExpense).mockClear();
-          const input = parseToolInput("record_expense", {
-            description: "Property expense",
-            amountCents,
-            payerMemberId: PAYER,
-            split: { kind: "equal" },
-          });
-          await financialHandler("record_expense")(input, context);
-          const call = vi.mocked(postManualExpense).mock.calls.at(0)?.[0] as {
-            allocations: readonly {
-              memberId: string;
-              allocatedCents: number;
-            }[];
-          };
-          const total = call.allocations.reduce(
-            (sum, item) => sum + item.allocatedCents,
-            0,
-          );
-          expect(total).toBe(amountCents);
-          const payerShare = call.allocations.find(
-            (item) => item.memberId === PAYER,
-          );
-          expect(payerShare?.allocatedCents).toBe(Math.ceil(amountCents / 2));
-          for (const item of call.allocations) {
-            expect(Number.isSafeInteger(item.allocatedCents)).toBe(true);
-            expect(item.allocatedCents).toBeGreaterThanOrEqual(0);
-          }
-        },
-      ),
-    );
-  });
-
-  it("rejects non-positive and fractional centime amounts at the schema", () => {
-    fc.assert(
-      fc.property(
-        fc.oneof(
-          fc.integer({ min: -10_000, max: 0 }),
-          fc.double({ noInteger: true, noNaN: true, min: 0.5, max: 1e6 }),
-        ),
-        (amountCents) => {
-          const definition = getAiToolDefinition("record_expense");
-          const result = definition?.inputSchema.safeParse({
-            description: "Bad amount",
-            amountCents,
-            payerMemberId: PAYER,
-            split: { kind: "equal" },
-          });
-          expect(result?.success).toBe(false);
-        },
-      ),
-    );
-  });
-});
-
-describe("record_refund", () => {
-  it("refuses an equal split at the schema, before any approval", () => {
-    const definition = getAiToolDefinition("record_refund");
-    const result = definition?.inputSchema.safeParse({
-      relatedEventId: EVENT,
-      description: "Refund",
-      amountCents: 500,
-      split: { kind: "equal" },
-    });
-    expect(result?.success).toBe(false);
-  });
-
-  it("passes custom allocations through to the refund command", async () => {
+describe("record_refund bindings", () => {
+  it("rejects a payer that does not match the source event", async () => {
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
-      payerMemberId: PAYER,
+      payerMemberId: OTHER,
       description: "Refund",
       amountCents: 900,
       split: {
@@ -246,15 +149,93 @@ describe("record_refund", () => {
         ],
       },
     });
-    await financialHandler("record_refund")(input, context);
-    expect(postRefund).toHaveBeenCalledWith(
-      expect.objectContaining({
-        relatedEventId: EVENT,
+    await expect(
+      financialHandler("record_refund")(input, context),
+    ).rejects.toThrow(/original event's payer/);
+    expect(postRefund).not.toHaveBeenCalled();
+  });
+
+  it("rejects custom splits that do not sum or repeat a member", () => {
+    const definition = getAiToolDefinition("record_expense");
+    const badSum = definition?.inputSchema.safeParse({
+      description: "Bad sum",
+      amountCents: 1000,
+      payerMemberId: PAYER,
+      split: {
+        kind: "custom",
         allocations: [
           { memberId: PAYER, allocatedCents: 600 },
           { memberId: OTHER, allocatedCents: 300 },
         ],
-      }),
-    );
+      },
+    });
+    expect(badSum?.success).toBe(false);
+    const sameMember = definition?.inputSchema.safeParse({
+      description: "Same member",
+      amountCents: 900,
+      payerMemberId: PAYER,
+      split: {
+        kind: "custom",
+        allocations: [
+          { memberId: PAYER, allocatedCents: 600 },
+          { memberId: PAYER, allocatedCents: 300 },
+        ],
+      },
+    });
+    expect(sameMember?.success).toBe(false);
+  });
+});
+
+describe("draft and refund mirroring", () => {
+  it("refuses a confirmation whose description drifted from the draft", async () => {
+    const input = parseToolInput("confirm_expense_draft", {
+      draftId: EVENT,
+      description: "Some other description",
+      amountCents: 2400,
+      payerMemberId: PAYER,
+    });
+    await expect(
+      financialHandler("confirm_expense_draft")(input, context),
+    ).rejects.toThrow(/must match the stored draft/);
+    expect(confirmExpenseDraft).not.toHaveBeenCalled();
+  });
+
+  it("refuses refund shares that exceed a member's original allocation", async () => {
+    const input = parseToolInput("record_refund", {
+      relatedEventId: EVENT,
+      payerMemberId: PAYER,
+      description: "Swapped refund",
+      amountCents: 1600,
+      split: {
+        kind: "custom",
+        allocations: [
+          { memberId: PAYER, allocatedCents: 600 },
+          { memberId: OTHER, allocatedCents: 1000 },
+        ],
+      },
+    });
+    await expect(
+      financialHandler("record_refund")(input, context),
+    ).rejects.toThrow(/mirror the original shares/);
+    expect(postRefund).not.toHaveBeenCalled();
+  });
+
+  it("refuses refunds exceeding the original amount", async () => {
+    const input = parseToolInput("record_refund", {
+      relatedEventId: EVENT,
+      payerMemberId: PAYER,
+      description: "Too big",
+      amountCents: 1700,
+      split: {
+        kind: "custom",
+        allocations: [
+          { memberId: PAYER, allocatedCents: 1000 },
+          { memberId: OTHER, allocatedCents: 700 },
+        ],
+      },
+    });
+    await expect(
+      financialHandler("record_refund")(input, context),
+    ).rejects.toThrow(/cannot exceed the original/);
   });
 });

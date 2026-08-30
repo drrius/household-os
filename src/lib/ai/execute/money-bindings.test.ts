@@ -22,7 +22,15 @@ const LEDGER_ROWS = [
   { financial_event_id: "e1", member_id: PAYER, receivable_delta_cents: -700 },
   { financial_event_id: "e1", member_id: OTHER, receivable_delta_cents: 700 },
 ];
-const DRAFT_ROW = { amount_cents: 2400, payer_member_id: PAYER };
+const DRAFT_ROW = {
+  description: "Saturday groceries",
+  amount_cents: 2400,
+  payer_member_id: PAYER,
+};
+const EVENT_ALLOCATIONS = [
+  { member_id: PAYER, allocated_cents: 1000 },
+  { member_id: OTHER, allocated_cents: 600 },
+];
 const EVENT_ROW = {
   description: "Original groceries",
   amount_cents: 1600,
@@ -52,6 +60,16 @@ vi.mock("@/lib/supabase/server", () => ({
           range: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
         };
         return { select: () => ({ eq: () => chain }) };
+      }
+      if (table === "financial_allocations") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () =>
+                Promise.resolve({ data: EVENT_ALLOCATIONS, error: null }),
+            }),
+          }),
+        };
       }
       if (table === "financial_events") {
         return {
@@ -183,6 +201,7 @@ describe("confirm_expense_draft", () => {
   it("refuses an amount change without a replacement split", async () => {
     const input = parseToolInput("confirm_expense_draft", {
       draftId: EVENT,
+      description: DRAFT_ROW.description,
       amountCents: 2600,
       payerMemberId: PAYER,
     });
@@ -195,6 +214,7 @@ describe("confirm_expense_draft", () => {
   it("confirms with the draft's own amount and stored allocations", async () => {
     const input = parseToolInput("confirm_expense_draft", {
       draftId: EVENT,
+      description: DRAFT_ROW.description,
       amountCents: 2400,
       payerMemberId: PAYER,
     });

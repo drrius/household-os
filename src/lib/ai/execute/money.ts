@@ -6,6 +6,7 @@ import {
 } from "@/lib/ai/execute/allocations";
 import {
   readDraftSnapshot,
+  readEventAllocations,
   readEventSnapshot,
   readOutstandingDebtCents,
 } from "@/lib/ai/execute/money-snapshots";
@@ -129,6 +130,21 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
         "payerMemberId must match the original event's payer (see get_money_overview)",
       );
     }
+    // Mirroring the original shares: nobody gets back more than they were
+    // allocated, and a refund cannot exceed the original amount. A full
+    // refund therefore reproduces the source split exactly.
+    if (value.amountCents > source.amountCents) {
+      throw new Error("a refund cannot exceed the original event's amount");
+    }
+    const sourceShares = await readEventAllocations(value.relatedEventId);
+    for (const share of value.split.allocations) {
+      const original = sourceShares.get(share.memberId) ?? 0;
+      if (share.allocatedCents > original) {
+        throw new Error(
+          "refund allocations must mirror the original shares: each member at most their original allocation (see get_money_overview)",
+        );
+      }
+    }
     return postRefund({
       relatedEventId: value.relatedEventId,
       amountCents: value.amountCents,
@@ -191,6 +207,7 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
   confirm_expense_draft: async (input) => {
     const value = input as {
       draftId: string;
+      description: string;
       amountCents: number;
       payerMemberId: string;
       split?: ExpenseSplit | null;
@@ -198,6 +215,14 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       categoryId?: string | null;
       note?: string | null;
     };
+    const draft = await readDraftSnapshot(value.draftId);
+    // The echoed description binds the approval card to the stored draft,
+    // so two same-amount drafts cannot present identical cards.
+    if (draft.description !== value.description) {
+      throw new Error(
+        "description must match the stored draft (see get_money_overview)",
+      );
+    }
     let allocations = null;
     if (value.split != null) {
       allocations = await resolveAllocations(
@@ -205,15 +230,12 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
         value.amountCents,
         value.payerMemberId,
       );
-    } else {
+    } else if (draft.amountCents !== value.amountCents) {
       // Without a new split the draft's stored allocations post as-is;
       // they only sum correctly for the draft's own amount.
-      const draft = await readDraftSnapshot(value.draftId);
-      if (draft.amountCents !== value.amountCents) {
-        throw new Error(
-          `Changing the draft amount (${formatCentimesAsFrancs(draft.amountCents)} → ${formatCentimesAsFrancs(value.amountCents)}) also requires a split`,
-        );
-      }
+      throw new Error(
+        `Changing the draft amount (${formatCentimesAsFrancs(draft.amountCents)} → ${formatCentimesAsFrancs(value.amountCents)}) also requires a split`,
+      );
     }
     return confirmExpenseDraft({
       draftId: value.draftId,

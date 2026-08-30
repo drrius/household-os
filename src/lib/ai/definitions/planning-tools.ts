@@ -2,13 +2,14 @@ import { z } from "zod";
 
 import {
   assignmentFields,
-  withAssignmentCheck,
   centimes,
   expenseSplitSchema,
   isoDate,
   mealSlot,
+  splitAmountIssue,
   uuid,
   webUrl,
+  withAssignmentCheck,
   type AiToolDefinition,
 } from "@/lib/ai/definitions/schemas";
 
@@ -57,25 +58,41 @@ export const GROCERY_TOOLS: readonly AiToolDefinition[] = [
     kind: "write",
     description:
       "Finish a shopping session: claimed items become purchased. Optionally propose one expense draft for the shared amount — the draft still needs an explicit confirmation before it becomes a financial event.",
-    inputSchema: z.object({
-      shoppingSessionId: uuid,
-      receiptTotalCents: centimes
-        .nullish()
-        .describe("Full receipt total, including personal items"),
-      createExpenseDraft: z.boolean().optional().default(false),
-      expenseDescription: z.string().max(200).nullish(),
-      sharedAmountCents: centimes
-        .nullish()
-        .describe(
-          "The shared part of the receipt; required with createExpenseDraft",
-        ),
-      payerMemberId: uuid
-        .nullish()
-        .describe("Required with createExpenseDraft"),
-      split: expenseSplitSchema
-        .nullish()
-        .describe("How the draft splits the shared amount; defaults to equal"),
-    }),
+    inputSchema: z
+      .object({
+        shoppingSessionId: uuid,
+        receiptTotalCents: centimes
+          .nullish()
+          .describe("Full receipt total, including personal items"),
+        createExpenseDraft: z.boolean().optional().default(false),
+        expenseDescription: z.string().max(200).nullish(),
+        sharedAmountCents: centimes
+          .nullish()
+          .describe(
+            "The shared part of the receipt; required with createExpenseDraft",
+          ),
+        payerMemberId: uuid
+          .nullish()
+          .describe("Required with createExpenseDraft"),
+        split: expenseSplitSchema
+          .nullish()
+          .describe(
+            "How the draft splits the shared amount; defaults to equal",
+          ),
+      })
+      .superRefine((value, ctx) => {
+        if (value.sharedAmountCents == null) {
+          return;
+        }
+        const issue = splitAmountIssue(value.split, value.sharedAmountCents);
+        if (issue !== null) {
+          ctx.addIssue({
+            code: "custom",
+            message: issue.replace("amountCents", "sharedAmountCents"),
+            path: ["split"],
+          });
+        }
+      }),
   },
 ];
 
