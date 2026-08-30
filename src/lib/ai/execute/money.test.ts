@@ -18,17 +18,47 @@ vi.mock("@/lib/auth/member-context", () => ({
   })),
 }));
 
+// The payer owes 700 centimes; the stored draft proposes CHF 24.00.
+const LEDGER_ROWS = [
+  { financial_event_id: "e1", member_id: PAYER, receivable_delta_cents: -700 },
+  { financial_event_id: "e1", member_id: OTHER, receivable_delta_cents: 700 },
+];
+const DRAFT_ROW = { amount_cents: 2400, payer_member_id: PAYER };
+
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
-    from: () => ({
-      select: () => ({
-        eq: () =>
-          Promise.resolve({
-            data: [{ user_id: PAYER }, { user_id: OTHER }],
-            error: null,
+    from: (table: string) => {
+      if (table === "household_members") {
+        return {
+          select: () => ({
+            eq: () =>
+              Promise.resolve({
+                data: [{ user_id: PAYER }, { user_id: OTHER }],
+                error: null,
+              }),
           }),
-      }),
-    }),
+        };
+      }
+      if (table === "ledger_entries") {
+        return {
+          select: () => ({
+            eq: () => Promise.resolve({ data: LEDGER_ROWS, error: null }),
+          }),
+        };
+      }
+      if (table === "expense_drafts") {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                single: () => Promise.resolve({ data: DRAFT_ROW, error: null }),
+              }),
+            }),
+          }),
+        };
+      }
+      throw new Error(`unexpected table in test: ${table}`);
+    },
   })),
 }));
 
@@ -45,9 +75,11 @@ vi.mock("@/lib/money/commands", () => ({
 }));
 
 import {
+  confirmExpenseDraft,
   correctFinancialEvent,
   postManualExpense,
   postRefund,
+  recordSettlement,
 } from "@/lib/money/commands";
 
 const context = { idempotencyKey: "ai:test:call-1", today: "2026-08-30" };
@@ -191,14 +223,66 @@ describe("record_refund", () => {
 });
 
 describe("confirm_expense_draft", () => {
-  it("requires amount and payer when overriding the split", async () => {
+  it("requires the amount and payer so the approval card can show them", () => {
+    const definition = getAiToolDefinition("confirm_expense_draft");
+    const result = definition?.inputSchema.safeParse({ draftId: EVENT });
+    expect(result?.success).toBe(false);
+  });
+
+  it("refuses an amount change without a replacement split", async () => {
     const input = parseToolInput("confirm_expense_draft", {
       draftId: EVENT,
-      split: { kind: "equal" },
+      amountCents: 2600,
+      payerMemberId: PAYER,
     });
     await expect(
       financialHandler("confirm_expense_draft")(input, context),
-    ).rejects.toThrow(/amountCents and payerMemberId/);
+    ).rejects.toThrow(/requires a split/);
+    expect(confirmExpenseDraft).not.toHaveBeenCalled();
+  });
+
+  it("confirms with the draft's own amount and stored allocations", async () => {
+    const input = parseToolInput("confirm_expense_draft", {
+      draftId: EVENT,
+      amountCents: 2400,
+      payerMemberId: PAYER,
+    });
+    await financialHandler("confirm_expense_draft")(input, context);
+    expect(confirmExpenseDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        draftId: EVENT,
+        amountCents: 2400,
+        allocations: null,
+      }),
+    );
+  });
+});
+
+describe("record_settlement", () => {
+  it("rejects a full settlement whose amount no longer matches the balance", async () => {
+    const input = parseToolInput("record_settlement", {
+      payerMemberId: PAYER,
+      amountCents: 800,
+      mode: "full",
+      description: "Settle up",
+    });
+    await expect(
+      financialHandler("record_settlement")(input, context),
+    ).rejects.toThrow(/outstanding balance is CHF 7\.00/);
+    expect(recordSettlement).not.toHaveBeenCalled();
+  });
+
+  it("posts a full settlement that matches the outstanding balance", async () => {
+    const input = parseToolInput("record_settlement", {
+      payerMemberId: PAYER,
+      amountCents: 700,
+      mode: "full",
+      description: "Settle up",
+    });
+    await financialHandler("record_settlement")(input, context);
+    expect(recordSettlement).toHaveBeenCalledWith(
+      expect.objectContaining({ amountCents: 700, mode: "full" }),
+    );
   });
 });
 

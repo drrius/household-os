@@ -2,6 +2,8 @@ import "server-only";
 
 import { toRoutineSchedule, type AiScheduleInput } from "@/lib/ai/schedule";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
+import { requireMemberContext } from "@/lib/auth/member-context";
+import { createClient } from "@/lib/supabase/server";
 import {
   archiveRoutine,
   completeOccurrence,
@@ -15,6 +17,28 @@ import {
 
 type AssignmentPolicy = "assigned" | "alternating" | "shared";
 type Priority = "pet_care" | "meal_deadline" | "cleaning" | "general";
+
+/** Current activity window, so changing one boundary keeps the other. */
+async function readRoutineWindow(
+  routineId: string,
+): Promise<{ activeFrom: string | null; activeUntil: string | null }> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("routines")
+    .select("active_from, active_until")
+    .eq("household_id", member.householdId)
+    .eq("id", routineId)
+    .single();
+  if (error !== null) {
+    throw new Error(`routine lookup failed: ${error.message}`);
+  }
+  const row = data as {
+    active_from: string | null;
+    active_until: string | null;
+  };
+  return { activeFrom: row.active_from, activeUntil: row.active_until };
+}
 
 export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
   create_routine: (input, { today }) => {
@@ -45,7 +69,7 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       activeUntil: value.activeUntil ?? null,
     });
   },
-  update_routine: (input) => {
+  update_routine: async (input) => {
     const value = input as {
       routineId: string;
       title?: string | null;
@@ -61,6 +85,18 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       activeUntil?: string | null;
     };
     const schedule = value.schedule ? toRoutineSchedule(value.schedule) : null;
+    // The RPC writes both window boundaries whenever either is provided,
+    // so fill the omitted one from the stored routine.
+    let activeFrom = value.activeFrom ?? null;
+    let activeUntil = value.activeUntil ?? null;
+    if (
+      (value.activeFrom != null && value.activeUntil == null) ||
+      (value.activeFrom == null && value.activeUntil != null)
+    ) {
+      const window = await readRoutineWindow(value.routineId);
+      activeFrom = value.activeFrom ?? window.activeFrom;
+      activeUntil = value.activeUntil ?? window.activeUntil;
+    }
     // instructions/petId pass through untouched: omitted (undefined) keeps
     // the stored value, explicit null clears it.
     return updateRoutineDefinition({
@@ -75,8 +111,8 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       scheduleKind: schedule?.scheduleKind ?? null,
       scheduleRule: schedule?.scheduleRule ?? null,
       priority: value.priority ?? null,
-      activeFrom: value.activeFrom ?? null,
-      activeUntil: value.activeUntil ?? null,
+      activeFrom,
+      activeUntil,
     });
   },
   pause_routine: (input) =>

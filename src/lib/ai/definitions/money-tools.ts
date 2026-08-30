@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  allocationCentimes,
   centimes,
   expenseSplitSchema,
   isoDate,
@@ -79,7 +80,9 @@ export const FINANCIAL_TOOLS: readonly AiToolDefinition[] = [
         .object({
           kind: z.literal("custom"),
           allocations: z
-            .array(z.object({ memberId: uuid, allocatedCents: centimes }))
+            .array(
+              z.object({ memberId: uuid, allocatedCents: allocationCentimes }),
+            )
             .length(2),
         })
         .describe(
@@ -122,11 +125,13 @@ export const FINANCIAL_TOOLS: readonly AiToolDefinition[] = [
     name: "confirm_expense_draft",
     kind: "financial",
     description:
-      "Confirm a pending expense draft, turning it into a real financial event. Optional fields override the draft's proposal. Requires the member's explicit approval before it executes.",
+      "Confirm a pending expense draft, turning it into a real financial event. Echo the draft's amountCents and payerMemberId from get_money_overview (they are shown on the approval card), or pass different values to override; changing the amount also requires a split. Requires the member's explicit approval before it executes.",
     inputSchema: z.object({
       draftId: uuid,
-      amountCents: centimes.nullish(),
-      payerMemberId: uuid.nullish(),
+      amountCents: centimes.describe(
+        "The draft's amount, or a corrected amount (then split is required)",
+      ),
+      payerMemberId: uuid.describe("The draft's payer, or an override"),
       split: expenseSplitSchema.nullish(),
       occurredOn: isoDate.nullish(),
       categoryId: uuid.nullish(),

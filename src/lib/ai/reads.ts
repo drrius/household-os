@@ -1,8 +1,5 @@
 import "server-only";
 
-import { deriveMemberBalances } from "@/domain/money/balances";
-import { asFinancialEventId, asMemberId } from "@/domain/money/values";
-import type { LedgerEntry } from "@/domain/money/types";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -16,7 +13,7 @@ type ServerClient = Awaited<ReturnType<typeof createClient>>;
 /** Alphabetical cap on the meal library read; truncation is flagged. */
 const MEAL_LIBRARY_LIMIT = 200;
 
-function requireRows<T>(
+export function requireRows<T>(
   label: string,
   result: { data: unknown; error: { message: string } | null },
 ): readonly T[] {
@@ -29,7 +26,7 @@ function requireRows<T>(
   return result.data as T[];
 }
 
-async function memberDirectory(
+export async function memberDirectory(
   supabase: ServerClient,
   householdId: string,
 ): Promise<readonly { user_id: string; display_name: string }[]> {
@@ -169,7 +166,9 @@ export async function readGroceryList(): Promise<Record<string, unknown>> {
   const [items, categories, sessions] = await Promise.all([
     supabase
       .from("grocery_items")
-      .select("id, name, quantity, unit, category_id, note, state")
+      .select(
+        "id, name, quantity, unit, category_id, note, state, claimed_by_session_id",
+      )
       .eq("household_id", member.householdId)
       .in("state", ["active", "claimed"])
       .order("sort_order"),
@@ -190,66 +189,6 @@ export async function readGroceryList(): Promise<Record<string, unknown>> {
     items: requireRows("grocery items", items),
     categories: requireRows("grocery categories", categories),
     activeShoppingSessions: requireRows("shopping sessions", sessions),
-  };
-}
-
-export async function readMoneyOverview(): Promise<Record<string, unknown>> {
-  const member = await requireMemberContext();
-  const supabase = await createClient();
-  const [members, ledger, events, drafts, rules] = await Promise.all([
-    memberDirectory(supabase, member.householdId),
-    supabase
-      .from("ledger_entries")
-      .select("financial_event_id, member_id, receivable_delta_cents")
-      .eq("household_id", member.householdId),
-    supabase
-      .from("financial_events")
-      .select(
-        "id, type, occurred_on, description, amount_cents, payer_member_id, related_event_id",
-      )
-      .eq("household_id", member.householdId)
-      .order("occurred_on", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(20),
-    supabase
-      .from("expense_drafts")
-      .select(
-        "id, source_kind, description, amount_cents, occurred_on, payer_member_id, proposed_allocations",
-      )
-      .eq("household_id", member.householdId)
-      .eq("status", "pending"),
-    supabase
-      .from("recurring_expense_rules")
-      .select(
-        "id, description, amount_cents, payer_member_id, schedule_kind, iso_weekday, day_of_month, active, next_occurrence_on",
-      )
-      .eq("household_id", member.householdId)
-      .order("description"),
-  ]);
-  const ledgerRows = requireRows<{
-    financial_event_id: string;
-    member_id: string;
-    receivable_delta_cents: number;
-  }>("ledger entries", ledger);
-  const entries: LedgerEntry[] = ledgerRows.map((row) => ({
-    financialEventId: asFinancialEventId(row.financial_event_id),
-    memberId: asMemberId(row.member_id),
-    receivableDeltaCents: row.receivable_delta_cents,
-  }));
-  const balances = deriveMemberBalances(entries);
-  const directory = members.map((row) => ({
-    memberId: row.user_id,
-    name: row.display_name,
-    balanceCents: balances.get(asMemberId(row.user_id)) ?? 0,
-  }));
-  return {
-    viewerMemberId: member.userId,
-    balances: directory,
-    balanceExplainer:
-      "A positive balanceCents means that member is owed money; negative means they owe.",
-    recentEvents: requireRows("financial events", events),
-    pendingExpenseDrafts: requireRows("expense drafts", drafts),
-    recurringExpenseRules: requireRows("recurring rules", rules),
   };
 }
 

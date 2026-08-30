@@ -41,8 +41,12 @@ export const READ_TOOLS: readonly AiToolDefinition[] = [
     name: "get_money_overview",
     kind: "read",
     description:
-      "Who owes whom and how much, pending expense drafts, recurring expense rules, and the most recent financial events with ids. Amounts are CHF centimes.",
-    inputSchema: z.object({}),
+      "Who owes whom and how much, pending expense drafts, recurring expense rules, and recent financial events with ids and their allocations. Amounts are CHF centimes. recentEventsTruncated flags older history; page back with eventsBefore.",
+    inputSchema: z.object({
+      eventsBefore: isoDate
+        .optional()
+        .describe("Only events strictly before this date; for older history"),
+    }),
   },
   {
     name: "get_household",

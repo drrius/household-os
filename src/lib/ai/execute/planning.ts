@@ -1,5 +1,7 @@
 import "server-only";
 
+import { revalidatePath } from "next/cache";
+
 import {
   resolveAllocations,
   type ExpenseSplit,
@@ -221,10 +223,21 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
 };
 
 export const HOUSEHOLD_HANDLERS: Record<string, AiWriteHandler> = {
-  create_area: (input) => createArea((input as { name: string }).name),
-  create_pet: (input) => createPet((input as { name: string }).name),
+  // These commands touch tables no realtime surface watches, so refresh
+  // /home the same way the household server actions do.
+  create_area: async (input) => {
+    const result = await createArea((input as { name: string }).name);
+    revalidatePath("/home");
+    return result;
+  },
+  create_pet: async (input) => {
+    const result = await createPet((input as { name: string }).name);
+    revalidatePath("/home");
+    return result;
+  },
   update_household_name: async (input) => {
     await updateHouseholdName((input as { name: string }).name);
+    revalidatePath("/home");
     return { done: true };
   },
 };

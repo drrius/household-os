@@ -25,6 +25,13 @@ export const centimes = z
   .positive()
   .describe("CHF amount in integer centimes (CHF 12.50 = 1250)");
 
+/** Per-member shares may legitimately be zero (a 100/0 split). */
+export const allocationCentimes = z
+  .number()
+  .int()
+  .min(0)
+  .describe("Member share in integer centimes; zero is allowed");
+
 export const isoWeekday = z
   .union([
     z.literal(1),
@@ -80,7 +87,7 @@ export const expenseSplitSchema = z
     z.object({
       kind: z.literal("custom"),
       allocations: z
-        .array(z.object({ memberId: uuid, allocatedCents: centimes }))
+        .array(z.object({ memberId: uuid, allocatedCents: allocationCentimes }))
         .length(2),
     }),
   ])

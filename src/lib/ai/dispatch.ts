@@ -5,11 +5,11 @@ import { executeAiWrite } from "@/lib/ai/execute";
 import {
   readGroceryList,
   readHousehold,
-  readMoneyOverview,
   readRoutines,
   readTodayOverview,
   readWeekPlan,
 } from "@/lib/ai/reads";
+import { readMoneyOverview } from "@/lib/ai/reads-money";
 
 /**
  * Single entry point for both the chat agent and the MCP bridge: validates
@@ -38,7 +38,7 @@ export async function executeAiTool(
     case "get_grocery_list":
       return readGroceryList();
     case "get_money_overview":
-      return readMoneyOverview();
+      return readMoneyOverview(input as { eventsBefore?: string });
     case "get_household":
       return readHousehold();
     default:
