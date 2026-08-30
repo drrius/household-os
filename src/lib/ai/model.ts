@@ -23,9 +23,15 @@ export function resolveAssistantModel(): LanguageModel {
   return openai(env.HOUSEHOLD_AI_MODEL);
 }
 
+function hasEnv(name: "OPENAI_API_KEY" | "TOOL_APPROVAL_SECRET"): boolean {
+  const value = process.env[name];
+  return typeof value === "string" && value.length > 0;
+}
+
+/**
+ * Both secrets are required: the model key to run at all, and the approval
+ * secret so financial approvals replayed by the browser are always signed.
+ */
 export function isAssistantConfigured(): boolean {
-  return (
-    typeof process.env.OPENAI_API_KEY === "string" &&
-    process.env.OPENAI_API_KEY.length > 0
-  );
+  return hasEnv("OPENAI_API_KEY") && hasEnv("TOOL_APPROVAL_SECRET");
 }

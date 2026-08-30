@@ -22,7 +22,10 @@ export async function POST(request: Request): Promise<Response> {
   }
   if (!isAssistantConfigured()) {
     return Response.json(
-      { error: "The assistant is not configured (missing OPENAI_API_KEY)." },
+      {
+        error:
+          "The assistant is not configured (set OPENAI_API_KEY and TOOL_APPROVAL_SECRET).",
+      },
       { status: 503 },
     );
   }

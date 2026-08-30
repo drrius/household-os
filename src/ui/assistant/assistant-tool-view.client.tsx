@@ -14,6 +14,7 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
+import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 
 export type AnyToolPart = ToolUIPart | DynamicToolUIPart;
 
@@ -70,7 +71,8 @@ function formatChf(cents: unknown): string | null {
   if (typeof cents !== "number" || !Number.isSafeInteger(cents)) {
     return null;
   }
-  return `CHF ${(cents / 100).toFixed(2)}`;
+  // Integer francs + two-digit remainder; centimes never touch floats.
+  return formatCentimesAsFrancs(cents);
 }
 
 function approvalSummary(input: unknown): readonly string[] {
@@ -95,6 +97,24 @@ function approvalSummary(input: unknown): readonly string[] {
   return lines;
 }
 
+/**
+ * A correction's financial effect lives in the nested replacement, not the
+ * top-level input; surface it so the member can verify before approving.
+ */
+function correctionSummary(input: unknown): readonly string[] {
+  if (input === null || typeof input !== "object" || !("replacement" in input)) {
+    return [];
+  }
+  const replacement = (input as Record<string, unknown>).replacement;
+  if (replacement === null || replacement === undefined) {
+    return ["reverses the event without a replacement"];
+  }
+  const details = approvalSummary(replacement);
+  return details.length > 0
+    ? [`reverses the event and replaces it with: ${details.join(" · ")}`]
+    : ["reverses the event and replaces it"];
+}
+
 function ApprovalCard({
   part,
   respond,
@@ -102,7 +122,10 @@ function ApprovalCard({
   part: AnyToolPart & { state: "approval-requested" };
   respond: ApprovalResponder;
 }) {
-  const lines = approvalSummary(part.input);
+  const lines = [
+    ...approvalSummary(part.input),
+    ...correctionSummary(part.input),
+  ];
   return (
     <div className="rounded-2xl border border-primary/40 bg-card p-4 shadow-sm">
       <p className="font-heading font-semibold text-foreground">
