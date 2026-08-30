@@ -31,7 +31,11 @@ export function AssistantEmptyState({
       </p>
       <Suggestions>
         {SUGGESTIONS.map((suggestion) => (
-          <Suggestion key={suggestion} onSelect={onPick} suggestion={suggestion} />
+          <Suggestion
+            key={suggestion}
+            onSelect={onPick}
+            suggestion={suggestion}
+          />
         ))}
       </Suggestions>
     </div>

@@ -24,6 +24,8 @@ export function resolveAssistantModel(): LanguageModel {
 }
 
 export function isAssistantConfigured(): boolean {
-  return typeof process.env.OPENAI_API_KEY === "string" &&
-    process.env.OPENAI_API_KEY.length > 0;
+  return (
+    typeof process.env.OPENAI_API_KEY === "string" &&
+    process.env.OPENAI_API_KEY.length > 0
+  );
 }

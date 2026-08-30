@@ -241,39 +241,45 @@ export async function readMoneyOverview(): Promise<Record<string, unknown>> {
 export async function readHousehold(): Promise<Record<string, unknown>> {
   const member = await requireMemberContext();
   const supabase = await createClient();
-  const [household, members, areas, pets, groceryCategories, expenseCategories] =
-    await Promise.all([
-      supabase
-        .from("households")
-        .select("name")
-        .eq("id", member.householdId)
-        .single(),
-      memberDirectory(supabase, member.householdId),
-      supabase
-        .from("areas")
-        .select("id, name")
-        .eq("household_id", member.householdId)
-        .is("archived_at", null)
-        .order("sort_order"),
-      supabase
-        .from("pets")
-        .select("id, name")
-        .eq("household_id", member.householdId)
-        .is("archived_at", null)
-        .order("name"),
-      supabase
-        .from("grocery_categories")
-        .select("id, name")
-        .eq("household_id", member.householdId)
-        .is("archived_at", null)
-        .order("sort_order"),
-      supabase
-        .from("expense_categories")
-        .select("id, name")
-        .eq("household_id", member.householdId)
-        .is("archived_at", null)
-        .order("sort_order"),
-    ]);
+  const [
+    household,
+    members,
+    areas,
+    pets,
+    groceryCategories,
+    expenseCategories,
+  ] = await Promise.all([
+    supabase
+      .from("households")
+      .select("name")
+      .eq("id", member.householdId)
+      .single(),
+    memberDirectory(supabase, member.householdId),
+    supabase
+      .from("areas")
+      .select("id, name")
+      .eq("household_id", member.householdId)
+      .is("archived_at", null)
+      .order("sort_order"),
+    supabase
+      .from("pets")
+      .select("id, name")
+      .eq("household_id", member.householdId)
+      .is("archived_at", null)
+      .order("name"),
+    supabase
+      .from("grocery_categories")
+      .select("id, name")
+      .eq("household_id", member.householdId)
+      .is("archived_at", null)
+      .order("sort_order"),
+    supabase
+      .from("expense_categories")
+      .select("id, name")
+      .eq("household_id", member.householdId)
+      .is("archived_at", null)
+      .order("sort_order"),
+  ]);
   if (household.error !== null) {
     throw new Error(`household query failed: ${household.error.message}`);
   }

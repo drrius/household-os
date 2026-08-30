@@ -107,7 +107,9 @@ function ApprovalCard({
         {toolLabel(getToolOrDynamicToolName(part))}?
       </p>
       {lines.length > 0 && (
-        <p className="mt-1 text-sm text-muted-foreground">{lines.join(" · ")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {lines.join(" · ")}
+        </p>
       )}
       <p className="mt-1 text-xs text-muted-foreground">
         Money history is append-only, so this is recorded permanently once

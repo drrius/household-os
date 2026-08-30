@@ -104,7 +104,9 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
       mealDefinitionId:
         value.source.kind === "library" ? value.source.mealDefinitionId : null,
       leftoverOfEntryId:
-        value.source.kind === "leftover" ? value.source.leftoverOfEntryId : null,
+        value.source.kind === "leftover"
+          ? value.source.leftoverOfEntryId
+          : null,
       title: value.source.kind === "freeform" ? value.source.title : null,
       recipeUrl:
         value.source.kind === "freeform"

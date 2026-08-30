@@ -141,7 +141,9 @@ export function AssistantPanel() {
         <Conversation>
           <ConversationContent>
             {messages.length === 0 && (
-              <AssistantEmptyState onPick={(text) => void sendMessage({ text })} />
+              <AssistantEmptyState
+                onPick={(text) => void sendMessage({ text })}
+              />
             )}
             <AssistantMessages
               messages={messages}

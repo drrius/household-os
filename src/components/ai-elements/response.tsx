@@ -25,5 +25,6 @@ export const Response = memo(
     );
   },
   (previous, next) =>
-    previous.children === next.children && previous.className === next.className,
+    previous.children === next.children &&
+    previous.className === next.className,
 );
