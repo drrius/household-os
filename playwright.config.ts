@@ -8,7 +8,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  reporter: "html",
+  // The list reporter names failures in CI logs; html alone buries them
+  // in an artifact nobody uploads.
+  reporter: process.env.CI ? [["list"], ["html"]] : "html",
   use: {
     baseURL,
     screenshot: "only-on-failure",
