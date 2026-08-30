@@ -8,3 +8,4 @@ minimumReleaseAgeExclude:
   - "@ai-sdk/provider@4.0.9"
   - "@ai-sdk/react@4.0.88"
   - ai@7.0.85
+  - "@ai-sdk/openai-compatible@3.0.41"

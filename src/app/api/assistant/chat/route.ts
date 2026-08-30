@@ -8,7 +8,11 @@ import {
 } from "ai";
 
 import { getMemberContext } from "@/lib/auth/member-context";
-import { isAssistantConfigured, resolveAssistantModel } from "@/lib/ai/model";
+import {
+  assistantConfigHint,
+  isAssistantConfigured,
+  resolveAssistantModel,
+} from "@/lib/ai/model";
 import {
   buildAssistantSystemPrompt,
   buildAssistantTools,
@@ -23,8 +27,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!isAssistantConfigured()) {
     return Response.json(
       {
-        error:
-          "The assistant is not configured (set OPENAI_API_KEY and TOOL_APPROVAL_SECRET).",
+        error: `The assistant is not configured (${assistantConfigHint()}).`,
       },
       { status: 503 },
     );
