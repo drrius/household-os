@@ -86,7 +86,11 @@ export const MEAL_TOOLS: readonly AiToolDefinition[] = [
       "Put a meal on the week plan. source library reuses a meal definition id from get_week_plan; freeform creates a new named meal; leftover links to an earlier entry.",
     inputSchema: z.object({
       date: isoDate,
-      slot: mealSlot.nullish().describe("Omit for an unslotted day note"),
+      slot: mealSlot
+        .nullish()
+        .describe(
+          "Omit for an unslotted note; it attaches to the whole week and the date snaps to that week's Monday",
+        ),
       source: z.discriminatedUnion("kind", [
         z.object({ kind: z.literal("library"), mealDefinitionId: uuid }),
         z.object({

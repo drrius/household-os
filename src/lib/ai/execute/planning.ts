@@ -10,6 +10,7 @@ import type { AiWriteHandler } from "@/lib/ai/execute/types";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 import type { MoneyAllocationInput } from "@/lib/money/commands";
+import { startOfZurichWeek } from "@/lib/ui/zurich-date";
 import {
   claimGroceryItem,
   createGroceryItem,
@@ -145,7 +146,9 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
       });
     }
     return placeMeal({
-      date: value.date,
+      // Unslotted notes attach to the week; the database only accepts
+      // them anchored to that week's Monday.
+      date: value.slot == null ? startOfZurichWeek(value.date) : value.date,
       slot: value.slot ?? null,
       sourceKind: value.source.kind,
       idempotencyKey,

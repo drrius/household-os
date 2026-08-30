@@ -8,6 +8,7 @@ import {
   type ExpenseSplit,
 } from "@/lib/ai/execute/allocations";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
+import { recurringStartMatchesSchedule } from "@/lib/ai/schedule";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
@@ -94,6 +95,17 @@ export const MONEY_DRAFT_HANDLERS: Record<string, AiWriteHandler> = {
       nextOccurrenceOn: string;
       categoryId?: string | null;
     };
+    // Fail with a usable message instead of the database's, which would
+    // otherwise reject the rule after the tool call already ran.
+    if (
+      !recurringStartMatchesSchedule(value.schedule, value.nextOccurrenceOn)
+    ) {
+      throw new Error(
+        value.schedule.kind === "weekly"
+          ? "nextOccurrenceOn must fall on the schedule's weekday"
+          : "nextOccurrenceOn must match the schedule's day of month (clamped to the month's length)",
+      );
+    }
     return createRecurringExpenseRule({
       description: value.description,
       amountCents: value.amountCents,
@@ -188,6 +200,9 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
         );
       }
     }
+    // Always post as partial: inside the ledger lock the RPC then posts
+    // exactly the approved amount or rejects it, so a balance change
+    // between approval and execution can never alter what is recorded.
     return recordSettlement({
       payerMemberId: value.payerMemberId,
       amountCents: value.amountCents,
@@ -195,7 +210,7 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       description: value.description,
       idempotencyKey,
       note: value.note ?? null,
-      mode: value.mode,
+      mode: "partial",
     });
   },
   establish_opening_balance: (input, { idempotencyKey, today }) => {

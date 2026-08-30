@@ -15,6 +15,7 @@ import {
 } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
+import { useAssistant } from "@/ui/assistant/assistant-context";
 
 export type AnyToolPart = ToolUIPart | DynamicToolUIPart;
 
@@ -75,7 +76,35 @@ function formatChf(cents: unknown): string | null {
   return formatCentimesAsFrancs(cents);
 }
 
-function approvalSummary(input: unknown): readonly string[] {
+type MemberNamer = (id: unknown) => string | null;
+
+function splitSummary(split: unknown, nameOf: MemberNamer): readonly string[] {
+  if (split === null || typeof split !== "object" || !("kind" in split)) {
+    return [];
+  }
+  const value = split as { kind?: unknown; allocations?: unknown };
+  if (value.kind === "equal") {
+    return ["split equally"];
+  }
+  if (value.kind !== "custom" || !Array.isArray(value.allocations)) {
+    return [];
+  }
+  const shares = value.allocations.map((entry) => {
+    const allocation = entry as {
+      memberId?: unknown;
+      allocatedCents?: unknown;
+    };
+    const amount = formatChf(allocation.allocatedCents) ?? "?";
+    const name = nameOf(allocation.memberId);
+    return name === null ? amount : `${name} ${amount}`;
+  });
+  return shares.length > 0 ? [`split ${shares.join(" / ")}`] : [];
+}
+
+function approvalSummary(
+  input: unknown,
+  nameOf: MemberNamer,
+): readonly string[] {
   if (input === null || typeof input !== "object") {
     return [];
   }
@@ -88,6 +117,15 @@ function approvalSummary(input: unknown): readonly string[] {
   if (amount !== null) {
     lines.push(amount);
   }
+  const payer = nameOf(value.payerMemberId);
+  if (payer !== null) {
+    lines.push(`paid by ${payer}`);
+  }
+  const creditor = nameOf(value.creditorMemberId);
+  if (creditor !== null) {
+    lines.push(`owed to ${creditor}`);
+  }
+  lines.push(...splitSummary(value.split, nameOf));
   if (typeof value.occurredOn === "string") {
     lines.push(`on ${value.occurredOn}`);
   }
@@ -101,7 +139,10 @@ function approvalSummary(input: unknown): readonly string[] {
  * A correction's financial effect lives in the nested replacement, not the
  * top-level input; surface it so the member can verify before approving.
  */
-function correctionSummary(input: unknown): readonly string[] {
+function correctionSummary(
+  input: unknown,
+  nameOf: MemberNamer,
+): readonly string[] {
   if (
     input === null ||
     typeof input !== "object" ||
@@ -113,7 +154,7 @@ function correctionSummary(input: unknown): readonly string[] {
   if (replacement === null || replacement === undefined) {
     return ["reverses the event without a replacement"];
   }
-  const details = approvalSummary(replacement);
+  const details = approvalSummary(replacement, nameOf);
   return details.length > 0
     ? [`reverses the event and replaces it with: ${details.join(" · ")}`]
     : ["reverses the event and replaces it"];
@@ -126,9 +167,14 @@ function ApprovalCard({
   part: AnyToolPart & { state: "approval-requested" };
   respond: ApprovalResponder;
 }) {
+  const { members } = useAssistant();
+  const nameOf: MemberNamer = (id) =>
+    typeof id === "string"
+      ? (members.find((member) => member.memberId === id)?.name ?? null)
+      : null;
   const lines = [
-    ...approvalSummary(part.input),
-    ...correctionSummary(part.input),
+    ...approvalSummary(part.input, nameOf),
+    ...correctionSummary(part.input, nameOf),
   ];
   return (
     <div className="rounded-2xl border border-primary/40 bg-card p-4 shadow-sm">

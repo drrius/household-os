@@ -272,7 +272,7 @@ describe("record_settlement", () => {
     expect(recordSettlement).not.toHaveBeenCalled();
   });
 
-  it("posts a full settlement that matches the outstanding balance", async () => {
+  it("posts a matching full settlement as a bound partial amount", async () => {
     const input = parseToolInput("record_settlement", {
       payerMemberId: PAYER,
       amountCents: 700,
@@ -280,8 +280,10 @@ describe("record_settlement", () => {
       description: "Settle up",
     });
     await financialHandler("record_settlement")(input, context);
+    // Partial mode makes the locked RPC post exactly the approved amount
+    // (or reject), instead of recomputing the balance itself.
     expect(recordSettlement).toHaveBeenCalledWith(
-      expect.objectContaining({ amountCents: 700, mode: "full" }),
+      expect.objectContaining({ amountCents: 700, mode: "partial" }),
     );
   });
 });

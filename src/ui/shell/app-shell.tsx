@@ -2,7 +2,10 @@ import type { ReactNode } from "react";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AssistantProvider } from "@/ui/assistant/assistant-context";
+import {
+  AssistantProvider,
+  type AssistantMember,
+} from "@/ui/assistant/assistant-context";
 import { AssistantPanelLazy } from "@/ui/assistant/assistant-panel-lazy.client";
 import { AssistantTrigger } from "@/ui/assistant/assistant-trigger.client";
 import { AppSidebar } from "@/ui/shell/app-sidebar.client";
@@ -12,11 +15,14 @@ import { PrimaryNav } from "@/ui/shell/primary-nav.client";
 type AppShellProps = {
   children: ReactNode;
   householdName?: string;
+  /** Names the assistant's approval cards use to label payers and splits. */
+  members?: readonly AssistantMember[];
 };
 
 export function AppShell({
   children,
   householdName = "Our Home",
+  members = [],
 }: AppShellProps) {
   return (
     <>
@@ -29,7 +35,7 @@ export function AppShell({
 
       <TooltipProvider>
         <SidebarProvider className="isolate">
-          <AssistantProvider>
+          <AssistantProvider members={members}>
             <AppSidebar householdName={householdName} />
 
             <main

@@ -34,3 +34,25 @@ export function toRoutineSchedule(schedule: AiScheduleInput): {
       };
   }
 }
+
+/**
+ * Mirrors the database check on recurring expense rules: the first
+ * occurrence must land on the scheduled weekday, or on the monthly day
+ * clamped to the month's length.
+ */
+export function recurringStartMatchesSchedule(
+  schedule:
+    | { kind: "weekly"; isoWeekday: number }
+    | { kind: "monthly"; dayOfMonth: number },
+  nextOccurrenceOn: string,
+): boolean {
+  const date = new Date(`${nextOccurrenceOn}T00:00:00Z`);
+  if (schedule.kind === "weekly") {
+    const weekday = date.getUTCDay();
+    return (weekday === 0 ? 7 : weekday) === schedule.isoWeekday;
+  }
+  const daysInMonth = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  return date.getUTCDate() === Math.min(schedule.dayOfMonth, daysInMonth);
+}
