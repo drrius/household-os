@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 import { getAiToolDefinition } from "@/lib/ai/definitions";
 import { FINANCIAL_HANDLERS } from "@/lib/ai/execute/money";
 import {
+  DRAFT_ROW,
   EVENT,
   EVENT_ROW,
   OTHER,
@@ -273,6 +274,21 @@ describe("cumulative refund cap", () => {
     expect(postRefund).toHaveBeenCalledWith(
       expect.objectContaining({ amountCents: 400 }),
     );
+  });
+});
+
+describe("draft payer changes", () => {
+  it("refuses a payer override without a replacement split", async () => {
+    const input = parseToolInput("confirm_expense_draft", {
+      draftId: EVENT,
+      description: DRAFT_ROW.description,
+      amountCents: 2400,
+      payerMemberId: OTHER,
+    });
+    await expect(
+      financialHandler("confirm_expense_draft")(input, context),
+    ).rejects.toThrow(/payer also requires a split/);
+    expect(confirmExpenseDraft).not.toHaveBeenCalled();
   });
 });
 

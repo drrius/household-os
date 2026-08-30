@@ -172,3 +172,15 @@ describe("assignment pairing", () => {
     );
   });
 });
+
+describe("shopping draft contract", () => {
+  it("requires the shared amount and payer when a draft is requested", () => {
+    const result = getAiToolDefinition(
+      "finish_shopping_session",
+    )?.inputSchema.safeParse({
+      shoppingSessionId: "55555555-5555-4555-8555-555555555555",
+      createExpenseDraft: true,
+    });
+    expect(result?.success).toBe(false);
+  });
+});

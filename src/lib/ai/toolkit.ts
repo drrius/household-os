@@ -16,16 +16,10 @@ export function buildAssistantTools(): ToolSet {
     tools[definition.name] = tool({
       description: definition.description,
       inputSchema: definition.inputSchema,
-      execute: async (input, { toolCallId }) => {
-        try {
-          return await executeAiTool(definition.name, input, toolCallId);
-        } catch (error) {
-          return {
-            isError: true,
-            message: error instanceof Error ? error.message : String(error),
-          };
-        }
-      },
+      // Thrown executor errors surface as output-error parts: the member
+      // sees a failed call, and the model sees the message to recover.
+      execute: (input, { toolCallId }) =>
+        executeAiTool(definition.name, input, toolCallId),
     });
   }
   return tools;

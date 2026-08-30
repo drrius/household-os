@@ -81,6 +81,17 @@ export const GROCERY_TOOLS: readonly AiToolDefinition[] = [
           ),
       })
       .superRefine((value, ctx) => {
+        if (
+          value.createExpenseDraft &&
+          (value.sharedAmountCents == null || value.payerMemberId == null)
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            message:
+              "createExpenseDraft requires sharedAmountCents and payerMemberId",
+            path: ["sharedAmountCents"],
+          });
+        }
         if (value.sharedAmountCents == null) {
           return;
         }

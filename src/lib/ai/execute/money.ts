@@ -12,7 +12,6 @@ import {
   readRefundUsage,
 } from "@/lib/ai/execute/money-snapshots";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
-import { recurringStartMatchesSchedule } from "@/lib/ai/schedule";
 import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import {
   confirmExpenseDraft,
@@ -195,6 +194,9 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       throw new Error(
         `Changing the draft amount (${formatCentimesAsFrancs(draft.amountCents)} → ${formatCentimesAsFrancs(value.amountCents)}) also requires a split`,
       );
+    } else if (draft.payerMemberId !== value.payerMemberId) {
+      // The stored allocations gave the odd centime to the original payer.
+      throw new Error("Changing the draft payer also requires a split");
     }
     return confirmExpenseDraft({
       draftId: value.draftId,

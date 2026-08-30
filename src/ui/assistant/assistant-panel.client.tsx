@@ -5,7 +5,7 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from "ai";
-import { SparklesIcon } from "lucide-react";
+import { SparklesIcon, SquarePenIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -21,6 +21,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -50,13 +51,25 @@ function useIsPhoneViewport(): boolean {
   );
 }
 
-function AssistantHeader() {
+function AssistantHeader({ onNewChat }: { onNewChat: () => void }) {
   return (
     <SheetHeader className="border-b border-border px-4 py-4 sm:px-5">
-      <SheetTitle className="flex items-center gap-2 font-heading text-lg font-semibold">
-        <SparklesIcon aria-hidden="true" className="size-4 text-primary" />
-        Assistant
-      </SheetTitle>
+      <div className="flex items-center justify-between gap-2 pr-8">
+        <SheetTitle className="flex items-center gap-2 font-heading text-lg font-semibold">
+          <SparklesIcon aria-hidden="true" className="size-4 text-primary" />
+          Assistant
+        </SheetTitle>
+        <Button
+          aria-label="Start a new conversation"
+          className="size-8"
+          onClick={onNewChat}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <SquarePenIcon className="size-4" />
+        </Button>
+      </div>
       <SheetDescription className="sr-only">
         Ask the assistant to manage routines, groceries, meals, and money.
       </SheetDescription>
@@ -107,6 +120,46 @@ function AssistantComposer({
   );
 }
 
+function AssistantConversation({
+  chat,
+  showThinking,
+}: {
+  chat: ReturnType<typeof useChat>;
+  showThinking: boolean;
+}) {
+  return (
+    <Conversation>
+      <ConversationContent>
+        {chat.messages.length === 0 && (
+          <AssistantEmptyState
+            onPick={(text) => void chat.sendMessage({ text })}
+          />
+        )}
+        <AssistantMessages
+          messages={chat.messages}
+          respond={chat.addToolApprovalResponse}
+        />
+        {showThinking && (
+          <Spinner
+            aria-label="The assistant is thinking"
+            className="text-muted-foreground"
+          />
+        )}
+        {chat.error !== undefined && (
+          <AssistantErrorNotice
+            message={chat.error.message}
+            onRetry={() => {
+              chat.clearError();
+              void chat.regenerate();
+            }}
+          />
+        )}
+      </ConversationContent>
+      <ConversationScrollButton />
+    </Conversation>
+  );
+}
+
 export function AssistantPanel() {
   const { open, setOpen } = useAssistant();
   const isPhone = useIsPhoneViewport();
@@ -150,37 +203,17 @@ export function AssistantPanel() {
         )}
         side={isPhone ? "bottom" : "right"}
       >
-        <AssistantHeader />
+        <AssistantHeader
+          onNewChat={() => {
+            // Also the escape hatch from the 200-message request cap.
+            void chat.stop();
+            chat.setMessages([]);
+            chat.clearError();
+            setInput("");
+          }}
+        />
 
-        <Conversation>
-          <ConversationContent>
-            {messages.length === 0 && (
-              <AssistantEmptyState
-                onPick={(text) => void sendMessage({ text })}
-              />
-            )}
-            <AssistantMessages
-              messages={messages}
-              respond={chat.addToolApprovalResponse}
-            />
-            {showThinking && (
-              <Spinner
-                aria-label="The assistant is thinking"
-                className="text-muted-foreground"
-              />
-            )}
-            {chat.error !== undefined && (
-              <AssistantErrorNotice
-                message={chat.error.message}
-                onRetry={() => {
-                  chat.clearError();
-                  void chat.regenerate();
-                }}
-              />
-            )}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
+        <AssistantConversation chat={chat} showThinking={showThinking} />
 
         <AssistantComposer
           input={input}
