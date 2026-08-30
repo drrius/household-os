@@ -23,7 +23,7 @@ export const READ_TOOLS: readonly AiToolDefinition[] = [
     name: "get_week_plan",
     kind: "read",
     description:
-      "The meal plan for one Monday-to-Sunday week: entries per day and slot with entry ids, plus the meal library for reuse.",
+      "The meal plan for one Monday-to-Sunday week: entries per day and slot with entry ids, plus the meal library for reuse (alphabetical; mealLibraryTruncated flags an incomplete list).",
     inputSchema: z.object({
       weekOf: isoDate
         .optional()

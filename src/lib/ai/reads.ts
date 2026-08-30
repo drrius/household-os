@@ -13,6 +13,9 @@ import {
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
+/** Alphabetical cap on the meal library read; truncation is flagged. */
+const MEAL_LIBRARY_LIMIT = 200;
+
 function requireRows<T>(
   label: string,
   result: { data: unknown; error: { message: string } | null },
@@ -73,11 +76,20 @@ export async function readTodayOverview(): Promise<Record<string, unknown>> {
       .eq("household_id", member.householdId)
       .eq("status", "pending"),
   ]);
+  // The query reaches one day ahead only so meal preparations for tomorrow
+  // surface (matching the Today view); ordinary routines due tomorrow are
+  // not "due today" and are filtered back out.
+  const openRows = requireRows<{
+    due_date: string;
+    meal_plan_entry_id: string | null;
+  }>("open occurrences", occurrences);
   return {
     today,
     viewerMemberId: member.userId,
     members,
-    openOccurrences: requireRows("open occurrences", occurrences),
+    openOccurrences: openRows.filter(
+      (row) => row.due_date <= today || row.meal_plan_entry_id !== null,
+    ),
     completedToday: requireRows("completions", completions),
     mealsToday: requireRows("meals today", meals),
     pendingExpenseDrafts: requireRows("expense drafts", drafts),
@@ -138,13 +150,16 @@ export async function readWeekPlan(input: {
       .eq("household_id", member.householdId)
       .is("archived_at", null)
       .order("name")
-      .limit(100),
+      // One extra row so truncation is detectable rather than silent.
+      .limit(MEAL_LIBRARY_LIMIT + 1),
   ]);
+  const libraryRows = requireRows("meal library", library);
   return {
     weekStart,
     weekEnd,
     entries: requireRows("meal plan entries", entries),
-    mealLibrary: requireRows("meal library", library),
+    mealLibrary: libraryRows.slice(0, MEAL_LIBRARY_LIMIT),
+    mealLibraryTruncated: libraryRows.length > MEAL_LIBRARY_LIMIT,
   };
 }
 

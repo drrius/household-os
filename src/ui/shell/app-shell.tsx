@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AssistantProvider } from "@/ui/assistant/assistant-context";
-import { AssistantPanel } from "@/ui/assistant/assistant-panel.client";
+import { AssistantPanelLazy } from "@/ui/assistant/assistant-panel-lazy.client";
 import { AssistantTrigger } from "@/ui/assistant/assistant-trigger.client";
 import { AppSidebar } from "@/ui/shell/app-sidebar.client";
 import { GlobalAddSheet } from "@/ui/shell/global-add-sheet.client";
@@ -46,7 +46,7 @@ export function AppShell({
             <PrimaryNav />
             <GlobalAddSheet />
             <AssistantTrigger placement="mobile" />
-            <AssistantPanel />
+            <AssistantPanelLazy />
           </AssistantProvider>
         </SidebarProvider>
       </TooltipProvider>
