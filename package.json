@@ -28,9 +28,12 @@
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm check:webauthn && pnpm build"
   },
   "dependencies": {
+    "@ai-sdk/openai": "4.0.52",
+    "@ai-sdk/react": "4.0.88",
     "@base-ui/react": "1.7.0",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.112.2",
+    "ai": "7.0.85",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.31.0",
@@ -43,6 +46,7 @@
     "server-only": "0.0.1",
     "shadcn": "4.16.2",
     "sonner": "2.0.8",
+    "streamdown": "2.6.0",
     "tailwind-merge": "3.6.0",
     "zod": "4.4.3"
   },
