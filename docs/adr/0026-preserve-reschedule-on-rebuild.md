@@ -9,11 +9,11 @@ Editing a routine's assignment, schedule, or active window rebuilds the open occ
 
 ## Decision
 
-When an edit leaves the schedule rule unchanged, the rebuild recreates the current occurrence with both its previous `due_date` and its previous `original_due_date`: the reschedule survives, and the preview continues to follow the original recurrence anchor. When the edit changes the schedule rule, the rebuild keeps its existing behavior and re-anchors from the rebuild day (with the biweekly phase preservation of ADR 0025).
+When an edit leaves the schedule rule unchanged, the rebuild recreates the current occurrence with its previous `due_date`, `original_due_date`, and `rescheduled_at`: the reschedule and its timestamp survive, and the preview continues to follow the original recurrence anchor. When the edit changes the schedule rule, the rebuild keeps its existing behavior and re-anchors from the rebuild day (with the biweekly phase preservation of ADR 0025).
 
-A preserved due date must still fall inside the routine's active window; if a new `active_from` excludes it, the rebuild re-anchors as before.
+A preserved due date must still fall inside the routine's active window; if a new `active_from` or `active_until` excludes it, the rebuild re-anchors as before.
 
-Rebuilds delete the open occurrences they replace, but a rescheduled current occurrence is referenced by its reschedule command receipt, so before this change the delete violated the receipts foreign key and the edit failed outright. Command receipts are the idempotency ledger and must outlive the occurrence they acted on: deleting an occurrence now sets the referencing receipt's `occurrence_id` to null instead of blocking the delete.
+Rebuilds delete the open occurrences they replace, but a rescheduled current occurrence is referenced by its reschedule command receipt, so before this change the delete violated the receipts foreign key and the edit failed outright. Command receipts are the idempotency ledger and must outlive the occurrence they acted on: deleting an occurrence now sets the referencing receipt's `occurrence_id` to null instead of blocking the delete, and a retried command whose occurrence has since been deleted returns the receipt's stored result instead of failing.
 
 ## Consequences
 

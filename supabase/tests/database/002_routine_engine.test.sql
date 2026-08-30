@@ -1165,6 +1165,81 @@ select is(
   'the reschedule receipt survives the rebuild unlinked from its occurrence'
 );
 
+select ok(
+  (
+    select occurrence.rescheduled_at is not null
+    from public.routine_occurrences as occurrence
+    where occurrence.routine_id
+        = (select id from public.routines where title = 'Weekly keep reschedule')
+      and occurrence.status = 'open'
+      and occurrence.role = 'current'
+  ),
+  'the preserved occurrence keeps its rescheduled_at timestamp'
+);
+
+select is(
+  public.reschedule_occurrence(
+    (
+      select (receipt.result ->> 'occurrence_id')::uuid
+      from public.routine_command_receipts as receipt
+      where receipt.household_id = '10000000-0000-4000-8000-000000000011'
+        and receipt.idempotency_key = 'preserve-reschedule-weekly'
+    ),
+    private.first_routine_due_date(
+      '{"kind":"weekly","weekday":1}'::jsonb,
+      private.household_today()
+    ) + 3,
+    'preserve-reschedule-weekly'
+  ),
+  (
+    select receipt.result
+    from public.routine_command_receipts as receipt
+    where receipt.household_id = '10000000-0000-4000-8000-000000000011'
+      and receipt.idempotency_key = 'preserve-reschedule-weekly'
+  ),
+  'a retried command returns its receipt after a rebuild deleted the occurrence'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Weekly keep reschedule'
+      ),
+      p_active_until => private.first_routine_due_date(
+        '{"kind":"weekly","weekday":1}'::jsonb,
+        private.household_today()
+      ) + 1,
+      p_rebuild_window => true
+    )
+  $$,
+  'a shortened active window still rebuilds a rescheduled routine'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Weekly keep reschedule'
+    )
+      and status = 'open'
+  $$,
+  $$
+    select
+      'current'::text,
+      anchor.due_date,
+      anchor.due_date
+    from (
+      select private.first_routine_due_date(
+        '{"kind":"weekly","weekday":1}'::jsonb,
+        private.household_today()
+      ) as due_date
+    ) as anchor
+  $$,
+  'an excluded reschedule falls back to re-anchoring inside the new window'
+);
+
 select lives_ok(
   $$
     select public.create_routine(
