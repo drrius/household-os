@@ -73,6 +73,7 @@ function scheduleKindForRule(rule: ScheduleRule): ScheduleKind {
     case "daily":
     case "weekdays":
     case "weekly":
+    case "biweekly":
     case "monthly":
       return "calendar";
     default: {
@@ -108,10 +109,11 @@ export function validateScheduleRule(
     case "weekdays":
       return validateWeekdays(rule);
     case "weekly":
+    case "biweekly":
       if (!isIsoWeekday(rule.weekday)) {
         return ruleError(
           "invalid_rule",
-          "weekly weekday must be ISO weekday 1-7",
+          `${rule.kind} weekday must be ISO weekday 1-7`,
         );
       }
 
@@ -205,7 +207,7 @@ function nextMonthlyOnOrAfter(
 export function nextCalendarDueDate(
   rule: Extract<
     ScheduleRule,
-    { kind: "daily" | "weekdays" | "weekly" | "monthly" }
+    { kind: "daily" | "weekdays" | "weekly" | "biweekly" | "monthly" }
   >,
   afterDate: IsoDate,
 ): IsoDate {
@@ -216,6 +218,10 @@ export function nextCalendarDueDate(
       return nextMatchingWeekday(afterDate, rule.days);
     case "weekly":
       return nextWeekdayOnOrAfter(addDays(afterDate, 1), rule.weekday);
+    case "biweekly":
+      // A full week past the weekly successor, so an on-weekday closure
+      // yields exactly fourteen days.
+      return nextWeekdayOnOrAfter(addDays(afterDate, 8), rule.weekday);
     case "monthly":
       return nextMonthlyOnOrAfter(addDays(afterDate, 1), rule.dayOfMonth);
     default: {
@@ -241,6 +247,7 @@ export function firstDueDateOnOrAfter(
 
       return nextMatchingWeekday(fromInclusive, rule.days);
     case "weekly":
+    case "biweekly":
       return nextWeekdayOnOrAfter(fromInclusive, rule.weekday);
     case "monthly":
       return nextMonthlyOnOrAfter(fromInclusive, rule.dayOfMonth);
@@ -281,6 +288,7 @@ export function nextDueAfterClosure(input: {
     case "daily":
     case "weekdays":
     case "weekly":
+    case "biweekly":
     case "monthly":
       return nextCalendarDueDate(rule, closedDueDate);
     default: {

@@ -827,5 +827,85 @@ select is(
   'schedule updates write activity history'
 );
 
+select ok(
+  private.is_valid_routine_schedule(
+    'calendar',
+    '{"kind":"biweekly","weekday":3}'::jsonb
+  ),
+  'biweekly rules validate on the calendar kind'
+);
+
+select ok(
+  not private.is_valid_routine_schedule(
+    'calendar',
+    '{"kind":"biweekly","weekday":8}'::jsonb
+  ),
+  'biweekly weekdays outside 1-7 are rejected'
+);
+
+select ok(
+  not private.is_valid_routine_schedule(
+    'after_completion',
+    '{"kind":"biweekly","weekday":3}'::jsonb
+  ),
+  'biweekly rules are rejected under the after_completion kind'
+);
+
+select is(
+  private.first_routine_due_date(
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    date '2026-08-05'
+  ),
+  date '2026-08-10',
+  'biweekly first due date lands on the next matching weekday'
+);
+
+select is(
+  private.next_routine_due_date(
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    date '2026-08-10'
+  ),
+  date '2026-08-24',
+  'biweekly closure on the weekday advances fourteen days'
+);
+
+select is(
+  private.next_routine_due_date(
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    date '2026-08-12'
+  ),
+  date '2026-08-24',
+  'biweekly closure off the weekday re-anchors in the week after next'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (select id from public.routines where title = 'Daily kitchen'),
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"biweekly","weekday":1}'::jsonb,
+      p_rebuild_window => true
+    )
+  $$,
+  'update_routine_definition accepts a biweekly schedule'
+);
+
+select is(
+  (
+    select preview_occurrence.due_date - current_occurrence.due_date
+    from public.routine_occurrences as current_occurrence
+    join public.routine_occurrences as preview_occurrence
+      on preview_occurrence.routine_id = current_occurrence.routine_id
+    where current_occurrence.routine_id
+        = (select id from public.routines where title = 'Daily kitchen')
+      and current_occurrence.status = 'open'
+      and current_occurrence.role = 'current'
+      and preview_occurrence.status = 'open'
+      and preview_occurrence.role = 'preview'
+  ),
+  14,
+  'a biweekly window previews fourteen days after the current occurrence'
+);
+
 select * from finish();
 rollback;
