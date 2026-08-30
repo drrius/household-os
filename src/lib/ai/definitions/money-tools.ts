@@ -73,7 +73,18 @@ export const FINANCIAL_TOOLS: readonly AiToolDefinition[] = [
       relatedEventId: uuid,
       description: z.string().trim().min(1).max(200),
       amountCents: centimes,
-      split: expenseSplitSchema,
+      // Custom-only on purpose: an "equal" refund would be rejected at
+      // execution time, after the member already approved it.
+      split: z
+        .object({
+          kind: z.literal("custom"),
+          allocations: z
+            .array(z.object({ memberId: uuid, allocatedCents: centimes }))
+            .length(2),
+        })
+        .describe(
+          "Custom allocations mirroring the original expense shares; both members, summing to amountCents",
+        ),
       occurredOn: isoDate.optional().describe("Defaults to today"),
       note: z.string().max(500).nullish(),
     }),

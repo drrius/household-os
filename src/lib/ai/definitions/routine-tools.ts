@@ -34,7 +34,7 @@ export const ROUTINE_TOOLS: readonly AiToolDefinition[] = [
     name: "update_routine",
     kind: "write",
     description:
-      "Change a routine's title, schedule, assignment, priority, instructions, area, or pet. Only provided fields change; instructions and petId are cleared when omitted, so pass their current values to keep them.",
+      "Change a routine's title, schedule, assignment, priority, instructions, area, or pet. Only provided fields change; omitted fields keep their current values, and passing null for instructions or petId clears them.",
     inputSchema: z.object({
       routineId: uuid,
       title: z.string().trim().min(1).max(120).nullish(),

@@ -3,9 +3,11 @@ import { z } from "zod";
 import {
   assignmentFields,
   centimes,
+  expenseSplitSchema,
   isoDate,
   mealSlot,
   uuid,
+  webUrl,
   type AiToolDefinition,
 } from "@/lib/ai/definitions/schemas";
 
@@ -63,8 +65,15 @@ export const GROCERY_TOOLS: readonly AiToolDefinition[] = [
       expenseDescription: z.string().max(200).nullish(),
       sharedAmountCents: centimes
         .nullish()
-        .describe("The shared part of the receipt"),
-      payerMemberId: uuid.nullish(),
+        .describe(
+          "The shared part of the receipt; required with createExpenseDraft",
+        ),
+      payerMemberId: uuid
+        .nullish()
+        .describe("Required with createExpenseDraft"),
+      split: expenseSplitSchema
+        .nullish()
+        .describe("How the draft splits the shared amount; defaults to equal"),
     }),
   },
 ];
@@ -83,7 +92,7 @@ export const MEAL_TOOLS: readonly AiToolDefinition[] = [
         z.object({
           kind: z.literal("freeform"),
           title: z.string().trim().min(1).max(120),
-          recipeUrl: z.url().nullish(),
+          recipeUrl: webUrl.nullish(),
           notes: z.string().max(500).nullish(),
         }),
         z.object({ kind: z.literal("leftover"), leftoverOfEntryId: uuid }),
@@ -103,13 +112,14 @@ export const MEAL_TOOLS: readonly AiToolDefinition[] = [
   {
     name: "update_meal_entry",
     kind: "write",
-    description: "Rename a planned meal entry or change its recipe URL/notes.",
+    description:
+      "Rename a planned meal entry or change its recipe URL/notes. Omitted recipeUrl/notes keep their current values; pass null to clear them.",
     inputSchema: z.object({
       entryId: uuid,
       title: z.string().trim().min(1).max(120),
       date: isoDate,
       slot: mealSlot,
-      recipeUrl: z.url().nullish(),
+      recipeUrl: webUrl.nullish(),
       notes: z.string().max(500).nullish(),
     }),
   },

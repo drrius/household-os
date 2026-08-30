@@ -61,12 +61,14 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       activeUntil?: string | null;
     };
     const schedule = value.schedule ? toRoutineSchedule(value.schedule) : null;
+    // instructions/petId pass through untouched: omitted (undefined) keeps
+    // the stored value, explicit null clears it.
     return updateRoutineDefinition({
       routineId: value.routineId,
       title: value.title ?? null,
-      instructions: value.instructions ?? null,
+      instructions: value.instructions,
       areaId: value.areaId ?? null,
-      petId: value.petId ?? null,
+      petId: value.petId,
       assignmentPolicy: value.assignmentPolicy ?? null,
       assignedMemberId: value.assignedMemberId ?? null,
       rotationAnchorMemberId: value.rotationAnchorMemberId ?? null,

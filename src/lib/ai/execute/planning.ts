@@ -1,6 +1,13 @@
 import "server-only";
 
+import {
+  resolveAllocations,
+  type ExpenseSplit,
+} from "@/lib/ai/execute/allocations";
 import type { AiWriteHandler } from "@/lib/ai/execute/types";
+import { requireMemberContext } from "@/lib/auth/member-context";
+import { createClient } from "@/lib/supabase/server";
+import type { MoneyAllocationInput } from "@/lib/money/commands";
 import {
   claimGroceryItem,
   createGroceryItem,
@@ -24,6 +31,25 @@ import {
 } from "@/lib/household/commands";
 
 type MealSlot = "breakfast" | "lunch" | "dinner";
+
+/** Current recipe/notes of an entry, so partial updates can keep them. */
+async function readMealEntrySnapshot(
+  entryId: string,
+): Promise<{ recipeUrl: string | null; notes: string | null }> {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("meal_plan_entries")
+    .select("recipe_url_snapshot, notes")
+    .eq("household_id", member.householdId)
+    .eq("id", entryId)
+    .single();
+  if (error !== null) {
+    throw new Error(`meal entry lookup failed: ${error.message}`);
+  }
+  const row = data as { recipe_url_snapshot: string | null; notes: string | null };
+  return { recipeUrl: row.recipe_url_snapshot, notes: row.notes };
+}
 
 type MealSource =
   | { kind: "library"; mealDefinitionId: string }
@@ -57,7 +83,7 @@ export const GROCERY_HANDLERS: Record<string, AiWriteHandler> = {
     releaseGroceryItem(
       input as { shoppingSessionId: string; groceryItemId: string },
     ),
-  finish_shopping_session: (input, { today }) => {
+  finish_shopping_session: async (input, { today }) => {
     const value = input as {
       shoppingSessionId: string;
       receiptTotalCents?: number | null;
@@ -65,7 +91,23 @@ export const GROCERY_HANDLERS: Record<string, AiWriteHandler> = {
       expenseDescription?: string | null;
       sharedAmountCents?: number | null;
       payerMemberId?: string | null;
+      split?: ExpenseSplit | null;
     };
+    // A draft stored without allocations cannot be confirmed later, so
+    // resolve them here (equal split unless the model provided one).
+    let proposedAllocations: readonly MoneyAllocationInput[] = [];
+    if (value.createExpenseDraft) {
+      if (value.sharedAmountCents == null || value.payerMemberId == null) {
+        throw new Error(
+          "createExpenseDraft needs sharedAmountCents and payerMemberId",
+        );
+      }
+      proposedAllocations = await resolveAllocations(
+        value.split ?? { kind: "equal" },
+        value.sharedAmountCents,
+        value.payerMemberId,
+      );
+    }
     return finishShoppingSession({
       shoppingSessionId: value.shoppingSessionId,
       idempotencyKey: `finish-shopping:${value.shoppingSessionId}`,
@@ -75,6 +117,7 @@ export const GROCERY_HANDLERS: Record<string, AiWriteHandler> = {
       expenseDescription: value.expenseDescription ?? null,
       sharedAmountCents: value.sharedAmountCents ?? null,
       payerMemberId: value.payerMemberId ?? null,
+      proposedAllocations,
     });
   },
 };
@@ -129,7 +172,7 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
       idempotencyKey,
     });
   },
-  update_meal_entry: (input, { idempotencyKey }) => {
+  update_meal_entry: async (input, { idempotencyKey }) => {
     const value = input as {
       entryId: string;
       title: string;
@@ -138,7 +181,19 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
       recipeUrl?: string | null;
       notes?: string | null;
     };
-    return updateMealPlanEntry({ ...value, idempotencyKey });
+    // A rename must not erase metadata: omitted (undefined) keeps the
+    // stored value, explicit null clears it.
+    const current = await readMealEntrySnapshot(value.entryId);
+    return updateMealPlanEntry({
+      entryId: value.entryId,
+      title: value.title,
+      date: value.date,
+      slot: value.slot,
+      recipeUrl:
+        value.recipeUrl === undefined ? current.recipeUrl : value.recipeUrl,
+      notes: value.notes === undefined ? current.notes : value.notes,
+      idempotencyKey,
+    });
   },
   remove_meal_entry: (input) => {
     const value = input as { entryId: string };
