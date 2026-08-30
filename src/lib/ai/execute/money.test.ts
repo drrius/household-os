@@ -7,6 +7,7 @@ import { getAiToolDefinition } from "@/lib/ai/definitions";
 import { FINANCIAL_HANDLERS } from "@/lib/ai/execute/money";
 import {
   EVENT,
+  EVENT_ROW,
   OTHER,
   PAYER,
   resetRefundState,
@@ -159,6 +160,7 @@ describe("record_refund", () => {
   it("passes custom allocations through to the refund command", async () => {
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: PAYER,
       description: "Refund",
       amountCents: 900,

@@ -74,6 +74,7 @@ describe("record_refund bindings", () => {
   it("rejects a payer that does not match the source event", async () => {
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: OTHER,
       description: "Refund",
       amountCents: 900,

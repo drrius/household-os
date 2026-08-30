@@ -69,6 +69,7 @@ describe("record_refund bindings", () => {
   it("rejects a payer that does not match the source event", async () => {
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: OTHER,
       description: "Refund",
       amountCents: 900,
@@ -134,6 +135,7 @@ describe("draft and refund mirroring", () => {
   it("refuses refund shares that exceed a member's original allocation", async () => {
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: PAYER,
       description: "Swapped refund",
       amountCents: 1600,
@@ -154,6 +156,7 @@ describe("draft and refund mirroring", () => {
   it("refuses refunds exceeding the original amount", async () => {
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: PAYER,
       description: "Too big",
       amountCents: 1700,
@@ -182,6 +185,7 @@ describe("cumulative refund cap", () => {
     ];
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: PAYER,
       description: "Second refund",
       amountCents: 1600,
@@ -206,6 +210,7 @@ describe("cumulative refund cap", () => {
     refundState.shares = [{ member_id: PAYER, allocated_cents: 600 }];
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: PAYER,
       description: "Over the member cap",
       amountCents: 600,
@@ -228,6 +233,7 @@ describe("cumulative refund cap", () => {
     ];
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: PAYER,
       description: "After correction",
       amountCents: 100,
@@ -251,6 +257,7 @@ describe("cumulative refund cap", () => {
     refundState.reversals = [{ related_event_id: "refund-1" }];
     const input = parseToolInput("record_refund", {
       relatedEventId: EVENT,
+      originalDescription: EVENT_ROW.description,
       payerMemberId: PAYER,
       description: "Refund after reversal",
       amountCents: 400,

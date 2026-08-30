@@ -68,11 +68,15 @@ export function mockFrom(table: string): unknown {
     return { select: () => ({ eq: () => chain }) };
   }
   if (table === "financial_allocations") {
+    const shareChain = {
+      order: () => shareChain,
+      range: () => Promise.resolve({ data: refundState.shares, error: null }),
+    };
     return {
       select: () => ({
         eq: () => ({
           eq: () => Promise.resolve({ data: EVENT_ALLOCATIONS, error: null }),
-          in: () => Promise.resolve({ data: refundState.shares, error: null }),
+          in: () => shareChain,
         }),
       }),
     };

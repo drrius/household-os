@@ -240,7 +240,7 @@ export async function readRefundUsage(eventId: string): Promise<RefundUsage> {
   );
   const active = refunds.filter((row) => !reversedIds.has(row.id));
   const refundedByMember = new Map<string, number>();
-  if (active.length > 0) {
+  for (let from = 0; active.length > 0; from += LEDGER_PAGE_SIZE) {
     const { data: shareRows, error: shareError } = await supabase
       .from("financial_allocations")
       .select("member_id, allocated_cents")
@@ -248,7 +248,9 @@ export async function readRefundUsage(eventId: string): Promise<RefundUsage> {
       .in(
         "financial_event_id",
         active.map((row) => row.id),
-      );
+      )
+      .order("id")
+      .range(from, from + LEDGER_PAGE_SIZE - 1);
     if (shareError !== null || !Array.isArray(shareRows)) {
       throw new Error(
         `refund allocation query failed: ${shareError?.message ?? "no data"}`,
@@ -262,6 +264,9 @@ export async function readRefundUsage(eventId: string): Promise<RefundUsage> {
         row.member_id,
         (refundedByMember.get(row.member_id) ?? 0) + row.allocated_cents,
       );
+    }
+    if (shareRows.length < LEDGER_PAGE_SIZE) {
+      break;
     }
   }
   return {

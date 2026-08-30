@@ -52,6 +52,7 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
   record_refund: async (input, { idempotencyKey, today }) => {
     const value = input as {
       relatedEventId: string;
+      originalDescription: string;
       payerMemberId: string;
       description: string;
       amountCents: number;
@@ -70,6 +71,11 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
     if (source.payerMemberId !== value.payerMemberId) {
       throw new Error(
         "payerMemberId must match the original event's payer (see get_money_overview)",
+      );
+    }
+    if (source.description !== value.originalDescription) {
+      throw new Error(
+        "originalDescription must match the refunded event (see get_money_overview)",
       );
     }
     // Mirroring the original shares: cumulative refunds (net of reversed

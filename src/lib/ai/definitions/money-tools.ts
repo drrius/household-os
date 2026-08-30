@@ -78,6 +78,14 @@ export const FINANCIAL_TOOLS: readonly AiToolDefinition[] = [
     inputSchema: withSplitAmountCheck(
       z.object({
         relatedEventId: uuid,
+        originalDescription: z
+          .string()
+          .trim()
+          .min(1)
+          .max(200)
+          .describe(
+            "The refunded event's current description (from get_money_overview); shown on the approval card and checked against the event",
+          ),
         payerMemberId: uuid.describe(
           "The original event's payer (from get_money_overview); shown on the approval card and checked against the event",
         ),

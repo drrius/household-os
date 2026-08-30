@@ -117,6 +117,12 @@ function approvalSummary(
   if (amount !== null) {
     lines.push(amount);
   }
+  if (
+    typeof value.relatedEventId === "string" &&
+    typeof value.originalDescription === "string"
+  ) {
+    lines.push(`refunds "${value.originalDescription}"`);
+  }
   const payer = nameOf(value.payerMemberId);
   if (payer !== null) {
     lines.push(`paid by ${payer}`);
