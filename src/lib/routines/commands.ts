@@ -209,8 +209,10 @@ export async function updateRoutineDefinition(input: {
 
   // Unlike the RPC's coalescing parameters, this table update writes what it
   // is given: undefined keeps the stored value, an explicit null clears it.
-  const optionalPatch: { instructions?: string | null; pet_id?: string | null } =
-    {};
+  const optionalPatch: {
+    instructions?: string | null;
+    pet_id?: string | null;
+  } = {};
   if (input.instructions !== undefined) {
     optionalPatch.instructions = input.instructions;
   }

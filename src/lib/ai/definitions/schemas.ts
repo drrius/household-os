@@ -38,9 +38,7 @@ export const isoWeekday = z
   .describe("ISO weekday, Monday = 1 … Sunday = 7");
 
 /** Recipe links match the meal form's boundary: web URLs only. */
-export const webUrl = z
-  .url({ protocol: /^https?$/ })
-  .describe("http(s) URL");
+export const webUrl = z.url({ protocol: /^https?$/ }).describe("http(s) URL");
 
 export const mealSlot = z.enum(["breakfast", "lunch", "dinner"]);
 

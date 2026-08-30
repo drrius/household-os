@@ -47,7 +47,10 @@ async function readMealEntrySnapshot(
   if (error !== null) {
     throw new Error(`meal entry lookup failed: ${error.message}`);
   }
-  const row = data as { recipe_url_snapshot: string | null; notes: string | null };
+  const row = data as {
+    recipe_url_snapshot: string | null;
+    notes: string | null;
+  };
   return { recipeUrl: row.recipe_url_snapshot, notes: row.notes };
 }
 

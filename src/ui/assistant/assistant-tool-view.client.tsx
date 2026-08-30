@@ -102,7 +102,11 @@ function approvalSummary(input: unknown): readonly string[] {
  * top-level input; surface it so the member can verify before approving.
  */
 function correctionSummary(input: unknown): readonly string[] {
-  if (input === null || typeof input !== "object" || !("replacement" in input)) {
+  if (
+    input === null ||
+    typeof input !== "object" ||
+    !("replacement" in input)
+  ) {
     return [];
   }
   const replacement = (input as Record<string, unknown>).replacement;
