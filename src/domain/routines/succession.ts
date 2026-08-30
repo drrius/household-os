@@ -75,6 +75,7 @@ export function planAfterClosingCurrent(input: {
     rule: context.scheduleRule,
     closedDueDate: closed.dueDate,
     completedOn,
+    originalDueDate: closed.originalDueDate,
   });
 
   if (firstDue === null) {
@@ -94,6 +95,7 @@ export function planAfterClosingCurrent(input: {
       const previewDue = nextDueAfterClosure({
         rule: context.scheduleRule,
         closedDueDate: context.preview.dueDate,
+        originalDueDate: context.preview.originalDueDate,
       });
 
       return {

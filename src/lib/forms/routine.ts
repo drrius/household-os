@@ -9,6 +9,7 @@ const scheduleModeSchema = z.enum([
   "daily",
   "weekdays",
   "weekly",
+  "biweekly",
   "monthly",
   "after_completion",
 ]);
@@ -67,11 +68,11 @@ function parseSchedule(formData: FormData): {
       scheduleRule: { kind: "weekdays", days },
     };
   }
-  if (mode === "weekly") {
+  if (mode === "weekly" || mode === "biweekly") {
     return {
       scheduleKind: "calendar",
       scheduleRule: {
-        kind: "weekly",
+        kind: mode,
         weekday: positiveInteger(
           value(formData, "weeklyWeekday"),
           "Weekday",

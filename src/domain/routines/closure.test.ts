@@ -119,6 +119,37 @@ describe("planOccurrenceClosure", () => {
     expect(result.plan.createOccurrences[0]?.plannedAssigneeId).toBe(memberA);
   });
 
+  it("completing a rescheduled biweekly occurrence keeps the original cadence", () => {
+    // Monday cadence 08-10 / 08-24; the current occurrence slid to 08-17.
+    const rescheduledCurrent = {
+      ...occurrence("cur", "current", "2026-08-17"),
+      originalDueDate: asIsoDate("2026-08-10"),
+    };
+    const result = planOccurrenceClosure(
+      context({
+        scheduleRule: { kind: "biweekly", weekday: 1 },
+        current: rescheduledCurrent,
+        preview: occurrence("prev", "preview", "2026-08-24", memberB),
+      }),
+      {
+        kind: "complete",
+        occurrenceId: "cur" as OccurrenceId,
+        actorMemberId: memberA,
+        completedOn: asIsoDate("2026-08-17"),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.plan.promotePreviewToCurrent).toBe(true);
+    expect(result.plan.discardPreview).toBe(false);
+    expect(result.plan.createOccurrences).toHaveLength(1);
+    expect(result.plan.createOccurrences[0]?.dueDate).toBe("2026-09-07");
+  });
+
   it("completion-based next due uses completion day, not the prior due date", () => {
     const result = planOccurrenceClosure(
       context({
