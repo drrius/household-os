@@ -53,7 +53,10 @@ export function getMcpEnv(): McpEnv | null {
   return parsed.success ? parsed.data : null;
 }
 
-export function isRedirectUriAllowed(env: McpEnv, redirectUri: string): boolean {
+export function isRedirectUriAllowed(
+  env: McpEnv,
+  redirectUri: string,
+): boolean {
   let url: URL;
   try {
     url = new URL(redirectUri);
@@ -159,8 +162,6 @@ export async function signSupabaseAccessToken(
     .setSubject(principal.userId)
     .setAudience("authenticated")
     .setIssuedAt()
-    .setExpirationTime(
-      Math.floor(Date.now() / 1000) + SUPABASE_JWT_TTL_SECONDS,
-    )
+    .setExpirationTime(Math.floor(Date.now() / 1000) + SUPABASE_JWT_TTL_SECONDS)
     .sign(secretKey(env.SUPABASE_JWT_SECRET));
 }

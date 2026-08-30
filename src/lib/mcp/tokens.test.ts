@@ -74,9 +74,9 @@ describe("MCP tokens", () => {
     expect(isRedirectUriAllowed(env, "http://localhost:8788/callback")).toBe(
       true,
     );
-    expect(
-      isRedirectUriAllowed(env, "https://evil.example.com/callback"),
-    ).toBe(false);
+    expect(isRedirectUriAllowed(env, "https://evil.example.com/callback")).toBe(
+      false,
+    );
     expect(
       isRedirectUriAllowed(
         env,

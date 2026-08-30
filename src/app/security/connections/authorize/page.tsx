@@ -85,9 +85,7 @@ export default async function AuthorizeConnectionPage({
 
   return (
     <main className="mx-auto max-w-md px-4 py-16">
-      <h1 className="font-heading text-xl font-bold">
-        Connect {clientLabel}?
-      </h1>
+      <h1 className="font-heading text-xl font-bold">Connect {clientLabel}?</h1>
       <p className="mt-3 text-muted-foreground">
         It will act in Household OS as {member.displayName}: reading and
         managing routines, groceries, meals, and money — including recording

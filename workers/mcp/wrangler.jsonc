@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "household-os-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      // Create with `wrangler kv namespace create OAUTH_KV` and paste the id.
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
+    },
+  ],
+  "vars": {
+    // Origin of the Household OS deployment this worker bridges to.
+    "HOUSEHOLD_APP_URL": "https://REPLACE_WITH_APP_ORIGIN",
+  },
+  "observability": {
+    "enabled": true,
+  },
+}
