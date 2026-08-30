@@ -1240,6 +1240,97 @@ select results_eq(
   'an excluded reschedule falls back to re-anchoring inside the new window'
 );
 
+-- Daily cadence: the recreated preview must stay on the recurrence anchor
+-- (anchor + 1), even though that now precedes the rescheduled current.
+select lives_ok(
+  $$
+    select public.create_routine(
+      p_household_id => '10000000-0000-4000-8000-000000000011'::uuid,
+      p_title => 'Daily keep reschedule',
+      p_area_id => (
+        select id
+        from public.areas
+        where household_id = '10000000-0000-4000-8000-000000000011'
+          and name = 'General'
+      ),
+      p_assignment_policy => 'shared',
+      p_schedule_kind => 'calendar',
+      p_schedule_rule => '{"kind":"daily"}'::jsonb,
+      p_active_from => (timezone('Europe/Zurich', now()))::date
+    )
+  $$,
+  'create_routine accepts a daily routine for reschedule preservation'
+);
+
+select lives_ok(
+  $$
+    select public.reschedule_occurrence(
+      (
+        select id
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Daily keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      (
+        select due_date + 3
+        from public.routine_occurrences
+        where routine_id = (
+          select id from public.routines where title = 'Daily keep reschedule'
+        )
+          and status = 'open'
+          and role = 'current'
+      ),
+      'preserve-reschedule-daily'
+    )
+  $$,
+  'a daily current occurrence can be rescheduled before an edit'
+);
+
+select lives_ok(
+  $$
+    select public.update_routine_definition(
+      p_routine_id => (
+        select id from public.routines where title = 'Daily keep reschedule'
+      ),
+      p_assignment_policy => 'assigned',
+      p_assigned_member_id => '00000000-0000-4000-8000-000000000011',
+      p_rebuild_window => true
+    )
+  $$,
+  'assignment-only updates rebuild a rescheduled daily window'
+);
+
+select results_eq(
+  $$
+    select role, due_date, original_due_date
+    from public.routine_occurrences
+    where routine_id = (
+      select id from public.routines where title = 'Daily keep reschedule'
+    )
+      and status = 'open'
+    order by due_date
+  $$,
+  $$
+    select
+      occurrence.role,
+      anchor.due_date + occurrence.due_offset,
+      anchor.due_date + occurrence.original_offset
+    from (
+      select private.household_today() as due_date
+    ) as anchor,
+    (
+      values
+        ('preview'::text, 1, 1),
+        ('current'::text, 3, 0)
+    ) as occurrence(role, due_offset, original_offset)
+    order by occurrence.due_offset
+  $$,
+  'an assignment-only rebuild keeps the daily preview on the anchor'
+);
+
 select lives_ok(
   $$
     select public.create_routine(

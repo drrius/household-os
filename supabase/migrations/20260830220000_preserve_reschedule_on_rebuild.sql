@@ -162,9 +162,12 @@ begin
       return;
     end if;
 
+    -- Previews follow the recurrence anchor, not a reschedule: per ADR 0014 a
+    -- reschedule moves only its own occurrence, and the reschedule command
+    -- leaves the preview on the original cadence.
     second_due_date := private.next_routine_due_date(
       routine.schedule_rule,
-      current_occurrence.due_date,
+      current_occurrence.original_due_date,
       null,
       current_occurrence.original_due_date
     );
@@ -233,7 +236,7 @@ begin
 
   second_due_date := private.next_routine_due_date(
     routine.schedule_rule,
-    first_due_date,
+    current_occurrence.original_due_date,
     null,
     current_occurrence.original_due_date
   );
