@@ -875,7 +875,18 @@ select is(
     date '2026-08-12'
   ),
   date '2026-08-24',
-  'biweekly closure off the weekday re-anchors in the week after next'
+  'biweekly closure without an anchor re-anchors in the week after next'
+);
+
+select is(
+  private.next_routine_due_date(
+    '{"kind":"biweekly","weekday":1}'::jsonb,
+    date '2026-08-17',
+    null,
+    date '2026-08-10'
+  ),
+  date '2026-08-24',
+  'biweekly succession anchors on the original due date after a reschedule'
 );
 
 select lives_ok(

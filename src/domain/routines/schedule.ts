@@ -272,8 +272,14 @@ export function nextDueAfterClosure(input: {
   rule: ScheduleRule;
   closedDueDate: IsoDate;
   completedOn?: IsoDate;
+  /**
+   * The closed occurrence's due date before any reschedule. Biweekly phase
+   * is invisible in the weekday alone, so per ADR 0014 succession anchors on
+   * this date; rescheduling then moves only the closed occurrence.
+   */
+  originalDueDate?: IsoDate;
 }): IsoDate | null {
-  const { rule, closedDueDate, completedOn } = input;
+  const { rule, closedDueDate, completedOn, originalDueDate } = input;
 
   switch (rule.kind) {
     case "one_off":
@@ -285,10 +291,11 @@ export function nextDueAfterClosure(input: {
 
       return nextAfterCompletionDueDate(rule, completedOn);
     }
+    case "biweekly":
+      return nextCalendarDueDate(rule, originalDueDate ?? closedDueDate);
     case "daily":
     case "weekdays":
     case "weekly":
-    case "biweekly":
     case "monthly":
       return nextCalendarDueDate(rule, closedDueDate);
     default: {
