@@ -12,6 +12,7 @@ const states = [
   "error",
   "failure",
   "unknown-member",
+  "declined",
 ] as const;
 type State = (typeof states)[number];
 
@@ -155,6 +156,18 @@ const UNKNOWN_MEMBER: readonly UIMessage[] = [
   ]),
 ];
 
+/** "Not now" settles the call in the client before any round trip. */
+const DECLINED: readonly UIMessage[] = [
+  message("d1", "user", [text("record the 42 franc pharmacy run")]),
+  message("d2", "assistant", [
+    tool("record_expense", "approval-responded", {
+      approval: { id: "approval-4", approved: false },
+      input: { description: "Pharmacy", amountCents: 4200 },
+    }),
+    text("Left it out. Tell me when you want it recorded."),
+  ]),
+];
+
 type Scenario = {
   messages: readonly UIMessage[];
   status: ChatStatus;
@@ -175,6 +188,7 @@ const scenarios: Record<State, Scenario> = {
   thinking: { messages: THINKING, status: "streaming" },
   failure: { messages: FAILURE, status: "ready" },
   "unknown-member": { messages: UNKNOWN_MEMBER, status: "ready" },
+  declined: { messages: DECLINED, status: "ready" },
   error: {
     messages: [ASK],
     status: "error",

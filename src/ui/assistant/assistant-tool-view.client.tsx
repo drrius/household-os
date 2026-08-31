@@ -145,7 +145,7 @@ export function ToolActivity({ parts }: { parts: readonly AnyToolPart[] }) {
       role="list"
     >
       {parts.map((part, index) => {
-        const tone = activityTone(part.state);
+        const tone = activityTone(part);
         const name = getToolOrDynamicToolName(part);
         return (
           <li

@@ -79,8 +79,16 @@ export function isFinancialTool(name: string): boolean {
   return name in APPROVAL_TITLES;
 }
 
-export function activityTone(state: string): ActivityTone {
-  switch (state) {
+/**
+ * Declining an approval settles the call in the client straight away: the
+ * part becomes approval-responded long before any follow-up request lands,
+ * so it must not keep spinning as though the action were under way.
+ */
+export function activityTone(part: {
+  readonly state: string;
+  readonly approval?: { readonly approved?: boolean };
+}): ActivityTone {
+  switch (part.state) {
     case "output-available": {
       return "done";
     }
@@ -89,6 +97,9 @@ export function activityTone(state: string): ActivityTone {
     }
     case "output-error": {
       return "failed";
+    }
+    case "approval-responded": {
+      return part.approval?.approved === false ? "skipped" : "running";
     }
     default: {
       return "running";

@@ -35,6 +35,7 @@ import {
   AssistantMessages,
   AssistantThinking,
 } from "@/ui/assistant/assistant-messages.client";
+import { activityTone } from "@/ui/assistant/assistant-tool-labels";
 import type { ApprovalResponder } from "@/ui/assistant/assistant-tool-view.client";
 
 /** Media query with a stable server snapshot (desktop layout). */
@@ -50,14 +51,8 @@ function useIsPhoneViewport(): boolean {
   );
 }
 
-const SETTLED_TOOL_STATES = new Set([
-  "output-available",
-  "output-denied",
-  "output-error",
-]);
-
 function isPendingTool(part: UIMessage["parts"][number]): boolean {
-  return isToolUIPart(part) && !SETTLED_TOOL_STATES.has(part.state);
+  return isToolUIPart(part) && activityTone(part) === "running";
 }
 
 function AssistantHeader({
