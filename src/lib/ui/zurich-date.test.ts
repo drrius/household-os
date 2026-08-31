@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addCivilDays,
+  formatCivilDateShort,
   formatZurichDayLabel,
   formatZurichTimestamp,
   startOfZurichWeek,
@@ -26,6 +27,15 @@ describe("zurich-date", () => {
 
   it("rejects invalid timestamps", () => {
     expect(() => formatZurichTimestamp("not-a-date")).toThrow(RangeError);
+  });
+
+  it("formats civil dates as compact day-month-year labels", () => {
+    expect(formatCivilDateShort("2026-08-12")).toBe("12 Aug 2026");
+    expect(formatCivilDateShort("2026-01-01")).toBe("1 Jan 2026");
+  });
+
+  it("rejects invalid civil dates", () => {
+    expect(() => formatCivilDateShort("not-a-date")).toThrow(RangeError);
   });
 
   it("adds civil days without floating-point time math", () => {
