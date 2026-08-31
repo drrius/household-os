@@ -3,24 +3,28 @@
 import type { ChatStatus, UIMessage } from "ai";
 import * as React from "react";
 
-import { AssistantProvider } from "@/ui/assistant/assistant-context";
+import {
+  AssistantProvider,
+  type AssistantMember,
+} from "@/ui/assistant/assistant-context";
 import { AssistantPanelView } from "@/ui/assistant/assistant-panel.client";
-
-const MEMBERS = [
-  { memberId: "darius", name: "Darius" },
-  { memberId: "leah", name: "Leah" },
-] as const;
 
 /**
  * Drives the panel's presentation with canned messages so every conversation
  * state can be inspected without a model, a household, or a session.
+ *
+ * Every scenario arrives as a prop: this module is emitted as a client chunk
+ * in production builds even though the route 404s there, so it must hold no
+ * fixture data of its own.
  */
 export function AssistantFixture({
+  members,
   messages,
   status,
   errorMessage,
   draft = "",
 }: {
+  members: readonly AssistantMember[];
   messages: readonly UIMessage[];
   status: ChatStatus;
   errorMessage?: string;
@@ -30,7 +34,7 @@ export function AssistantFixture({
   const noop = React.useCallback(() => undefined, []);
 
   return (
-    <AssistantProvider members={MEMBERS}>
+    <AssistantProvider members={members}>
       <AssistantPanelView
         errorMessage={errorMessage}
         input={input}

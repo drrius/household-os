@@ -11,6 +11,7 @@ const states = [
   "thinking",
   "error",
   "failure",
+  "unknown-member",
 ] as const;
 type State = (typeof states)[number];
 
@@ -44,6 +45,11 @@ function tool(
     ...extra,
   };
 }
+
+const MEMBERS = [
+  { memberId: "darius", name: "Darius" },
+  { memberId: "leah", name: "Leah" },
+];
 
 const ASK = message("m1", "user", [
   text("what's left today, and did leah pay me back for the groceries?"),
@@ -132,6 +138,23 @@ const FAILURE: readonly UIMessage[] = [
   ]),
 ];
 
+/** The model named a payer this household cannot resolve. */
+const UNKNOWN_MEMBER: readonly UIMessage[] = [
+  message("u1", "user", [text("split the 60 franc vet bill with sam")]),
+  message("u2", "assistant", [
+    tool("record_expense", "approval-requested", {
+      approval: { id: "approval-3" },
+      input: {
+        description: "Vet visit",
+        amountCents: 6000,
+        payerMemberId: "sam-not-in-this-household",
+        occurredOn: "2026-08-12",
+        split: { kind: "equal" },
+      },
+    }),
+  ]),
+];
+
 type Scenario = {
   messages: readonly UIMessage[];
   status: ChatStatus;
@@ -151,6 +174,7 @@ const scenarios: Record<State, Scenario> = {
   correction: { messages: CORRECTION, status: "ready" },
   thinking: { messages: THINKING, status: "streaming" },
   failure: { messages: FAILURE, status: "ready" },
+  "unknown-member": { messages: UNKNOWN_MEMBER, status: "ready" },
   error: {
     messages: [ASK],
     status: "error",
@@ -176,6 +200,7 @@ export default async function AssistantFixturePage({
   return (
     <AssistantFixture
       draft={scenario.draft}
+      members={MEMBERS}
       errorMessage={scenario.errorMessage}
       messages={scenario.messages}
       status={scenario.status}

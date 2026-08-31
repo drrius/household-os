@@ -91,7 +91,40 @@ describe("approvalRows", () => {
     expect(approvalRows({ amountCents: 84.3 }, nameOf)).toEqual([]);
   });
 
-  it("skips member ids it cannot name", () => {
-    expect(approvalRows({ payerMemberId: "stranger" }, nameOf)).toEqual([]);
+  it("flags member ids it cannot name rather than dropping the row", () => {
+    expect(approvalRows({ payerMemberId: "stranger" }, nameOf)).toEqual([
+      { label: "Paid by", value: "Unknown member" },
+    ]);
+    expect(approvalRows({ creditorMemberId: "stranger" }, nameOf)).toEqual([
+      { label: "Owed to", value: "Unknown member" },
+    ]);
+  });
+
+  it("flags an unnameable member inside a custom split", () => {
+    expect(
+      approvalRows(
+        {
+          split: {
+            kind: "custom",
+            allocations: [
+              { memberId: "darius", allocatedCents: 6000 },
+              { memberId: "stranger", allocatedCents: 4000 },
+            ],
+          },
+        },
+        nameOf,
+      ),
+    ).toEqual([
+      {
+        label: "Split",
+        value: "Darius CHF 60.00 · Unknown member CHF 40.00",
+      },
+    ]);
+  });
+
+  it("omits member rows the tool did not supply at all", () => {
+    expect(approvalRows({ description: "Rent" }, nameOf)).toEqual([
+      { label: "What", value: "Rent" },
+    ]);
   });
 });

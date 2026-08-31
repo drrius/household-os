@@ -11,6 +11,21 @@ export type SummaryRow = {
 
 export type MemberNamer = (id: unknown) => string | null;
 
+/**
+ * A member id the household cannot name must never simply vanish from the
+ * card: a row that silently disappears reads as a complete summary, and the
+ * member would approve a financial event whose payer or share is not what
+ * they think it is.
+ */
+const UNKNOWN_MEMBER = "Unknown member";
+
+function memberLabel(id: unknown, nameOf: MemberNamer): string | null {
+  if (typeof id !== "string" || id.length === 0) {
+    return null;
+  }
+  return nameOf(id) ?? UNKNOWN_MEMBER;
+}
+
 function formatChf(cents: unknown): string | null {
   if (typeof cents !== "number" || !Number.isSafeInteger(cents)) {
     return null;
@@ -36,8 +51,8 @@ function splitRow(split: unknown, nameOf: MemberNamer): SummaryRow | null {
       allocatedCents?: unknown;
     };
     const amount = formatChf(allocation.allocatedCents) ?? "?";
-    const name = nameOf(allocation.memberId);
-    return name === null ? amount : `${name} ${amount}`;
+    const name = memberLabel(allocation.memberId, nameOf) ?? UNKNOWN_MEMBER;
+    return `${name} ${amount}`;
   });
   return shares.length > 0
     ? { label: "Split", value: shares.join(" · ") }
@@ -63,11 +78,11 @@ function eventRows(input: unknown, nameOf: MemberNamer): readonly SummaryRow[] {
   ) {
     rows.push({ label: "Refunds", value: value.originalDescription });
   }
-  const payer = nameOf(value.payerMemberId);
+  const payer = memberLabel(value.payerMemberId, nameOf);
   if (payer !== null) {
     rows.push({ label: "Paid by", value: payer });
   }
-  const creditor = nameOf(value.creditorMemberId);
+  const creditor = memberLabel(value.creditorMemberId, nameOf);
   if (creditor !== null) {
     rows.push({ label: "Owed to", value: creditor });
   }

@@ -38,12 +38,18 @@ export function AssistantComposer({
 }: AssistantComposerProps) {
   const isBusy = status === "submitted" || status === "streaming";
   const isEmpty = input.trim().length === 0;
+  // Some IMEs report isComposing as false on the Enter that commits a
+  // candidate, so composition is tracked here too. A ref, not state: the
+  // flag is never rendered, and state would leave the keydown handler
+  // reading a stale value until React re-renders.
+  const isComposingRef = React.useRef(false);
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (
         event.key !== "Enter" ||
         event.shiftKey ||
+        isComposingRef.current ||
         event.nativeEvent.isComposing
       ) {
         return;
@@ -74,6 +80,12 @@ export function AssistantComposer({
           id="assistant-message"
           name="message"
           onChange={(event) => setInput(event.currentTarget.value)}
+          onCompositionEnd={() => {
+            isComposingRef.current = false;
+          }}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Message the assistant"
           rows={1}
