@@ -71,7 +71,7 @@ Defines household work and its recurrence.
 - `paused_at`, nullable
 - `archived_at`, nullable
 
-Supported schedule rules are one-off date, daily, selected weekdays, weekly, monthly by date, and every N days or weeks after completion.
+Supported schedule rules are one-off date, daily, selected weekdays, weekly, every two weeks on a weekday, monthly by date, and every N days or weeks after completion.
 
 ### RoutineOccurrence
 

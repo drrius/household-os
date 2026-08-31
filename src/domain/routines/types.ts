@@ -17,6 +17,7 @@ export type ScheduleRule =
   | { kind: "daily" }
   | { kind: "weekdays"; days: readonly IsoWeekday[] }
   | { kind: "weekly"; weekday: IsoWeekday }
+  | { kind: "biweekly"; weekday: IsoWeekday }
   | { kind: "monthly"; dayOfMonth: number }
   | { kind: "after_completion"; every: number; unit: "days" | "weeks" };
 

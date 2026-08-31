@@ -29,6 +29,7 @@ function scheduleMode(rule: Record<string, unknown>) {
       "daily",
       "weekdays",
       "weekly",
+      "biweekly",
       "monthly",
       "after_completion",
     ])

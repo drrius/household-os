@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import type { PlanViewModel } from "@/lib/read-models/plan";
 import { addCivilDays, startOfZurichWeek } from "@/lib/ui/zurich-date";
+import { cn } from "@/lib/utils";
 import { AppPage } from "@/ui/layout/app-page";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
@@ -82,15 +83,15 @@ export function PlanScreen({ plan }: PlanScreenProps) {
   return (
     <AppPage labelledBy="plan-title">
       <PageHeader
-        titleId="plan-title"
-        title={plan.rangeLabel}
         eyebrow={
           viewingCurrentWeek
             ? `This week · ${plan.timeZoneLabel}`
             : plan.timeZoneLabel
         }
+        titleId="plan-title"
+        title={plan.rangeLabel}
         trailing={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <PlanThisWeekJump visible={!viewingCurrentWeek} />
             <PlanWeekArrow
               direction="previous"
@@ -98,7 +99,10 @@ export function PlanScreen({ plan }: PlanScreenProps) {
             />
             <PlanWeekArrow direction="next" href={`/plan?week=${nextWeek}`} />
             <Link
-              className={buttonVariants({ className: "no-underline" })}
+              className={cn(
+                buttonVariants(),
+                "hidden no-underline md:inline-flex",
+              )}
               href={`/plan/meals/new?date=${plan.weekStart}&slot=dinner`}
             >
               Add meal
