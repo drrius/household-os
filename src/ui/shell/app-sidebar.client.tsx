@@ -19,6 +19,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { PRODUCT_DESTINATIONS } from "@/lib/ui/destinations";
+import { AssistantTrigger } from "@/ui/assistant/assistant-trigger.client";
 import { PRODUCT_DESTINATION_ICONS } from "@/ui/icons/app-icons";
 import { GlobalAddSheet } from "@/ui/shell/global-add-sheet.client";
 
@@ -111,7 +112,8 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
           </nav>
         </SidebarContent>
 
-        <SidebarFooter className="p-4 group-data-[collapsible=icon]:p-2">
+        <SidebarFooter className="gap-2 p-4 group-data-[collapsible=icon]:p-2">
+          <AssistantTrigger placement="sidebar" />
           <GlobalAddSheet placement="sidebar" />
         </SidebarFooter>
         <SidebarRail className="w-6" />

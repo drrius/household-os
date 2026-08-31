@@ -117,7 +117,8 @@ export async function updateMealPlanEntry(input: {
   entryId: string;
   title: string;
   date: string;
-  slot: "breakfast" | "lunch" | "dinner";
+  /** null keeps or makes the entry an unslotted note (Monday-anchored). */
+  slot: "breakfast" | "lunch" | "dinner" | null;
   recipeUrl?: string | null;
   notes?: string | null;
   idempotencyKey: string;
