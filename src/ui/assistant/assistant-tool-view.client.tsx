@@ -5,17 +5,23 @@ import {
   type DynamicToolUIPart,
   type ToolUIPart,
 } from "ai";
+import { CheckIcon, MinusIcon, ShieldCheckIcon, XIcon } from "lucide-react";
 
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
-import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
+import {
+  approvalRows,
+  type MemberNamer,
+} from "@/ui/assistant/assistant-approval-summary";
 import { useAssistant } from "@/ui/assistant/assistant-context";
+import {
+  activityLabel,
+  activityTone,
+  approvalTitle,
+  isFinancialTool,
+  type ActivityTone,
+} from "@/ui/assistant/assistant-tool-labels";
 
 export type AnyToolPart = ToolUIPart | DynamicToolUIPart;
 
@@ -23,156 +29,6 @@ export type ApprovalResponder = (options: {
   id: string;
   approved: boolean;
 }) => void;
-
-const TOOL_LABELS: Record<string, string> = {
-  get_today_overview: "Checking today",
-  get_routines: "Looking up routines",
-  get_week_plan: "Looking at the meal plan",
-  get_grocery_list: "Reading the grocery list",
-  get_money_overview: "Checking the money picture",
-  get_household: "Looking up the household",
-  create_routine: "Creating a routine",
-  update_routine: "Updating a routine",
-  pause_routine: "Pausing a routine",
-  unpause_routine: "Resuming a routine",
-  archive_routine: "Archiving a routine",
-  complete_occurrence: "Completing a task",
-  skip_occurrence: "Skipping a task",
-  reschedule_occurrence: "Rescheduling a task",
-  add_grocery_item: "Adding a grocery item",
-  remove_grocery_item: "Removing a grocery item",
-  start_shopping_session: "Starting shopping",
-  claim_grocery_item: "Claiming a grocery item",
-  release_grocery_item: "Releasing a grocery item",
-  finish_shopping_session: "Finishing shopping",
-  plan_meal: "Planning a meal",
-  move_meal_entry: "Moving a meal",
-  update_meal_entry: "Updating a meal",
-  remove_meal_entry: "Removing a meal",
-  create_meal_preparation: "Adding a preparation task",
-  create_area: "Creating an area",
-  create_pet: "Adding a pet",
-  update_household_name: "Renaming the household",
-  dismiss_expense_draft: "Dismissing an expense draft",
-  create_recurring_expense_rule: "Creating a recurring expense",
-  set_recurring_expense_rule_active: "Toggling a recurring expense",
-  record_expense: "Record an expense",
-  record_refund: "Record a refund",
-  record_settlement: "Record a settlement",
-  establish_opening_balance: "Establish the opening balance",
-  confirm_expense_draft: "Confirm an expense draft",
-  correct_financial_event: "Correct a money event",
-};
-
-function toolLabel(name: string): string {
-  return TOOL_LABELS[name] ?? name.replaceAll("_", " ");
-}
-
-function formatChf(cents: unknown): string | null {
-  if (typeof cents !== "number" || !Number.isSafeInteger(cents)) {
-    return null;
-  }
-  // Integer francs + two-digit remainder; centimes never touch floats.
-  return formatCentimesAsFrancs(cents);
-}
-
-type MemberNamer = (id: unknown) => string | null;
-
-function splitSummary(split: unknown, nameOf: MemberNamer): readonly string[] {
-  if (split === null || typeof split !== "object" || !("kind" in split)) {
-    return [];
-  }
-  const value = split as { kind?: unknown; allocations?: unknown };
-  if (value.kind === "equal") {
-    return ["split equally"];
-  }
-  if (value.kind !== "custom" || !Array.isArray(value.allocations)) {
-    return [];
-  }
-  const shares = value.allocations.map((entry) => {
-    const allocation = entry as {
-      memberId?: unknown;
-      allocatedCents?: unknown;
-    };
-    const amount = formatChf(allocation.allocatedCents) ?? "?";
-    const name = nameOf(allocation.memberId);
-    return name === null ? amount : `${name} ${amount}`;
-  });
-  return shares.length > 0 ? [`split ${shares.join(" / ")}`] : [];
-}
-
-function approvalSummary(
-  input: unknown,
-  nameOf: MemberNamer,
-): readonly string[] {
-  if (input === null || typeof input !== "object") {
-    return [];
-  }
-  const value = input as Record<string, unknown>;
-  const lines: string[] = [];
-  if (typeof value.description === "string") {
-    lines.push(value.description);
-  }
-  const amount = formatChf(value.amountCents);
-  if (amount !== null) {
-    lines.push(amount);
-  }
-  if (
-    typeof value.relatedEventId === "string" &&
-    typeof value.originalDescription === "string"
-  ) {
-    lines.push(`refunds "${value.originalDescription}"`);
-  }
-  const payer = nameOf(value.payerMemberId);
-  if (payer !== null) {
-    lines.push(`paid by ${payer}`);
-  }
-  const creditor = nameOf(value.creditorMemberId);
-  if (creditor !== null) {
-    lines.push(`owed to ${creditor}`);
-  }
-  lines.push(...splitSummary(value.split, nameOf));
-  if (typeof value.occurredOn === "string") {
-    lines.push(`on ${value.occurredOn}`);
-  }
-  if (value.mode === "full") {
-    // Exactly this amount posts (or nothing does): the executor checks it
-    // against the ledger and the RPC re-checks inside the lock.
-    lines.push("settles the outstanding balance (posts exactly this amount)");
-  }
-  return lines;
-}
-
-/**
- * A correction's financial effect lives in the nested replacement, not the
- * top-level input; surface it so the member can verify before approving.
- */
-function correctionSummary(
-  input: unknown,
-  nameOf: MemberNamer,
-): readonly string[] {
-  if (
-    input === null ||
-    typeof input !== "object" ||
-    !("replacement" in input)
-  ) {
-    return [];
-  }
-  const value = input as Record<string, unknown>;
-  const amount = formatChf(value.originalAmountCents);
-  const source =
-    typeof value.originalDescription === "string"
-      ? `"${value.originalDescription}"${amount === null ? "" : ` (${amount})`}`
-      : "the event";
-  const replacement = value.replacement;
-  if (replacement === null || replacement === undefined) {
-    return [`reverses ${source} without a replacement`];
-  }
-  const details = approvalSummary(replacement, nameOf);
-  return details.length > 0
-    ? [`reverses ${source} and replaces it with: ${details.join(" · ")}`]
-    : [`reverses ${source} and replaces it`];
-}
 
 function ApprovalCard({
   part,
@@ -186,35 +42,65 @@ function ApprovalCard({
     typeof id === "string"
       ? (members.find((member) => member.memberId === id)?.name ?? null)
       : null;
-  const lines = [
-    ...approvalSummary(part.input, nameOf),
-    ...correctionSummary(part.input, nameOf),
-  ];
+  const name = getToolOrDynamicToolName(part);
+  const rows = approvalRows(part.input, nameOf);
+  const input = part.input as { mode?: unknown } | null;
+  const notes = [
+    input?.mode === "full"
+      ? "This posts exactly the amount above and settles the balance."
+      : null,
+    isFinancialTool(name)
+      ? "Money history is append-only, so approving records this for good."
+      : null,
+  ].filter((note) => note !== null);
+
   return (
-    <div className="rounded-2xl border border-primary/40 bg-card p-4 shadow-sm">
-      <p className="font-heading font-semibold text-foreground">
-        {toolLabel(getToolOrDynamicToolName(part))}?
+    <div className="rounded-2xl bg-card p-4 ring-1 ring-primary/30">
+      <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
+        <ShieldCheckIcon aria-hidden="true" className="size-4 h-lh shrink-0" />
+        Needs your OK
       </p>
-      {lines.length > 0 && (
-        <p className="mt-1 text-sm text-muted-foreground">
-          {lines.join(" · ")}
+      <p className="mt-1 font-heading text-base font-semibold text-foreground">
+        {approvalTitle(name)}
+      </p>
+
+      {rows.length > 0 && (
+        <dl className="mt-3 grid gap-1.5 text-base sm:text-sm">
+          {rows.map((row) => (
+            <div
+              className={cn(
+                "flex items-baseline justify-between gap-4",
+                row.startsGroup === true &&
+                  "mt-1.5 border-t border-border pt-3",
+              )}
+              key={`${row.label}-${row.value}`}
+            >
+              <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
+              <dd className="min-w-0 text-right font-medium tabular-nums">
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {notes.length > 0 && (
+        <p className="mt-3 text-sm text-muted-foreground text-pretty">
+          {notes.join(" ")}
         </p>
       )}
-      <p className="mt-1 text-xs text-muted-foreground">
-        Money history is append-only, so this is recorded permanently once
-        approved.
-      </p>
-      <div className="mt-3 flex gap-2">
+
+      <div className="mt-4 flex gap-2">
         <Button
+          className="flex-1"
           onClick={() => respond({ id: part.approval.id, approved: true })}
-          size="sm"
           type="button"
         >
           Approve
         </Button>
         <Button
+          className="flex-1"
           onClick={() => respond({ id: part.approval.id, approved: false })}
-          size="sm"
           type="button"
           variant="outline"
         >
@@ -225,46 +111,84 @@ function ApprovalCard({
   );
 }
 
-function ToolPartHeader({ part }: { part: AnyToolPart }) {
-  const title = toolLabel(getToolOrDynamicToolName(part));
-  if (part.type === "dynamic-tool") {
-    return (
-      <ToolHeader
-        state={part.state}
-        title={title}
-        toolName={part.toolName}
-        type={part.type}
-      />
-    );
+function ActivityIcon({ tone }: { tone: ActivityTone }) {
+  const className = "size-4 h-lh shrink-0";
+  switch (tone) {
+    case "done": {
+      return <CheckIcon aria-hidden="true" className={className} />;
+    }
+    case "skipped": {
+      return <MinusIcon aria-hidden="true" className={className} />;
+    }
+    case "failed": {
+      return (
+        <XIcon
+          aria-hidden="true"
+          className={cn(className, "text-destructive")}
+        />
+      );
+    }
+    default: {
+      return <Spinner className={className} />;
+    }
   }
-  return <ToolHeader state={part.state} title={title} type={part.type} />;
 }
 
-export function ToolPart({
+/**
+ * Tool calls are progress, not content: a quiet labelled line each, with no
+ * card, no badge, and no raw payload. Only failures raise their voice.
+ */
+export function ToolActivity({ parts }: { parts: readonly AnyToolPart[] }) {
+  return (
+    <ul
+      className="grid gap-1.5 text-base text-muted-foreground sm:text-sm"
+      role="list"
+    >
+      {parts.map((part, index) => {
+        const tone = activityTone(part);
+        const name = getToolOrDynamicToolName(part);
+        return (
+          <li
+            className={cn(
+              "flex items-start gap-2",
+              tone === "failed" && "text-foreground",
+            )}
+            key={`${name}-${index}`}
+          >
+            <ActivityIcon tone={tone} />
+            <span className="min-w-0 flex-1">
+              {activityLabel(name, tone)}
+              {part.state === "output-error" && (
+                <span className="block text-muted-foreground">
+                  {part.errorText}
+                </span>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function ApprovalPart({
   part,
   respond,
 }: {
   part: AnyToolPart;
   respond: ApprovalResponder;
 }) {
-  if (
-    part.state === "approval-requested" &&
-    part.approval.isAutomatic !== true
-  ) {
-    return <ApprovalCard part={part} respond={respond} />;
+  if (!needsApproval(part)) {
+    return null;
   }
+  return <ApprovalCard part={part} respond={respond} />;
+}
+
+/** True when the part needs a decision card rather than an activity line. */
+export function needsApproval(
+  part: AnyToolPart,
+): part is AnyToolPart & { state: "approval-requested" } {
   return (
-    <Tool>
-      <ToolPartHeader part={part} />
-      <ToolContent>
-        {part.input !== undefined && <ToolInput input={part.input} />}
-        {part.state === "output-available" && (
-          <ToolOutput errorText={undefined} output={part.output} />
-        )}
-        {part.state === "output-error" && (
-          <ToolOutput errorText={part.errorText} output={undefined} />
-        )}
-      </ToolContent>
-    </Tool>
+    part.state === "approval-requested" && part.approval.isAutomatic !== true
   );
 }

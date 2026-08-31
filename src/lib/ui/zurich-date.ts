@@ -14,6 +14,13 @@ const zurichWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",
 });
 
+const zurichShortDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: ZURICH_TIME_ZONE,
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
 const zurichTimestampFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: ZURICH_TIME_ZONE,
   year: "numeric",
@@ -59,6 +66,24 @@ export function formatZurichDayLabel(isoDate: string): string {
 
   const utcNoon = new Date(Date.UTC(year, month - 1, day, 12));
   return zurichWeekdayFormatter.format(utcNoon);
+}
+
+/** `2026-08-12` becomes `12 Aug 2026`, for compact labels beside a value. */
+export function formatCivilDateShort(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (
+    year === undefined ||
+    month === undefined ||
+    day === undefined ||
+    Number.isNaN(year) ||
+    Number.isNaN(month) ||
+    Number.isNaN(day)
+  ) {
+    throw new RangeError(`Invalid civil date: ${isoDate}`);
+  }
+
+  const utcNoon = new Date(Date.UTC(year, month - 1, day, 12));
+  return zurichShortDateFormatter.format(utcNoon);
 }
 
 export function addCivilDays(isoDate: string, days: number): string {
