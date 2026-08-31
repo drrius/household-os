@@ -17,6 +17,8 @@ select has_table(
 );
 select has_table('public', 'push_outbox', 'push outbox table exists');
 select has_table('public', 'job_claims', 'job claims table exists');
+select has_extension('pg_net', 'pg_net is enabled for scheduled Edge invocation');
+select has_schema('net', 'pg_net exposes the async HTTP schema');
 
 select ok(
   (
