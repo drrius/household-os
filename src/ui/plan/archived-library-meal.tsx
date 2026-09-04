@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { RestoreLibraryMeal } from "./restore-library-meal.client";
+import type { FormActionState } from "@/lib/forms/action-state";
 import type { LibraryMeal } from "@/lib/meals/library";
-import { mealPlanHref } from "@/lib/forms/meal-navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
@@ -8,9 +9,14 @@ import { PageHeader } from "@/ui/layout/page-header";
 export function ArchivedLibraryMeal({
   meal,
   date,
+  restoreAction,
 }: {
   meal: LibraryMeal;
   date: string;
+  restoreAction?: (
+    previous: FormActionState,
+    form: FormData,
+  ) => Promise<FormActionState>;
 }) {
   return (
     <AppPage labelledBy="archived-meal-title">
@@ -23,6 +29,7 @@ export function ArchivedLibraryMeal({
         This meal is archived. Its recipe and default groceries remain here for
         reference. Meals already on your plan keep their own details.
       </p>
+      <RestoreLibraryMeal id={meal.id} date={date} action={restoreAction} />
       {meal.notes ? (
         <p className="max-w-2xl whitespace-pre-wrap wrap-anywhere">
           {meal.notes}
@@ -54,9 +61,9 @@ export function ArchivedLibraryMeal({
       ) : null}
       <Link
         className={buttonVariants({ variant: "outline", className: "w-fit" })}
-        href={mealPlanHref(date)}
+        href={`/plan/library/archived?date=${date}`}
       >
-        Back to plan
+        Back to archived meals
       </Link>
     </AppPage>
   );

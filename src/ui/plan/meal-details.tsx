@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RemovedMealDetails } from "./removed-meal-details";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -199,6 +200,7 @@ function MealGroceries({
 }
 
 export function MealDetails({ entry, connections, day }: MealDetailsProps) {
+  if (entry.removedAt) return <RemovedMealDetails entry={entry} day={day} />;
   return (
     <AppPage labelledBy="meal-title">
       <div className="grid max-w-3xl gap-6">

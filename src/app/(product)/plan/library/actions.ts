@@ -13,6 +13,7 @@ import {
   parseMealLibraryId,
   parseMealTemplateId,
 } from "@/lib/forms/meal-library";
+import { restoreLibraryMeal } from "@/lib/meals/library-archive";
 import { mealDate, mealPlanHref } from "@/lib/forms/meal-navigation";
 import {
   saveLibraryMeal,
@@ -45,7 +46,7 @@ export async function archiveLibraryMealAction(
     await archiveLibraryMeal(parseMealLibraryId(form));
   });
   if (rejected) return rejected;
-  revalidatePath("/plan");
+  revalidatePath("/plan", "layout");
   redirect(mealPlanHref(mealDate(form.get("date"))));
 }
 
@@ -96,4 +97,17 @@ export async function restoreMealTemplateAction(
   redirect(
     `/plan/library/${id}?date=${mealDate(form.get("date"))}#default-groceries`,
   );
+}
+
+export async function restoreLibraryMealAction(
+  previous: FormActionState,
+  form: FormData,
+): Promise<FormActionState> {
+  let id = "";
+  const rejected = await settleFormAction(previous, form, async () => {
+    id = await restoreLibraryMeal(parseMealLibraryId(form));
+  });
+  if (rejected) return rejected;
+  revalidatePath("/plan", "layout");
+  redirect(`/plan/library/${id}?date=${mealDate(form.get("date"))}`);
 }

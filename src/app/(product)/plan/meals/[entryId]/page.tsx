@@ -13,7 +13,7 @@ export default async function MealPage({
   searchParams: Promise<{ day?: string }>;
 }) {
   const { entryId } = await params;
-  const entry = await loadManageMealEntry(entryId);
+  const entry = await loadManageMealEntry(entryId, true);
   if (entry === null) notFound();
   const connections = await loadMealConnections(entry.id);
   const { day } = await searchParams;

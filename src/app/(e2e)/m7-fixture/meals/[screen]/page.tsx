@@ -2,6 +2,7 @@ import {
   ArchivedMealFixture,
   PreparationEditFixture,
 } from "@/app/(e2e)/m7-fixture/meals/lifecycle";
+import { ArchivedLibraryList } from "@/ui/plan/archived-library-list";
 import { notFound } from "next/navigation";
 
 import { buildPlanViewModel } from "@/lib/read-models/plan";
@@ -13,7 +14,7 @@ import { AppShell } from "@/ui/shell/app-shell";
 const mealId = "11111111-1111-4111-8111-111111111111";
 const libraryId = "22222222-2222-4222-8222-222222222222";
 
-function renderDetails() {
+function renderDetails(removed = false, leftover = false) {
   return (
     <AppShell>
       <MealDetails
@@ -25,7 +26,9 @@ function renderDetails() {
           slot: "dinner",
           notes: "Use the ripe tomatoes.\nKeep some sauce for lunch.",
           recipeUrl: "https://example.com/recipe",
-          isLeftover: false,
+          isLeftover: leftover,
+          leftoverOfEntryId: leftover ? mealId : null,
+          removedAt: removed ? "2026-09-09T12:00:00Z" : null,
           libraryId,
         }}
         connections={{
@@ -107,6 +110,28 @@ export default async function MealWorkflowFixture({
   const { screen } = await params;
   if (screen === "archived") return <ArchivedMealFixture />;
   if (screen === "prep-edit") return <PreparationEditFixture />;
+  if (screen === "removed") return renderDetails(true);
+  if (screen === "leftover") return renderDetails(false, true);
+  if (screen === "archive-list")
+    return (
+      <AppShell>
+        <ArchivedLibraryList
+          date="2026-09-10"
+          library={{
+            page: 1,
+            total: 21,
+            meals: [
+              {
+                id: mealId,
+                name: "Archived pasta",
+                notes: "The original recipe is still here.",
+                archived_at: "2026-09-05T12:00:00Z",
+              },
+            ],
+          }}
+        />
+      </AppShell>
+    );
   if (screen === "details") return renderDetails();
   if (screen === "new") return renderNew();
   if (screen === "plan") return renderPlan();

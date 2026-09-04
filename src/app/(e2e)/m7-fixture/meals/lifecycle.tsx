@@ -7,7 +7,8 @@ import {
   type FormActionState,
 } from "@/lib/forms/action-state";
 import { parseMealPreparationEdit } from "@/lib/forms/meal-preparation";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
 const id = "11111111-1111-4111-8111-111111111111";
 async function validatePrep(
   previous: FormActionState,
@@ -22,11 +23,32 @@ async function validatePrep(
     })) ?? { submissionId: previous.submissionId + 1 }
   );
 }
-export function ArchivedMealFixture() {
+async function fixtureRestore(
+  previous: FormActionState,
+): Promise<FormActionState> {
+  "use server";
+  if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") notFound();
+  if (previous.submissionId === 0)
+    return {
+      submissionId: 1,
+      error: "Could not restore this meal. Try again.",
+    };
+  (await cookies()).set("meal-restored", "1", { path: "/m7-fixture/meals" });
+  redirect("/m7-fixture/meals/archived");
+}
+export async function ArchivedMealFixture() {
+  if ((await cookies()).get("meal-restored")?.value === "1")
+    return (
+      <AppShell>
+        <h1>Restored pasta</h1>
+        <p>The saved meal is available again.</p>
+      </AppShell>
+    );
   return (
     <AppShell>
       <ArchivedLibraryMeal
         date="2026-09-10"
+        restoreAction={fixtureRestore}
         meal={{
           id,
           name: "Archived pasta",

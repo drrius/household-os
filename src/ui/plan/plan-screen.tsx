@@ -138,7 +138,19 @@ function PlanCollections({ plan, planningDate }: PlanCollectionsProps) {
           </Link>
         </div>
         <MealLibraryList meals={plan.library} date={planningDate} />
+        <ArchivedMealsLink date={planningDate} />
       </section>
     </div>
+  );
+}
+
+function ArchivedMealsLink({ date }: { date: string }) {
+  return (
+    <Link
+      className="min-h-11 w-fit content-center text-sm text-muted-foreground underline"
+      href={`/plan/library/archived?date=${date}`}
+    >
+      Archived meals
+    </Link>
   );
 }

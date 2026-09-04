@@ -1,5 +1,6 @@
 -- Meal library changes are visible to both members and retained for recovery.
 alter table public.meal_grocery_templates add column archived_at timestamptz;
+grant update (archived_at) on public.meal_grocery_templates to authenticated;
 revoke delete on public.meal_grocery_templates from authenticated;
 drop policy if exists "members can delete meal grocery templates" on public.meal_grocery_templates;
 

@@ -6,16 +6,16 @@ Audit date: 2026-09-05. This is a read-only implementation review, not a product
 
 Reviewed routes, screen/read-model boundaries, authentication, notification delivery/enrollment, shared forms/realtime, and operational documentation across the active worktrees. Root was advancing during the audit; file references below name the relevant worktree so an unintegrated feature is not mistaken for an absent one.
 
-| Worktree | Snapshot / work covered | Assessment |
-| --- | --- | --- |
-| root `/home/drrius/Work/household-os` | `337b310`, uncommitted trips/projects UI | Trips/projects are in progress; root explicitly owns unified Today, expanded Home/Plan navigation, search, links and notification integration next. |
-| `/tmp/household-os-meals` | `5faa334` | Meal details, edit/move, leftovers, saved library/default groceries, archival, linked prep editing and realtime fixes implemented. |
-| `/tmp/household-os-money` | `b323012` | Inspectable events, corrections/reversals/refunds, recurring rules and shopping receipt continuity implemented; PR49 review fixes are next. |
-| `/tmp/household-os-routines-pr` | `e9dea80` | Routine lifecycle/history, occurrence detail, starters, areas/pets and form recovery implemented. |
-| `/tmp/household-os-groceries-pr` | `427bd89` plus review edits | Item/category management, checkout and shopping detail implemented; browser recovery fixes underway. |
-| `/tmp/household-os-calendar` | `482d4a2` plus calendar drafts | Shared calendar/private iCloud connection in progress. |
-| `/tmp/household-os-home-records` | `685d023` plus home-record drafts | Inventory/maintenance, commitments, decisions, contacts and private documents in progress. Contacts/documents are already covered, not new audit proposals. |
-| `/tmp/household-os-attachments` | `a938fd4` | Private attachment foundation and review fixes implemented. |
+| Worktree                              | Snapshot / work covered                  | Assessment                                                                                                                                                  |
+| ------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| root `/home/drrius/Work/household-os` | `337b310`, uncommitted trips/projects UI | Trips/projects are in progress; root explicitly owns unified Today, expanded Home/Plan navigation, search, links and notification integration next.         |
+| `/tmp/household-os-meals`             | `5faa334`                                | Meal details, edit/move, leftovers, saved library/default groceries, archival, linked prep editing and realtime fixes implemented.                          |
+| `/tmp/household-os-money`             | `b323012`                                | Inspectable events, corrections/reversals/refunds, recurring rules and shopping receipt continuity implemented; PR49 review fixes are next.                 |
+| `/tmp/household-os-routines-pr`       | `e9dea80`                                | Routine lifecycle/history, occurrence detail, starters, areas/pets and form recovery implemented.                                                           |
+| `/tmp/household-os-groceries-pr`      | `427bd89` plus review edits              | Item/category management, checkout and shopping detail implemented; browser recovery fixes underway.                                                        |
+| `/tmp/household-os-calendar`          | `482d4a2` plus calendar drafts           | Shared calendar/private iCloud connection in progress.                                                                                                      |
+| `/tmp/household-os-home-records`      | `685d023` plus home-record drafts        | Inventory/maintenance, commitments, decisions, contacts and private documents in progress. Contacts/documents are already covered, not new audit proposals. |
+| `/tmp/household-os-attachments`       | `a938fd4`                                | Private attachment foundation and review fixes implemented.                                                                                                 |
 
 Existing feature tests were reported by their lanes; this audit did not rerun them or exercise real household accounts. Worktree implementation is distinct from merged, deployed and live-account verified behavior. Database verification remains a CI requirement while local Supabase is unavailable.
 

@@ -156,3 +156,57 @@ test("prep editor keeps a one-off linked task and preserves submitted text", asy
   await expect(page.getByLabel("What needs doing?")).toHaveValue("Thaw sauce");
   await expect(page.locator('input[name="entryId"]')).toHaveValue(mealId);
 });
+
+test("leftover source remains readable after removal with no unavailable edit controls", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/meals/leftover");
+  await expect(
+    page.getByRole("link", { name: "See the original meal" }),
+  ).toHaveAttribute("href", `/plan/meals/${mealId}`);
+  await page.goto("/m7-fixture/meals/removed");
+  await expect(
+    page.getByText("Removed from the plan", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Keep some sauce for lunch.", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open recipe" })).toHaveAttribute(
+    "href",
+    "https://example.com/recipe",
+  );
+  for (const name of [
+    "Edit meal",
+    "Move meal",
+    "Plan leftovers",
+    "Add prep task",
+    "Manage prep task",
+    "Save to meal library",
+  ])
+    await expect(page.getByRole("link", { name, exact: true })).toHaveCount(0);
+});
+
+test("meal archive is discoverable, paginated and restores with recoverable feedback", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/meals/plan");
+  await expect(
+    page.getByRole("link", { name: "Archived meals", exact: true }),
+  ).toHaveAttribute("href", "/plan/library/archived?date=2026-09-10");
+  await page.goto("/m7-fixture/meals/archive-list");
+  await expect(
+    page.getByRole("link", { name: "Archived pasta", exact: true }),
+  ).toHaveAttribute("href", `/plan/library/${mealId}?date=2026-09-10`);
+  await expect(
+    page.getByRole("link", { name: "Next", exact: true }),
+  ).toHaveAttribute("href", "/plan/library/archived?date=2026-09-10&page=2");
+  await page.goto("/m7-fixture/meals/archived");
+  await page.getByRole("button", { name: "Restore meal", exact: true }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toHaveText(
+    "Could not restore this meal. Try again.",
+  );
+  await page.getByRole("button", { name: "Restore meal", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Restored pasta" }),
+  ).toBeVisible();
+});

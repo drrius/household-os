@@ -13,6 +13,7 @@ export type ManageMealEntry = {
   notes: string | null;
   recipeUrl: string | null;
   isLeftover: boolean;
+  removedAt?: string | null;
   libraryId?: string | null;
   leftoverOfEntryId?: string | null;
 };
@@ -28,6 +29,7 @@ const manageEntryRowSchema = z.object({
   recipe_url_snapshot: z.string().nullable(),
   meal_definition_id: z.string().uuid().nullable(),
   leftover_of_entry_id: z.string().uuid().nullable(),
+  removed_at: z.string().nullable(),
 });
 
 const libraryTitleRowSchema = z.object({
@@ -36,6 +38,7 @@ const libraryTitleRowSchema = z.object({
 
 export async function loadManageMealEntry(
   entryId: string,
+  includeRemoved = false,
 ): Promise<ManageMealEntry | null> {
   const parsedId = z.string().uuid().safeParse(entryId);
   if (!parsedId.success) {
@@ -44,15 +47,15 @@ export async function loadManageMealEntry(
 
   const member = await requireMemberContext();
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("meal_plan_entries")
     .select(
-      "id, title_snapshot, date, slot, notes, recipe_url_snapshot, leftover_of_entry_id, meal_definition_id",
+      "id, title_snapshot, date, slot, notes, recipe_url_snapshot, leftover_of_entry_id, meal_definition_id, removed_at",
     )
     .eq("household_id", member.householdId)
-    .eq("id", parsedId.data)
-    .is("removed_at", null)
-    .maybeSingle();
+    .eq("id", parsedId.data);
+  if (!includeRemoved) query = query.is("removed_at", null);
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     throw new Error(`Meal entry lookup failed: ${error.message}`);
@@ -72,6 +75,7 @@ export async function loadManageMealEntry(
     isLeftover: row.leftover_of_entry_id !== null,
     libraryId: row.meal_definition_id,
     leftoverOfEntryId: row.leftover_of_entry_id,
+    removedAt: row.removed_at,
   };
 }
 
