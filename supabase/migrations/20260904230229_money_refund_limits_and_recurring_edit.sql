@@ -1,3 +1,44 @@
+-- Preserve one starting-balance lineage while allowing immutable corrections.
+-- The original anonymous CHECK follows the payer CHECK in the initial schema.
+alter table public.financial_events drop constraint financial_events_check1;
+alter table public.financial_events add constraint financial_events_related_event_check check (
+  (type in ('refund', 'reversal', 'replacement') and related_event_id is not null)
+  or (type in ('expense', 'settlement') and related_event_id is null)
+  or type = 'opening_balance'
+);
+drop index public.financial_events_one_opening_balance_idx;
+create unique index financial_events_one_opening_balance_idx
+  on public.financial_events (household_id)
+  where type = 'opening_balance' and related_event_id is null;
+create unique index financial_events_one_opening_successor_idx
+  on public.financial_events (related_event_id)
+  where type = 'opening_balance' and related_event_id is not null;
+
+create or replace function private.validate_opening_balance_lineage()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.type = 'opening_balance' and new.related_event_id is not null then
+    if not exists (
+      select 1 from public.financial_events as parent
+      where parent.id = new.related_event_id and parent.household_id = new.household_id
+        and parent.type = 'opening_balance'
+    ) or not exists (
+      select 1 from public.financial_events as reversal
+      where reversal.related_event_id = new.related_event_id
+        and reversal.household_id = new.household_id and reversal.type = 'reversal'
+    ) then
+      raise exception 'opening corrections require a reversed opening balance parent'
+        using errcode = '23514';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.validate_opening_balance_lineage() from public, anon, authenticated;
+create trigger financial_events_opening_lineage
+before insert on public.financial_events
+for each row execute function private.validate_opening_balance_lineage();
+
 -- Bound refunds to unreturned shares and provide an authorized recurring-rule editor.
 
 create or replace function public.post_refund(
@@ -153,12 +194,16 @@ begin
     raise exception 'reversal events cannot be corrected'
       using errcode = '22023';
   end if;
-  if exists (
-    select 1
-    from public.financial_events as child
-    where child.related_event_id = target.id
-      and child.type = 'reversal'
-  ) then
+  select child.id into reversal_event_id
+  from public.financial_events as child
+  where child.related_event_id = target.id and child.type = 'reversal';
+  -- A reversed opening leaf may be repaired, but no ancestor can fork the lineage.
+  if (reversal_event_id is not null and not (
+      target.type = 'opening_balance' and p_replacement is not null
+    )) or exists (
+      select 1 from public.financial_events as child
+      where child.related_event_id = target.id and child.type = 'opening_balance'
+    ) then
     raise exception 'financial event has already been corrected'
       using errcode = '55000';
   end if;
@@ -169,10 +214,16 @@ begin
       using errcode = '22023';
   end if;
   if p_replacement is not null
-    and target.type not in ('expense', 'replacement')
+    and target.type not in ('expense', 'replacement', 'opening_balance')
   then
     raise exception
-      'replacement corrections are only supported for expense events'
+      'replacement corrections are only supported for expense or opening balance events'
+      using errcode = '22023';
+  end if;
+
+  if target.type = 'opening_balance' and p_replacement is not null
+    and p_replacement -> 'allocations' <> 'null'::jsonb then
+    raise exception 'opening balance corrections do not accept expense allocations'
       using errcode = '22023';
   end if;
 
@@ -186,13 +237,25 @@ begin
       using errcode = '55000';
   end if;
 
-  reversal_event_id := private.post_financial_event(
+  if reversal_event_id is null then
+    reversal_event_id := private.post_financial_event(
     target.household_id, actor_member_id, 'reversal', null,
     'Reversal: ' || target.description, target.amount_cents, null,
     target.occurred_on, target.id, null, null, null, null, null, null
-  );
+    );
+  end if;
 
-  if p_replacement is not null then
+  if p_replacement is not null and target.type = 'opening_balance' then
+    -- Opening balances store the creditor, never expense allocations or receipts.
+    replacement_event_id := private.post_financial_event(
+      target.household_id, actor_member_id, 'opening_balance',
+      (p_replacement ->> 'payer_member_id')::uuid,
+      p_replacement ->> 'description',
+      (p_replacement ->> 'amount_cents')::bigint, null,
+      (p_replacement ->> 'occurred_on')::date, target.id,
+      null, p_replacement ->> 'note', null, null, null, null
+    );
+  elsif p_replacement is not null then
     replacement_event_id := private.post_financial_event(
       target.household_id, actor_member_id, 'replacement',
       (p_replacement ->> 'payer_member_id')::uuid,

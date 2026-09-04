@@ -10,7 +10,7 @@ import {
   settleFormAction,
   type FormActionState,
 } from "@/lib/forms/action-state";
-import { parseExpenseForm } from "@/lib/forms/money";
+import { parseExpenseForm, parseOpeningBalanceForm } from "@/lib/forms/money";
 import { parseRefundForm } from "@/lib/forms/money-refund";
 import {
   correctFinancialEvent,
@@ -40,7 +40,7 @@ export async function dismissDraftAction(
     });
   });
   if (rejected) return rejected;
-  revalidateProduct(["/", "/money"]);
+  revalidateProduct(["/", "/money", "/home"]);
   redirect("/money");
 }
 
@@ -53,13 +53,29 @@ export async function correctEventAction(
     const eventId = z.string().uuid().parse(form.get("eventId"));
     const idempotencyKey = z.string().uuid().parse(form.get("idempotencyKey"));
     const members = await loadHouseholdMembers();
+    const mode = z
+      .enum(["reverse", "replace", "opening"])
+      .parse(form.get("correctionMode"));
+    const opening = mode === "opening" ? parseOpeningBalanceForm(form) : null;
     const replacement =
-      form.get("correctionMode") === "reverse"
+      mode === "reverse"
         ? null
-        : {
-            ...parseExpenseForm(form, [members[0].user_id, members[1].user_id]),
-            receiptPath: z.string().nullable().parse(form.get("receiptPath")),
-          };
+        : opening
+          ? {
+              description: "Opening balance correction",
+              amountCents: opening.amountCents,
+              payerMemberId: opening.creditorMemberId,
+              allocations: null,
+              occurredOn: opening.occurredOn,
+              note: opening.note,
+            }
+          : {
+              ...parseExpenseForm(form, [
+                members[0].user_id,
+                members[1].user_id,
+              ]),
+              receiptPath: z.string().nullable().parse(form.get("receiptPath")),
+            };
     const result = await correctFinancialEvent({
       eventId,
       idempotencyKey,

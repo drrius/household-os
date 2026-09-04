@@ -14,7 +14,7 @@ import { PageSection } from "@/ui/layout/page-section";
 function EventActions({ detail }: { detail: MoneyEventDetail }) {
   const { event, isReversed, activeRefundCount, remaining } = detail;
   const expense = event.type === "expense" || event.type === "replacement";
-  if (isReversed || event.type === "reversal")
+  if ((isReversed && !detail.canCorrectOpening) || event.type === "reversal")
     return (
       <p className="text-sm text-muted-foreground">
         This event stays in your history. Its reversal cancels its effect on
@@ -23,7 +23,9 @@ function EventActions({ detail }: { detail: MoneyEventDetail }) {
     );
   return (
     <div className="flex flex-wrap gap-2">
-      {expense && remaining.some((share) => share.allocatedCents > 0) ? (
+      {expense &&
+      !detail.hasExcessRefund &&
+      remaining.some((share) => share.allocatedCents > 0) ? (
         <Link
           className={buttonVariants({ variant: "outline" })}
           href={`/money/events/${event.id}/refund`}
@@ -36,7 +38,11 @@ function EventActions({ detail }: { detail: MoneyEventDetail }) {
           className={buttonVariants({ variant: "outline" })}
           href={`/money/events/${event.id}/correct`}
         >
-          {expense ? "Correct or reverse" : "Reverse event"}
+          {detail.canCorrectOpening
+            ? "Correct opening balance"
+            : expense
+              ? "Correct or reverse"
+              : "Reverse event"}
         </Link>
       ) : (
         <p className="text-sm text-muted-foreground">
@@ -169,7 +175,7 @@ export function EventDetail({ detail }: { detail: MoneyEventDetail }) {
           <p className="text-sm text-muted-foreground">
             {event.occurred_on}
             {payer
-              ? ` · ${event.type === "refund" ? "Refund received by" : "Paid by"} ${payer.display_name}`
+              ? ` · ${event.type === "opening_balance" ? "Owed to" : event.type === "refund" ? "Refund received by" : "Paid by"} ${payer.display_name}`
               : ""}
           </p>
           {event.note ? (
@@ -185,7 +191,13 @@ export function EventDetail({ detail }: { detail: MoneyEventDetail }) {
               View receipt <span className="sr-only">(opens in a new tab)</span>
             </a>
           ) : null}
-          {detail.activeRefundCount > 0 ? (
+          {detail.hasExcessRefund ? (
+            <p role="status" className="text-base text-destructive">
+              Earlier refunds exceed one person’s original share. Review and
+              reverse the affected refunds in the history below before recording
+              another refund. Your recorded balance and history are unchanged.
+            </p>
+          ) : detail.activeRefundCount > 0 ? (
             <p className="text-sm">
               Still refundable:{" "}
               <strong>{formatCentimesAsFrancs(remaining)}</strong>

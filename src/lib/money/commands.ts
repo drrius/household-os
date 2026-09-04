@@ -41,7 +41,7 @@ export type FinancialEventReplacement = {
   description: string;
   amountCents: number;
   payerMemberId: string;
-  allocations: readonly MoneyAllocationInput[];
+  allocations: readonly MoneyAllocationInput[] | null;
   occurredOn: string;
   categoryId?: string | null;
   note?: string | null;

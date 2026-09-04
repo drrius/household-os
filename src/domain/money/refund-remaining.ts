@@ -1,10 +1,11 @@
 export type RefundShare = { memberId: string; allocatedCents: number };
 
-export function remainingRefundShares(
+export function refundAvailability(
   original: readonly RefundShare[],
   refunded: readonly RefundShare[],
-): RefundShare[] {
-  return original.map((share) => {
+): { remaining: RefundShare[]; hasExcessRefund: boolean } {
+  let hasExcessRefund = false;
+  const remaining = original.map((share) => {
     if (!Number.isSafeInteger(share.allocatedCents) || share.allocatedCents < 0)
       throw new Error("Invalid original allocation.");
     const used = refunded
@@ -14,11 +15,24 @@ export function remainingRefundShares(
           throw new Error("Invalid refund allocation.");
         return sum + BigInt(row.allocatedCents);
       }, 0n);
-    const remaining = BigInt(share.allocatedCents) - used;
-    if (remaining < 0n)
-      throw new Error("Refunds exceed the original allocation.");
-    return { memberId: share.memberId, allocatedCents: Number(remaining) };
+    const balance = BigInt(share.allocatedCents) - used;
+    if (balance < 0n) hasExcessRefund = true;
+    return {
+      memberId: share.memberId,
+      allocatedCents: Number(balance < 0n ? 0n : balance),
+    };
   });
+  return { remaining, hasExcessRefund };
+}
+
+export function remainingRefundShares(
+  original: readonly RefundShare[],
+  refunded: readonly RefundShare[],
+): RefundShare[] {
+  const availability = refundAvailability(original, refunded);
+  if (availability.hasExcessRefund)
+    throw new Error("Refunds exceed the original allocation.");
+  return availability.remaining;
 }
 
 export function allocateProportionalRefund(

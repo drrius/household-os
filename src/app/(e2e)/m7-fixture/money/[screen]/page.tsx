@@ -1,5 +1,11 @@
+import { CorrectionForm } from "@/ui/money/correction-form";
 import { notFound } from "next/navigation";
-import { detail, members } from "@/app/(e2e)/m7-fixture/money/fixture-data";
+import {
+  detail,
+  members,
+  openingDetail,
+  excessRefundDetail,
+} from "@/app/(e2e)/m7-fixture/money/fixture-data";
 import { fixtureMoneyAction } from "@/app/(e2e)/m7-fixture/money/fixture-actions";
 import { EventDetail } from "@/ui/money/event-detail";
 import { RefundForm } from "@/ui/money/refund-form";
@@ -9,6 +15,26 @@ import { FormPage } from "@/ui/forms/form-page";
 import { AppShell } from "@/ui/shell/app-shell";
 
 function screenContent(screen: string) {
+  if (screen === "opening-detail")
+    return <EventDetail detail={openingDetail} />;
+  if (screen === "opening-reversed")
+    return <EventDetail detail={{ ...openingDetail, isReversed: true }} />;
+  if (screen === "legacy-refund")
+    return <EventDetail detail={excessRefundDetail} />;
+  if (screen === "opening-correction" || screen === "opening-repair")
+    return (
+      <FormPage
+        backHref="/m7-fixture/money/opening-detail"
+        title="Correct opening balance"
+        description="Keep an accurate starting point and the full correction history."
+      >
+        <CorrectionForm
+          detail={{ ...openingDetail, isReversed: screen === "opening-repair" }}
+          categories={[]}
+          action={fixtureMoneyAction}
+        />
+      </FormPage>
+    );
   if (screen === "detail") return <EventDetail detail={detail} />;
   if (screen === "refund")
     return (

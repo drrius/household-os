@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { remainingRefundShares } from "@/domain/money/refund-remaining";
+import { refundAvailability } from "@/domain/money/refund-remaining";
 import { isHouseholdAttachment } from "@/domain/attachments/files";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
@@ -75,7 +75,7 @@ async function refundState(
   const reversedRefunds = new Set(
     (reversals.data ?? []).map((row) => row.related_event_id),
   );
-  const remaining = remainingRefundShares(
+  const availability = refundAvailability(
     shares.map((row) => ({
       memberId: row.member_id,
       allocatedCents: row.allocated_cents,
@@ -90,7 +90,7 @@ async function refundState(
       })),
   );
   return {
-    remaining,
+    ...availability,
     activeRefundCount: refunds.filter(
       (refund) => !reversedRefunds.has(refund.id),
     ).length,
@@ -164,6 +164,9 @@ export async function loadMoneyEvent(id: string) {
     related: children,
     parent: parent.data,
     ...refund,
+    canCorrectOpening:
+      event.type === "opening_balance" &&
+      !children.some((child) => child.type === "opening_balance"),
     isReversed: children.some((child) => child.type === "reversal"),
     viewerId: member.userId,
     receiptPath:

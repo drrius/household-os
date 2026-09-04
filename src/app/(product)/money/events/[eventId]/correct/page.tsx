@@ -16,7 +16,7 @@ export default async function CorrectMoneyEventPage({
   ]);
   if (!detail) notFound();
   if (
-    detail.isReversed ||
+    (detail.isReversed && !detail.canCorrectOpening) ||
     detail.event.type === "reversal" ||
     detail.activeRefundCount > 0
   )

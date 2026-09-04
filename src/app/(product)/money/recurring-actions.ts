@@ -35,7 +35,7 @@ export async function saveRecurringRuleAction(
     else await createRecurringExpenseRule(input);
   });
   if (rejected) return rejected;
-  revalidateProduct(["/money", "/money/recurring"]);
+  revalidateProduct(["/money", "/money/recurring", "/home"]);
   redirect("/money/recurring");
 }
 
@@ -51,6 +51,6 @@ export async function toggleRecurringRuleAction(
     });
   });
   if (rejected) return rejected;
-  revalidateProduct(["/money", "/money/recurring"]);
+  revalidateProduct(["/money", "/money/recurring", "/home"]);
   redirect("/money/recurring");
 }

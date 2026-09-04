@@ -107,3 +107,55 @@ test("recurring expenses explain drafts and validate month-end dates", async ({
   );
   await expect(page.getByText(/You review each draft/)).toBeVisible();
 });
+
+test("opening details identify the creditor and remain correctable after reversal", async ({
+  page,
+}) => {
+  for (const screen of ["opening-detail", "opening-reversed"]) {
+    await page.goto(`/m7-fixture/money/${screen}`);
+    await expect(page.getByText(/Owed to Darius/)).toBeVisible();
+    await expect(page.getByText(/Paid by Darius/)).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Correct opening balance" }),
+    ).toHaveAttribute("href", /correct$/);
+    await expect(page.getByRole("link", { name: "Record refund" })).toHaveCount(
+      0,
+    );
+  }
+});
+test("opening correction preserves creditor, amount, note and idempotency after rejection", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/money/opening-repair");
+  await expect(
+    page.getByRole("button", { name: "Record reversal", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Amount in CHF")).toHaveValue("123.45");
+  const key = await page.locator('input[name="idempotencyKey"]').inputValue();
+  await page.getByLabel("Amount in CHF").fill("200.01");
+  await expect(page.getByText(/Partner will owe Darius/)).toBeVisible();
+  await page
+    .getByRole("button", { name: "Save opening balance correction" })
+    .click();
+  await expect(
+    page.getByText("Validated. This fixture does not post to a household."),
+  ).toBeVisible();
+  await expect(page.getByLabel("Amount in CHF")).toHaveValue("200.01");
+  await expect(page.getByLabel(/^Note/)).toHaveValue("Agreed starting point");
+  await expect(page.locator('input[name="idempotencyKey"]')).toHaveValue(key);
+});
+test("legacy over-refunds remain readable with a reversal path", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/money/legacy-refund");
+  await expect(page.getByText(/Earlier refunds exceed/)).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Earlier refund/ }),
+  ).toHaveAttribute("href", /events\/20000000-0000-4000-8000-000000000002$/);
+  await expect(page.getByRole("link", { name: "Record refund" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("heading", { name: "How it affects you both" }),
+  ).toBeVisible();
+});

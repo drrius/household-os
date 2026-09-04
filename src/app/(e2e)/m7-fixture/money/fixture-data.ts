@@ -38,8 +38,48 @@ export const detail: MoneyEventDetail = {
     allocatedCents: index ? 500 : 501,
   })),
   activeRefundCount: 0,
+  hasExcessRefund: false,
+  canCorrectOpening: false,
   isReversed: false,
   viewerId: asUserId(members[0].user_id),
   receiptPath:
     "10000000-0000-4000-8000-000000000001/receipts/30000000-0000-4000-8000-000000000001.jpg",
+};
+
+export const openingDetail: MoneyEventDetail = {
+  ...detail,
+  event: {
+    ...detail.event,
+    type: "opening_balance",
+    description: "Starting balance",
+    amount_cents: 12345,
+    note: "Agreed starting point",
+  },
+  canCorrectOpening: true,
+  allocations: [],
+  remaining: [],
+  receiptPath: null,
+  ledger: members.map((member, index) => ({
+    member_id: member.user_id,
+    receivable_delta_cents: index ? -12345 : 12345,
+  })),
+};
+export const excessRefundDetail: MoneyEventDetail = {
+  ...detail,
+  hasExcessRefund: true,
+  activeRefundCount: 1,
+  remaining: [
+    { memberId: members[0].user_id, allocatedCents: 0 },
+    { memberId: members[1].user_id, allocatedCents: 500 },
+  ],
+  related: [
+    {
+      ...detail.event,
+      id: "20000000-0000-4000-8000-000000000002",
+      type: "refund",
+      description: "Earlier refund",
+      amount_cents: 600,
+      related_event_id: detail.event.id,
+    },
+  ],
 };

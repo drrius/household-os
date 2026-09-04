@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import {
   allocateProportionalRefund,
+  refundAvailability,
   remainingRefundShares,
 } from "@/domain/money/refund-remaining";
 
@@ -10,6 +11,42 @@ const shares = (first: number, second: number) => [
   { memberId: "b", allocatedCents: second },
 ];
 describe("refund allocations", () => {
+  it("keeps legacy excess refunds inspectable without changing the original or claiming a negative remainder", () => {
+    const original = shares(501, 500);
+    expect(refundAvailability(original, shares(600, 0))).toEqual({
+      remaining: shares(0, 500),
+      hasExcessRefund: true,
+    });
+    expect(original).toEqual(shares(501, 500));
+    expect(refundAvailability(original, [])).toEqual({
+      remaining: original,
+      hasExcessRefund: false,
+    });
+  });
+  it("clamps only display availability across arbitrary historical refund totals", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }),
+        fc.array(fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }), {
+          maxLength: 8,
+        }),
+        (original, amounts) => {
+          const used = amounts.reduce((sum, n) => sum + BigInt(n), 0n);
+          const state = refundAvailability(
+            shares(original, 0),
+            amounts.map((allocatedCents) => ({
+              memberId: "a",
+              allocatedCents,
+            })),
+          );
+          expect(state.hasExcessRefund).toBe(used > BigInt(original));
+          expect(state.remaining[0]?.allocatedCents).toBe(
+            Number(used > BigInt(original) ? 0n : BigInt(original) - used),
+          );
+        },
+      ),
+    );
+  });
   it("uses integer proportions and returns every cent on a full refund", () => {
     expect(allocateProportionalRefund(5, shares(7, 3))).toEqual(shares(3, 2));
     expect(allocateProportionalRefund(1001, shares(501, 500))).toEqual(

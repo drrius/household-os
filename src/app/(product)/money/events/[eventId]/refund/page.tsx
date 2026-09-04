@@ -14,6 +14,7 @@ export default async function RefundMoneyEventPage({
   if (!detail) notFound();
   if (
     detail.isReversed ||
+    detail.hasExcessRefund ||
     !["expense", "replacement"].includes(detail.event.type) ||
     !detail.remaining.some((share) => share.allocatedCents > 0)
   )
