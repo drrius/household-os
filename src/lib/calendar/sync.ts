@@ -1,56 +1,15 @@
 import "server-only";
 import { masterFromIcal } from "@/domain/calendar/ical-read";
-import { readAppleCalendar, writeAppleEvent, deleteAppleEvent } from "./caldav";
+import { readAppleCalendar } from "./caldav";
+import { pushCalendarEvent } from "./push";
 import { getPrivateConnection } from "./connection";
 import { calendarContext } from "./context";
 import { decryptCredentials } from "./credentials";
 import { CalendarError, calendarErrorMessage } from "./errors";
 import { createCaldavTransport, type CaldavTransport } from "./transport";
 import type { CalendarRow } from "./rows";
-import { canonicalCalendar } from "./canonical";
 
 type Database = Awaited<ReturnType<typeof calendarContext>>["db"];
-async function pushEvent(
-  db: Database,
-  transport: CaldavTransport,
-  connectionId: string,
-  calendarUrl: string,
-  token: string,
-  row: CalendarRow,
-) {
-  row = await prepareEventForPush(db, row);
-  const href =
-    row.remote_href ?? `${calendarUrl.replace(/\/$/, "")}/${row.id}.ics`;
-  let etag: string | null = null;
-  if (row.cancelled_at) {
-    if (row.remote_etag)
-      await deleteAppleEvent(transport, {
-        calendarUrl,
-        href,
-        etag: row.remote_etag,
-      });
-  } else
-    etag = await writeAppleEvent(transport, {
-      calendarUrl,
-      href,
-      etag: row.remote_etag,
-      ical: row.ical_data!,
-    });
-  const { error } = await db.rpc("record_calendar_push", {
-    p_connection_id: connectionId,
-    p_token: token,
-    p_event_id: row.id,
-    p_sent_ical: row.ical_data!,
-    p_cancelled: !!row.cancelled_at,
-    p_href: href,
-    p_etag: etag,
-  });
-  if (error)
-    throw new CalendarError(
-      "conflict",
-      "The event was sent to iCloud but local confirmation failed. Sync again to reconcile it safely.",
-    );
-}
 async function runSync(
   db: Database,
   connection: Awaited<ReturnType<typeof getPrivateConnection>>,
@@ -64,7 +23,7 @@ async function runSync(
     fetch,
     Date.now() + 45000,
   );
-  await reconcileRemote(db, transport, connection, token);
+  const remoteObjects = await reconcileRemote(db, transport, connection, token);
   if (connection.read_only) {
     await verifySyncFinished(db, connection.id);
     return;
@@ -84,13 +43,14 @@ async function runSync(
     );
   for (const row of (pending.data ?? []).slice(0, 20) as CalendarRow[]) {
     try {
-      await pushEvent(
+      await pushCalendarEvent(
         db,
         transport,
         connection.id,
         connection.selected_calendar_url!,
         token,
         row,
+        remoteObjects,
       );
     } catch (error) {
       await db
@@ -154,28 +114,6 @@ async function verifySyncFinished(db: Database, connectionId: string) {
     );
 }
 
-async function prepareEventForPush(
-  db: Database,
-  row: CalendarRow,
-): Promise<CalendarRow> {
-  if (row.ical_data) return row;
-  const ical = canonicalCalendar(row);
-  const result = await db
-    .from("calendar_events")
-    .update({ ical_data: ical, ical_edit_base: null })
-    .eq("id", row.id)
-    .eq("household_id", row.household_id)
-    .eq("updated_at", row.updated_at)
-    .select("*")
-    .maybeSingle();
-  if (result.error || !result.data)
-    throw new CalendarError(
-      "conflict",
-      "This event changed while preparing its sync. Retry to send the latest version.",
-    );
-  return result.data as CalendarRow;
-}
-
 async function reconcileRemote(
   db: Database,
   transport: CaldavTransport,
@@ -208,4 +146,5 @@ async function reconcileRemote(
       "conflict",
       "The calendar changed during import. Retry sync; your local edits are safe.",
     );
+  return objects;
 }

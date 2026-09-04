@@ -20,10 +20,10 @@ export function CalendarDateFields({
   const [endValue, setEnd] = useState(savedEnd);
   return (
     <>
+      <input type="hidden" name="allDay" value={isAllDay ? "on" : "off"} />
       <label className="flex min-h-11 items-center gap-3 text-sm">
         <input
           type="checkbox"
-          name="allDay"
           checked={isAllDay}
           onChange={(event) => {
             setAllDay(event.target.checked);

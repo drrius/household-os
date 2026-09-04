@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { occursOnDay } from "@/domain/calendar/interval";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import type { AgendaItem, AgendaModel } from "@/lib/calendar/agenda";
@@ -6,16 +7,6 @@ import { syncCalendarAction } from "@/lib/calendar/actions";
 import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
 import { CalendarActionButton } from "./action-button.client";
-function dayOf(item: AgendaItem, end = false) {
-  return item.allDay
-    ? (end ? item.endsAt : item.startsAt).slice(0, 10)
-    : new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Europe/Zurich",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date(end ? item.endsAt : item.startsAt));
-}
 function EventCard({ item }: { item: AgendaItem }) {
   const time = item.allDay
     ? "All day"
@@ -168,13 +159,7 @@ function AgendaDays({ model }: { model: AgendaModel }) {
       {" "}
       <div className="grid gap-6 @3xl:grid-cols-2">
         {model.week.days.map((day) => {
-          const items = model.items.filter(
-            (item) =>
-              dayOf(item) <= day &&
-              (item.allDay
-                ? dayOf(item, true) > day
-                : dayOf(item, true) >= day),
-          );
+          const items = model.items.filter((item) => occursOnDay(item, day));
           return (
             <section key={day} className="grid content-start gap-3">
               <div className="flex items-center justify-between">

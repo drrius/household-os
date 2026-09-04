@@ -1,4 +1,5 @@
 import ICAL from "ical.js";
+import { overlapsInterval } from "./interval";
 import { attachIanaTimezones, icalTimeToIso } from "./ical-time";
 import type { CalendarMaster, CalendarOccurrence } from "./types";
 
@@ -103,8 +104,7 @@ export function expandCalendar(
   if (event.component.getFirstPropertyValue("status") === "CANCELLED")
     return [];
   const zone = eventTimeZone(event);
-  const start = Date.parse(window.start),
-    end = Date.parse(window.end);
+  const end = Date.parse(window.end);
   const nominalEnd = end - minimumFutureShift(calendar, zone);
   const found: CalendarOccurrence[] = [];
   const iterator = event.iterator();
@@ -118,8 +118,12 @@ export function expandCalendar(
     const occurrence = occurrenceDetails(event, time, zone);
     if (
       occurrence &&
-      Date.parse(occurrence.startsAt) < end &&
-      Date.parse(occurrence.endsAt) >= start
+      overlapsInterval(
+        occurrence.startsAt,
+        occurrence.endsAt,
+        window.start,
+        window.end,
+      )
     )
       found.push(occurrence);
     if (found.length > 1000)
@@ -152,8 +156,12 @@ export function expandCalendar(
     const occurrence = occurrenceDetails(event, recurrence, zone);
     if (
       occurrence &&
-      Date.parse(occurrence.startsAt) < end &&
-      Date.parse(occurrence.endsAt) >= start &&
+      overlapsInterval(
+        occurrence.startsAt,
+        occurrence.endsAt,
+        window.start,
+        window.end,
+      ) &&
       !found.some((item) => item.recurrenceId === occurrence.recurrenceId)
     )
       found.push(occurrence);
