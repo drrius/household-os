@@ -1,3 +1,4 @@
+import { SignOutControl } from "@/app/security/sign-out-control";
 import { PasskeyManager } from "@/app/security/passkey-manager";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import type { PasskeySummary } from "@/lib/auth/passkeys";
@@ -31,6 +32,7 @@ export default async function SecurityPage() {
       titleId="security-title"
     >
       <PasskeyManager initialPasskeys={passkeys} />
+      <SignOutControl />
     </GateShell>
   );
 }

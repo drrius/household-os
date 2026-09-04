@@ -6,14 +6,20 @@ import {
   getVerifiedIdentity,
 } from "@/lib/auth/member-context";
 import { ACCESS_DENIED_PATH } from "@/lib/auth/paths";
+import { safeReturnPath } from "@/lib/auth/return-path";
 import { GateShell } from "@/ui/layout/gate-shell";
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string | string[] }>;
+}) {
+  const returnTo = safeReturnPath((await searchParams).returnTo);
   const identity = await getVerifiedIdentity();
 
   if (identity !== null) {
     const member = await getMemberContext();
-    redirect(member === null ? ACCESS_DENIED_PATH : "/");
+    redirect(member === null ? ACCESS_DENIED_PATH : returnTo);
   }
 
   return (
@@ -33,7 +39,7 @@ export default async function SignInPage() {
       title="Sign in"
       titleId="sign-in-title"
     >
-      <SignInForm />
+      <SignInForm returnTo={returnTo} />
     </GateShell>
   );
 }
