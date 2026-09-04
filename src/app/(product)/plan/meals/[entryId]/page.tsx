@@ -1,31 +1,27 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
+import { mealDate } from "@/lib/forms/meal-navigation";
+import { loadMealConnections } from "@/lib/meals/details";
 import { loadManageMealEntry } from "@/lib/read-models/meal-entry-manage";
-import { FormPage } from "@/ui/forms/form-page";
-import { ManageMealForms } from "@/ui/plan/manage-meal-forms";
+import { MealDetails } from "@/ui/plan/meal-details";
 
-export default async function ManageMealPage({
+export default async function MealPage({
   params,
   searchParams,
 }: {
   params: Promise<{ entryId: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ day?: string }>;
 }) {
   const { entryId } = await params;
-  const query = await searchParams;
   const entry = await loadManageMealEntry(entryId);
-  if (entry === null) {
-    redirect("/plan");
-  }
-
+  if (entry === null) notFound();
+  const connections = await loadMealConnections(entry.id);
+  const { day } = await searchParams;
   return (
-    <FormPage
-      backHref="/plan"
-      description="Edit this planned meal, or remove it from the week."
-      error={query.error}
-      title={entry.title}
-    >
-      <ManageMealForms entry={entry} />
-    </FormPage>
+    <MealDetails
+      entry={entry}
+      connections={connections}
+      day={mealDate(day, entry.date)}
+    />
   );
 }

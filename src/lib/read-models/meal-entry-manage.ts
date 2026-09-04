@@ -13,6 +13,8 @@ export type ManageMealEntry = {
   notes: string | null;
   recipeUrl: string | null;
   isLeftover: boolean;
+  libraryId?: string | null;
+  leftoverOfEntryId?: string | null;
 };
 
 const mealSlotSchema = z.enum(["breakfast", "lunch", "dinner"]).nullable();
@@ -24,6 +26,7 @@ const manageEntryRowSchema = z.object({
   slot: mealSlotSchema,
   notes: z.string().nullable(),
   recipe_url_snapshot: z.string().nullable(),
+  meal_definition_id: z.string().uuid().nullable(),
   leftover_of_entry_id: z.string().uuid().nullable(),
 });
 
@@ -44,7 +47,7 @@ export async function loadManageMealEntry(
   const { data, error } = await supabase
     .from("meal_plan_entries")
     .select(
-      "id, title_snapshot, date, slot, notes, recipe_url_snapshot, leftover_of_entry_id",
+      "id, title_snapshot, date, slot, notes, recipe_url_snapshot, leftover_of_entry_id, meal_definition_id",
     )
     .eq("household_id", member.householdId)
     .eq("id", parsedId.data)
@@ -67,6 +70,8 @@ export async function loadManageMealEntry(
     notes: row.notes,
     recipeUrl: row.recipe_url_snapshot,
     isLeftover: row.leftover_of_entry_id !== null,
+    libraryId: row.meal_definition_id,
+    leftoverOfEntryId: row.leftover_of_entry_id,
   };
 }
 
