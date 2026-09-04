@@ -16,14 +16,15 @@ export async function loadLibraryMeal(id: string) {
   const [meal, templates] = await Promise.all([
     supabase
       .from("meal_definitions")
-      .select("id, name, recipe_url, notes")
+      .select("id, name, recipe_url, notes, archived_at")
       .eq("household_id", member.householdId)
       .eq("id", id)
-      .is("archived_at", null)
       .maybeSingle(),
     supabase
       .from("meal_grocery_templates")
-      .select("id, name, quantity, unit, grocery_category_id, note, sort_order")
+      .select(
+        "id, name, quantity, unit, grocery_category_id, note, sort_order, archived_at",
+      )
       .eq("household_id", member.householdId)
       .eq("meal_definition_id", id)
       .order("sort_order")
@@ -31,7 +32,17 @@ export async function loadLibraryMeal(id: string) {
   ]);
   if (meal.error || templates.error)
     throw new Error("Could not load this saved meal.");
-  return meal.data ? { ...meal.data, templates: templates.data } : null;
+  return meal.data
+    ? {
+        ...meal.data,
+        templates: templates.data.filter(
+          (template) => template.archived_at === null,
+        ),
+        archivedTemplates: templates.data.filter(
+          (template) => template.archived_at !== null,
+        ),
+      }
+    : null;
 }
 
 export type LibraryMeal = NonNullable<
@@ -43,6 +54,21 @@ export async function saveLibraryMeal(
 ) {
   const member = await requireMemberContext();
   const supabase = await createClient();
+  if (input.isNew && input.sourceEntryId) {
+    const { data, error } = await supabase.rpc("save_planned_meal_to_library", {
+      p_entry_id: input.sourceEntryId,
+      p_definition_id: input.id,
+      p_name: input.name,
+      p_recipe_url: input.recipeUrl,
+      p_notes: input.notes,
+    });
+    if (error)
+      throw new Error(
+        "Could not save this planned meal. Refresh the plan and try again.",
+      );
+    return z.object({ meal_definition_id: z.string().uuid() }).parse(data)
+      .meal_definition_id;
+  }
   const fields = {
     name: input.name,
     recipe_url: input.recipeUrl,
@@ -67,10 +93,10 @@ export async function saveLibraryMeal(
         data.recipe_url === fields.recipe_url &&
         data.notes === fields.notes
       )
-        return;
+        return input.id;
     }
     if (error) throw new Error("Could not save this meal. Try again.");
-    return;
+    return input.id;
   }
   const { data, error } = await supabase
     .from("meal_definitions")
@@ -84,6 +110,7 @@ export async function saveLibraryMeal(
     throw new Error(
       "This meal is no longer available. Return to the plan and try again.",
     );
+  return input.id;
 }
 
 export async function archiveLibraryMeal(id: string) {
@@ -167,6 +194,7 @@ export async function saveMealTemplate(
     .eq("household_id", member.householdId)
     .eq("meal_definition_id", input.libraryId)
     .eq("id", input.id)
+    .is("archived_at", null)
     .select("id")
     .maybeSingle();
   if (error || !data)
@@ -183,10 +211,26 @@ export async function removeMealTemplate(
   const supabase = await createClient();
   const { error } = await supabase
     .from("meal_grocery_templates")
-    .delete()
+    .update({ archived_at: new Date().toISOString() })
     .eq("household_id", member.householdId)
     .eq("meal_definition_id", libraryId)
     .eq("id", templateId);
   if (error)
     throw new Error("Could not remove this default grocery. Try again.");
+}
+
+export async function restoreMealTemplate(
+  libraryId: string,
+  templateId: string,
+) {
+  const member = await requireMemberContext();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("meal_grocery_templates")
+    .update({ archived_at: null })
+    .eq("household_id", member.householdId)
+    .eq("meal_definition_id", libraryId)
+    .eq("id", templateId);
+  if (error)
+    throw new Error("Could not restore this default grocery. Try again.");
 }

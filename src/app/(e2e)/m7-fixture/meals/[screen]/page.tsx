@@ -1,3 +1,7 @@
+import {
+  ArchivedMealFixture,
+  PreparationEditFixture,
+} from "@/app/(e2e)/m7-fixture/meals/lifecycle";
 import { notFound } from "next/navigation";
 
 import { buildPlanViewModel } from "@/lib/read-models/plan";
@@ -101,6 +105,8 @@ export default async function MealWorkflowFixture({
 }) {
   if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") notFound();
   const { screen } = await params;
+  if (screen === "archived") return <ArchivedMealFixture />;
+  if (screen === "prep-edit") return <PreparationEditFixture />;
   if (screen === "details") return renderDetails();
   if (screen === "new") return renderNew();
   if (screen === "plan") return renderPlan();

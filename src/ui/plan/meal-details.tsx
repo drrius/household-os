@@ -68,7 +68,13 @@ function MealActions({ entry, day }: Pick<MealDetailsProps, "entry" | "day">) {
   );
 }
 
-function PreparationItem({ prep }: { prep: MealConnections["prep"][number] }) {
+function PreparationItem({
+  prep,
+  entryId,
+}: {
+  prep: MealConnections["prep"][number];
+  entryId: string;
+}) {
   return (
     <li className="grid gap-1">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -86,9 +92,7 @@ function PreparationItem({ prep }: { prep: MealConnections["prep"][number] }) {
         </p>
       ) : null}
       <p className="text-base sm:text-sm">
-        <Link href={`/home/routines/${prep.routine_id}/edit`}>
-          Manage prep task
-        </Link>
+        <Link href={`/plan/meals/${entryId}/prep/edit`}>Manage prep task</Link>
         {prep.status === "open" ? (
           <>
             {" "}
@@ -122,7 +126,7 @@ function MealPreparation({ entry, connections, day }: MealDetailsProps) {
       {connections.prep.length ? (
         <ul role="list" className="grid list-none gap-4">
           {connections.prep.map((prep) => (
-            <PreparationItem key={prep.id} prep={prep} />
+            <PreparationItem key={prep.id} prep={prep} entryId={entry.id} />
           ))}
         </ul>
       ) : (

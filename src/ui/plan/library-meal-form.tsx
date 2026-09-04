@@ -7,9 +7,11 @@ export function LibraryMealForm({
   meal,
   date,
   initial,
+  sourceEntryId,
 }: {
   meal?: LibraryMeal;
   date: string;
+  sourceEntryId?: string;
   initial?: { title: string; recipeUrl: string | null; notes: string | null };
 }) {
   return (
@@ -21,6 +23,9 @@ export function LibraryMealForm({
       />
       <input type="hidden" name="isNew" value={meal ? "no" : "yes"} />
       <input type="hidden" name="date" value={date} />
+      {sourceEntryId ? (
+        <input type="hidden" name="sourceEntryId" value={sourceEntryId} />
+      ) : null}
       <FormField label="Meal name">
         <EchoedInput
           name="name"

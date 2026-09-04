@@ -15,6 +15,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.client }));
 
 const input = {
   id: "11111111-1111-4111-8111-111111111111",
+  sourceEntryId: null,
   isNew: true,
   name: "Pasta",
   recipeUrl: null,
@@ -68,7 +69,7 @@ describe("saved meal persistence", () => {
       { error: { code: "23505" } },
       { data: { name: "Pasta", recipe_url: null, notes: null } },
     ]);
-    await expect(saveLibraryMeal(input)).resolves.toBeUndefined();
+    await expect(saveLibraryMeal(input)).resolves.toBe(input.id);
     expect(calls).toContainEqual(["eq", "household_id", "our-household"]);
     database([
       { error: { code: "23505" } },
@@ -88,6 +89,11 @@ describe("saved meal persistence", () => {
     expect(calls).toContainEqual(["eq", "household_id", "our-household"]);
     expect(calls).toContainEqual(["eq", "meal_definition_id", "meal-id"]);
     expect(calls).toContainEqual(["eq", "id", "template-id"]);
+    expect(calls.some(([method]) => method === "delete")).toBe(false);
+    expect(calls).toContainEqual([
+      "update",
+      { archived_at: expect.any(String) },
+    ]);
   });
   it("cannot add a default grocery to an unavailable saved meal", async () => {
     const calls = database([{ data: null }]);
@@ -102,5 +108,23 @@ describe("saved meal persistence", () => {
       }),
     ).rejects.toThrow("no longer available");
     expect(calls.some(([method]) => method === "insert")).toBe(false);
+  });
+  it("saves a source entry through the atomic linking command and follows the existing result", async () => {
+    const existingId = "22222222-2222-4222-8222-222222222222";
+    const rpc = vi.fn().mockResolvedValue({
+      data: { meal_definition_id: existingId },
+      error: null,
+    });
+    mocks.client.mockResolvedValue({ rpc });
+    await expect(
+      saveLibraryMeal({ ...input, sourceEntryId: input.id }),
+    ).resolves.toBe(existingId);
+    expect(rpc).toHaveBeenCalledWith(
+      "save_planned_meal_to_library",
+      expect.objectContaining({
+        p_entry_id: input.id,
+        p_definition_id: input.id,
+      }),
+    );
   });
 });

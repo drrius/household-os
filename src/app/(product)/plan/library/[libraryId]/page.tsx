@@ -1,3 +1,4 @@
+import { ArchivedLibraryMeal } from "@/ui/plan/archived-library-meal";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -25,6 +26,7 @@ export default async function LibraryMealPage({
   if (!meal) notFound();
   const { date: requestedDate } = await searchParams;
   const date = mealDate(requestedDate);
+  if (meal.archived_at) return <ArchivedLibraryMeal meal={meal} date={date} />;
   const categories = await loadGroceryFormOptions();
   const secondary = buttonVariants({
     variant: "outline",

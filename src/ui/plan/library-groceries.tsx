@@ -1,3 +1,4 @@
+import { ArchivedMealGroceries } from "@/ui/plan/archived-meal-groceries";
 import {
   archiveLibraryMealAction,
   removeMealTemplateAction,
@@ -47,8 +48,8 @@ function LibraryGrocery({
                 <input type="hidden" name="templateId" value={template.id} />
                 <input type="hidden" name="date" value={date} />
                 <p>
-                  Remove {template.name} from this saved meal? Items already on
-                  the shopping list stay there.
+                  Remove {template.name} from this saved meal? You can restore
+                  it below. Items already on the shopping list stay there.
                 </p>
               </FormFields>
             </div>
@@ -97,6 +98,7 @@ export function LibraryGroceries({
           No default groceries yet.
         </p>
       )}
+      <ArchivedMealGroceries meal={meal} date={date} />
       <details
         className="rounded-xl border p-4"
         open={meal.templates.length === 0}

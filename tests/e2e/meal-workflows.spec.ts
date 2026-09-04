@@ -37,6 +37,9 @@ test("meal details support cooking, moving and leftovers without entering edit m
   await expect(
     page.getByRole("heading", { name: "Make the sauce" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Manage prep task" }),
+  ).toHaveAttribute("href", `/plan/meals/${mealId}/prep/edit`);
   await expect(page.getByText("Tomatoes", { exact: true })).toBeVisible();
   const sizes = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
@@ -110,4 +113,46 @@ test("meal board content is visible before JavaScript hydrates", async ({
     }),
   ).toBeVisible();
   await context.close();
+});
+
+test("archived meals remain readable without offering unavailable planning or editing", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/meals/archived");
+  await expect(
+    page.getByRole("heading", { name: "Archived pasta" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("The original recipe is still here."),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open recipe" })).toHaveAttribute(
+    "href",
+    "https://example.com/recipe",
+  );
+  await expect(page.getByRole("link", { name: "Plan this meal" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+});
+
+test("prep editor keeps a one-off linked task and preserves submitted text", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/meals/prep-edit");
+  await expect(
+    page.getByText("This stays a one-off task linked to Tomato pasta."),
+  ).toBeVisible();
+  await expect(page.getByLabel("What needs doing?")).toHaveValue("Make sauce");
+  await expect(
+    page.getByRole("combobox", { name: /Frequency|Repeats/ }),
+  ).toHaveCount(0);
+  await page.getByLabel("What needs doing?").fill("Thaw sauce");
+  await page
+    .getByRole("button", { name: "Save prep task", exact: true })
+    .click();
+  await expect(
+    page.getByText("Validated prep changes; this fixture does not save."),
+  ).toBeVisible();
+  await expect(page.getByLabel("What needs doing?")).toHaveValue("Thaw sauce");
+  await expect(page.locator('input[name="entryId"]')).toHaveValue(mealId);
 });

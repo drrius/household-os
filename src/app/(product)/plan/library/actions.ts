@@ -19,6 +19,7 @@ import {
   saveMealTemplate,
   archiveLibraryMeal,
   removeMealTemplate,
+  restoreMealTemplate,
 } from "@/lib/meals/library";
 
 export async function saveLibraryMealAction(
@@ -28,8 +29,7 @@ export async function saveLibraryMealAction(
   let id = "";
   const rejected = await settleFormAction(previous, form, async () => {
     const input = parseLibraryMealForm(form);
-    id = input.id;
-    await saveLibraryMeal(input);
+    id = await saveLibraryMeal(input);
   });
   if (rejected) return rejected;
   revalidatePath("/plan");
@@ -74,6 +74,22 @@ export async function removeMealTemplateAction(
   const rejected = await settleFormAction(previous, form, async () => {
     id = parseMealLibraryId(form);
     await removeMealTemplate(id, parseMealTemplateId(form));
+  });
+  if (rejected) return rejected;
+  revalidatePath(`/plan/library/${id}`);
+  redirect(
+    `/plan/library/${id}?date=${mealDate(form.get("date"))}#default-groceries`,
+  );
+}
+
+export async function restoreMealTemplateAction(
+  previous: FormActionState,
+  form: FormData,
+): Promise<FormActionState> {
+  let id = "";
+  const rejected = await settleFormAction(previous, form, async () => {
+    id = parseMealLibraryId(form);
+    await restoreMealTemplate(id, parseMealTemplateId(form));
   });
   if (rejected) return rejected;
   revalidatePath(`/plan/library/${id}`);

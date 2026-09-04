@@ -14,6 +14,9 @@ const optional = (value: FormDataEntryValue | null, max: number) =>
 export function parseLibraryMealForm(form: FormData) {
   return {
     id: id.parse(form.get("libraryId")),
+    sourceEntryId: form.get("sourceEntryId")
+      ? id.parse(form.get("sourceEntryId"))
+      : null,
     isNew: form.get("isNew") === "yes",
     name: z
       .string()
