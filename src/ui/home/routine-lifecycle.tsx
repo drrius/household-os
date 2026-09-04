@@ -43,8 +43,9 @@ export function RoutineLifecycle({
         </summary>
         <div className="grid gap-3">
           <p className="text-base text-muted-foreground sm:text-sm">
-            Archive a routine you no longer need. Open occurrences are removed;
-            completed and skipped history is kept. This cannot be resumed.
+            Archive a routine you no longer need. Unfinished current work and
+            completed or skipped history are kept; future work is removed. This
+            cannot be resumed.
           </p>
           <FormFields
             action={routineLifecycleAction}
