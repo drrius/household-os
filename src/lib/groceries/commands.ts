@@ -1,4 +1,5 @@
 import "server-only";
+import { isShoppingReceipt } from "@/domain/groceries/receipt-path";
 import { nextGroceryPosition } from "@/domain/groceries/order";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
@@ -170,7 +171,12 @@ export async function finishShoppingSession(input: {
   payerMemberId?: string | null;
   proposedAllocations?: unknown;
 }): Promise<Record<string, unknown>> {
-  await requireMemberContext();
+  const member = await requireMemberContext();
+  if (
+    input.receiptPath != null &&
+    !isShoppingReceipt(input.receiptPath, member.householdId)
+  )
+    throw new Error("Choose a receipt uploaded to this household.");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("finish_shopping_session", {
     p_shopping_session_id: input.shoppingSessionId,

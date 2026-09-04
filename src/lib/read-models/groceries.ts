@@ -3,7 +3,7 @@ import type { GroceriesViewModel } from "@/lib/groceries/view-model";
 export type { GroceriesViewModel } from "@/lib/groceries/view-model";
 
 import { buildDuplicateData } from "@/lib/groceries/duplicate-view";
-import { normalizeGroceryName } from "@/domain/groceries/duplicates";
+import { groupGroceries } from "@/domain/groceries/order";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -42,68 +42,7 @@ type GroceriesReadRows = {
 
 export type GroceriesReadInput = GroceriesReadRows & { viewerId: string };
 
-type CategoryBucket = {
-  id: string;
-  name: string;
-  sortOrder: number;
-  items: ItemRow[];
-};
-
 const HISTORY_WINDOW_MS = 30 * 24 * 60 * 60 * 1_000;
-
-function buildCategoryBuckets(
-  categories: readonly CategoryRow[],
-  items: readonly ItemRow[],
-): CategoryBucket[] {
-  const orderedCategories = [...categories].sort(
-    (left, right) =>
-      left.sort_order - right.sort_order || left.id.localeCompare(right.id),
-  );
-  const buckets = new Map<string, CategoryBucket>(
-    orderedCategories.map((category) => [
-      category.id,
-      {
-        id: category.id,
-        name: category.name,
-        sortOrder: category.sort_order,
-        items: [],
-      },
-    ]),
-  );
-  const other = orderedCategories.find(
-    (category) => normalizeGroceryName(category.name) === "other",
-  );
-  const fallback: CategoryBucket = {
-    id: other?.id ?? "uncategorized",
-    name: other?.name ?? "Other",
-    sortOrder: other?.sort_order ?? Number.MAX_SAFE_INTEGER,
-    items: [],
-  };
-
-  for (const item of items) {
-    const category =
-      item.category_id === null ? undefined : buckets.get(item.category_id);
-    const bucket = category ?? buckets.get(fallback.id) ?? fallback;
-    if (!buckets.has(bucket.id)) {
-      buckets.set(bucket.id, bucket);
-    }
-    bucket.items.push(item);
-  }
-
-  return [...buckets.values()]
-    .filter((bucket) => bucket.items.length > 0)
-    .sort(
-      (left, right) =>
-        left.sortOrder - right.sortOrder || left.id.localeCompare(right.id),
-    )
-    .map((bucket) => ({
-      ...bucket,
-      items: [...bucket.items].sort(
-        (left, right) =>
-          left.sort_order - right.sort_order || left.id.localeCompare(right.id),
-      ),
-    }));
-}
 
 function buildLiveSession(
   input: GroceriesReadInput,
@@ -133,7 +72,7 @@ function buildLiveSession(
 export function mapGroceriesViewModel(
   input: GroceriesReadInput,
 ): GroceriesViewModel {
-  const buckets = buildCategoryBuckets(input.categories, input.items);
+  const buckets = groupGroceries(input.categories, input.items);
   const orderedItems = buckets.flatMap((bucket) => bucket.items);
   const duplicateData = buildDuplicateData(orderedItems);
   const sessions = new Map(input.sessions.map((row) => [row.id, row]));

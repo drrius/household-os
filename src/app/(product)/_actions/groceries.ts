@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { isHouseholdAttachment } from "@/domain/attachments/files";
+import { isShoppingReceipt } from "@/domain/groceries/receipt-path";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import {
   claimGroceryItem,
@@ -131,7 +131,7 @@ export async function finishShoppingCheckoutAction(
         .parse(formData.get("receiptPath") ?? "") || null;
     if (
       receiptPath !== null &&
-      !isHouseholdAttachment(receiptPath, member.householdId)
+      !isShoppingReceipt(receiptPath, member.householdId)
     ) {
       throw new Error("Choose a receipt uploaded to this household.");
     }
@@ -238,14 +238,17 @@ export async function mergeDuplicateGroceryItemsAction(
 
 export async function cancelShoppingSessionAction(
   formData: FormData,
-): Promise<void> {
+): Promise<"cancelled" | "completed"> {
   const sessionId = groceryItemIdSchema.parse(formData.get("sessionId"));
   await requireMemberContext();
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_shopping_session", {
     p_shopping_session_id: sessionId,
   });
-  if (error)
+  if (error) {
+    if (error.code === "55000") return "completed";
     throw new Error(`cancel_shopping_session failed: ${error.message}`);
+  }
   revalidateGroceryViews();
+  return "cancelled";
 }

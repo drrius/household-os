@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { groupGroceries } from "@/domain/groceries/order";
+import { CheckoutCart } from "@/ui/groceries/checkout-cart";
 import { redirect } from "next/navigation";
 
 import {
@@ -28,14 +29,28 @@ export default async function ShoppingCheckoutPage() {
   ]);
   if (error) throw new Error("Couldn't load your cart.");
   if (!session) redirect("/groceries");
-  const { data: items, error: itemError } = await supabase
-    .from("grocery_items")
-    .select("id, name, quantity, unit")
-    .eq("household_id", member.householdId)
-    .eq("claimed_by_session_id", session.id)
-    .eq("state", "claimed")
-    .order("sort_order");
-  if (itemError) throw new Error("Couldn't load your cart items.");
+  const [
+    { data: unorderedItems, error: itemError },
+    { data: categories, error: categoryError },
+  ] = await Promise.all([
+    supabase
+      .from("grocery_items")
+      .select("id, name, quantity, unit, category_id, sort_order")
+      .eq("household_id", member.householdId)
+      .eq("claimed_by_session_id", session.id)
+      .eq("state", "claimed")
+      .order("sort_order"),
+    supabase
+      .from("grocery_categories")
+      .select("id, name, sort_order")
+      .eq("household_id", member.householdId)
+      .is("archived_at", null),
+  ]);
+  if (itemError || categoryError)
+    throw new Error("Couldn't load your cart items.");
+  const items = groupGroceries(categories ?? [], unorderedItems ?? []).flatMap(
+    (group) => group.items,
+  );
   return (
     <FormPage
       backHref="/groceries"
@@ -43,27 +58,7 @@ export default async function ShoppingCheckoutPage() {
       title="Finish shopping"
     >
       <div className="grid gap-6">
-        <details open className="rounded-xl border p-4">
-          <summary className="min-h-11 cursor-pointer content-center font-semibold">
-            Your cart · {items?.length ?? 0} items
-          </summary>
-          <ul className="grid gap-2" role="list">
-            {(items ?? []).map((item) => (
-              <li className="flex justify-between gap-3" key={item.id}>
-                <span>{item.name}</span>
-                <span className="text-muted-foreground">
-                  {[item.quantity, item.unit].filter(Boolean).join(" ")}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <Link
-            className="inline-flex min-h-11 items-center underline"
-            href="/groceries"
-          >
-            Adjust your cart
-          </Link>
-        </details>
+        <CheckoutCart items={items} />
         {items?.length ? (
           <CheckoutForm
             action={finishShoppingCheckoutAction}

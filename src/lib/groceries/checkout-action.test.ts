@@ -78,6 +78,8 @@ describe("finish shopping action", () => {
   it("rejects foreign-household and external receipt paths without finishing the cart", async () => {
     for (const path of [
       "https://example.com/receipt.pdf",
+      `${homeId}/completions/40000000-0000-4000-8000-000000000001.jpg`,
+      `${homeId}/documents/40000000-0000-4000-8000-000000000001.pdf`,
       "10000000-0000-4000-8000-000000000002/receipts/40000000-0000-4000-8000-000000000001.pdf",
     ]) {
       const result = await finishShoppingCheckoutAction(
