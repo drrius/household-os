@@ -1,5 +1,8 @@
 import "server-only";
+import type { GroceriesViewModel } from "@/lib/groceries/view-model";
+export type { GroceriesViewModel } from "@/lib/groceries/view-model";
 
+import { buildDuplicateData } from "@/lib/groceries/duplicate-view";
 import { normalizeGroceryName } from "@/domain/groceries/duplicates";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
@@ -19,38 +22,13 @@ type ItemRow = {
 );
 type SessionRow = { id: string; member_id: string; started_at: string };
 type MemberRow = { user_id: string; display_name: string };
-type HistoryRow = { id: string };
-
-export type GroceriesViewModel = {
-  activeItemCount: number;
-  categories: Array<{
-    id: string;
-    name: string;
-    items: Array<{
-      id: string;
-      name: string;
-      quantity: string | null;
-      unit: string | null;
-      note: string | null;
-      claimedByName: string | null;
-      claimedByMe: boolean;
-      duplicateHint: string | null;
-    }>;
-  }>;
-  liveSession: null | {
-    id: string;
-    memberName: string;
-    claimedCount: number;
-    totalCount: number;
-    isMine: boolean;
-  };
-  duplicates: Array<{
-    leftId: string;
-    rightId: string;
-    leftName: string;
-    rightName: string;
-  }>;
-  recentHistoryLabel: string | null;
+type HistoryRow = {
+  id: string;
+  name: string;
+  quantity: string | null;
+  unit: string | null;
+  purchased_at: string;
+  originating_meal_plan_entry_id: string | null;
 };
 
 type GroceriesReadRows = {
@@ -126,45 +104,6 @@ function buildCategoryBuckets(
     }));
 }
 
-function buildDuplicateData(items: readonly ItemRow[]): {
-  hints: ReadonlyMap<string, string>;
-  suggestions: GroceriesViewModel["duplicates"];
-} {
-  const groups = new Map<string, ItemRow[]>();
-  for (const item of items) {
-    if (item.state !== "active") continue;
-    const key = normalizeGroceryName(item.name);
-    groups.set(key, [...(groups.get(key) ?? []), item]);
-  }
-
-  const hints = new Map<string, string>();
-  const suggestions: GroceriesViewModel["duplicates"] = [];
-  for (const group of groups.values()) {
-    if (group.length < 2) continue;
-    const first = group[0];
-    const amountsDiffer =
-      first !== undefined &&
-      group.some(
-        (item) => item.quantity !== first.quantity || item.unit !== first.unit,
-      );
-    const hint = amountsDiffer
-      ? "Possible duplicate. Quantity or unit differs."
-      : "Possible duplicate.";
-    for (const [index, left] of group.entries()) {
-      hints.set(left.id, hint);
-      for (const right of group.slice(index + 1)) {
-        suggestions.push({
-          leftId: left.id,
-          rightId: right.id,
-          leftName: left.name,
-          rightName: right.name,
-        });
-      }
-    }
-  }
-  return { hints, suggestions };
-}
-
 function buildLiveSession(
   input: GroceriesReadInput,
   memberNames: ReadonlyMap<string, string>,
@@ -229,6 +168,14 @@ export function mapGroceriesViewModel(
     })),
     liveSession: buildLiveSession(input, memberNames),
     duplicates: duplicateData.suggestions,
+    history: input.history.map((item) => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      purchasedAt: item.purchased_at,
+      mealId: item.originating_meal_plan_entry_id,
+    })),
     recentHistoryLabel:
       input.history.length === 0
         ? null
@@ -255,45 +202,60 @@ export async function loadGroceriesViewModel(): Promise<GroceriesViewModel> {
   const member = await requireMemberContext();
   const supabase = await createClient();
   const historyStart = new Date(Date.now() - HISTORY_WINDOW_MS).toISOString();
-  const [categories, items, sessions, members, history] = await Promise.all([
-    supabase
-      .from("grocery_categories")
-      .select("id, name, sort_order")
-      .eq("household_id", member.householdId)
-      .is("archived_at", null)
-      .order("sort_order")
-      .order("id")
-      .overrideTypes<CategoryRow[], { merge: false }>(),
-    supabase
-      .from("grocery_items")
-      .select(
-        "id, name, quantity, unit, category_id, note, sort_order, state, claimed_by_session_id",
-      )
-      .eq("household_id", member.householdId)
-      .in("state", ["active", "claimed"])
-      .order("sort_order")
-      .order("id")
-      .overrideTypes<ItemRow[], { merge: false }>(),
-    supabase
-      .from("shopping_sessions")
-      .select("id, member_id, started_at")
-      .eq("household_id", member.householdId)
-      .is("finished_at", null)
-      .order("started_at", { ascending: false })
-      .overrideTypes<SessionRow[], { merge: false }>(),
-    supabase
-      .from("household_members")
-      .select("user_id, display_name")
-      .eq("household_id", member.householdId)
-      .overrideTypes<MemberRow[], { merge: false }>(),
-    supabase
-      .from("grocery_items")
-      .select("id")
-      .eq("household_id", member.householdId)
-      .eq("state", "purchased")
-      .gte("purchased_at", historyStart)
-      .overrideTypes<HistoryRow[], { merge: false }>(),
-  ]);
+  const [categories, items, sessions, members, history, recentShops] =
+    await Promise.all([
+      supabase
+        .from("grocery_categories")
+        .select("id, name, sort_order")
+        .eq("household_id", member.householdId)
+        .is("archived_at", null)
+        .order("sort_order")
+        .order("id")
+        .overrideTypes<CategoryRow[], { merge: false }>(),
+      supabase
+        .from("grocery_items")
+        .select(
+          "id, name, quantity, unit, category_id, note, sort_order, state, claimed_by_session_id",
+        )
+        .eq("household_id", member.householdId)
+        .in("state", ["active", "claimed"])
+        .order("sort_order")
+        .order("id")
+        .overrideTypes<ItemRow[], { merge: false }>(),
+      supabase
+        .from("shopping_sessions")
+        .select("id, member_id, started_at")
+        .eq("household_id", member.householdId)
+        .is("finished_at", null)
+        .order("started_at", { ascending: false })
+        .overrideTypes<SessionRow[], { merge: false }>(),
+      supabase
+        .from("household_members")
+        .select("user_id, display_name")
+        .eq("household_id", member.householdId)
+        .overrideTypes<MemberRow[], { merge: false }>(),
+      supabase
+        .from("grocery_items")
+        .select(
+          "id, name, quantity, unit, purchased_at, originating_meal_plan_entry_id",
+        )
+        .eq("household_id", member.householdId)
+        .eq("state", "purchased")
+        .gte("purchased_at", historyStart)
+        .order("purchased_at", { ascending: false })
+        .order("id")
+        .overrideTypes<HistoryRow[], { merge: false }>(),
+      supabase
+        .from("shopping_sessions")
+        .select(
+          "id, member_id, finished_at, receipt_total_cents, draft_expense_id, shopping_session_items!inner(purchased_at)",
+        )
+        .eq("household_id", member.householdId)
+        .gte("finished_at", historyStart)
+        .not("shopping_session_items.purchased_at", "is", null)
+        .order("finished_at", { ascending: false })
+        .limit(30),
+    ]);
   const rows: GroceriesReadRows = {
     categories: queryData("categories", categories),
     items: queryData("active items", items),
@@ -301,5 +263,16 @@ export async function loadGroceriesViewModel(): Promise<GroceriesViewModel> {
     members: queryData("household members", members),
     history: queryData("purchased history", history),
   };
-  return mapGroceriesViewModel({ viewerId: member.userId, ...rows });
+  return {
+    ...mapGroceriesViewModel({ viewerId: member.userId, ...rows }),
+    recentShops: queryData("recent shops", recentShops).map((shop) => ({
+      id: shop.id,
+      finishedAt: shop.finished_at!,
+      memberName:
+        rows.members.find((person) => person.user_id === shop.member_id)
+          ?.display_name ?? "Household member",
+      receiptTotalCents: shop.receipt_total_cents,
+      draftId: shop.draft_expense_id,
+    })),
+  };
 }

@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { isHouseholdAttachment } from "@/domain/attachments/files";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import {
   claimGroceryItem,
@@ -12,7 +14,12 @@ import {
   startShoppingSession,
 } from "@/lib/groceries/commands";
 import { createClient } from "@/lib/supabase/server";
-import { zurichCivilDate } from "@/lib/ui/zurich-date";
+import { parseShoppingForm } from "@/lib/forms/shopping";
+import { loadMoneyFormOptions } from "@/lib/forms/options";
+import {
+  settleFormAction,
+  type FormActionState,
+} from "@/lib/forms/action-state";
 
 const groceryItemIdSchema = z.string().uuid();
 const claimIntentSchema = z.enum(["claim", "release"]);
@@ -104,33 +111,36 @@ export async function joinShoppingSessionAction(): Promise<void> {
   revalidateGroceryViews();
 }
 
-export async function finishShoppingSessionAction(): Promise<void> {
-  const member = await requireMemberContext();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("shopping_sessions")
-    .select("id")
-    .eq("household_id", member.householdId)
-    .eq("member_id", member.userId)
-    .is("finished_at", null)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Shopping session lookup failed: ${error.message}`);
-  }
-  if (data === null) {
-    return;
-  }
-
-  const session = activeSessionRowSchema.parse(data);
-  await finishShoppingSession({
-    shoppingSessionId: session.id,
-    idempotencyKey: `finish-shopping:${session.id}`,
-    occurredOn: zurichCivilDate(),
-    createExpenseDraft: false,
+export async function finishShoppingCheckoutAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  let sessionId = "";
+  const rejected = await settleFormAction(previous, formData, async () => {
+    const { members } = await loadMoneyFormOptions();
+    const memberIds = z
+      .tuple([z.string().uuid(), z.string().uuid()])
+      .parse(members.map((member) => member.user_id));
+    const input = parseShoppingForm(formData, memberIds);
+    sessionId = input.shoppingSessionId;
+    const member = await requireMemberContext();
+    const receiptPath =
+      z
+        .string()
+        .max(200)
+        .parse(formData.get("receiptPath") ?? "") || null;
+    if (
+      receiptPath !== null &&
+      !isHouseholdAttachment(receiptPath, member.householdId)
+    ) {
+      throw new Error("Choose a receipt uploaded to this household.");
+    }
+    await finishShoppingSession({ ...input, receiptPath });
   });
+  if (rejected) return rejected;
   revalidateGroceryViews();
   revalidatePath("/money");
+  redirect(`/groceries/shopping/${sessionId}`);
 }
 
 export async function claimGroceryItemAction(
@@ -223,5 +233,19 @@ export async function mergeDuplicateGroceryItemsAction(
     resolvedSortOrder: keepItem.sort_order,
     idempotencyKey: `merge-groceries:${keepItem.id}:${removeItem.id}`,
   });
+  revalidateGroceryViews();
+}
+
+export async function cancelShoppingSessionAction(
+  formData: FormData,
+): Promise<void> {
+  const sessionId = groceryItemIdSchema.parse(formData.get("sessionId"));
+  await requireMemberContext();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_shopping_session", {
+    p_shopping_session_id: sessionId,
+  });
+  if (error)
+    throw new Error(`cancel_shopping_session failed: ${error.message}`);
   revalidateGroceryViews();
 }

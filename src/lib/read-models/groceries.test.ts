@@ -93,7 +93,14 @@ describe("mapGroceriesViewModel", () => {
             started_at: "2026-08-12T08:00:00Z",
           },
         ],
-        history: [{ id: "bread" }, { id: "eggs" }],
+        history: ["bread", "eggs"].map((id) => ({
+          id,
+          name: id,
+          quantity: null,
+          unit: null,
+          purchased_at: "2026-08-11T12:00:00Z",
+          originating_meal_plan_entry_id: null,
+        })),
       }),
     );
 

@@ -8,11 +8,14 @@ import { PageHeader } from "@/ui/layout/page-header";
 import { DuplicateSuggestionList } from "./duplicate-suggestion-list.client";
 import { GroceryList } from "./grocery-list";
 import { PurchasedHistory } from "./purchased-history.client";
+import { QuickAdd } from "./quick-add.client";
 import { ShoppingSessionRail } from "./shopping-session-rail";
 
 type GroceriesScreenProps = {
   claimAction: (formData: FormData) => Promise<void>;
-  finishAction: () => Promise<void>;
+  finishAction?: () => Promise<void>;
+  addAction?: (data: FormData) => Promise<void>;
+  buyAgainAction?: (data: FormData) => Promise<void>;
   joinAction: () => Promise<void>;
   mergeAction: (formData: FormData) => Promise<void>;
   model: GroceriesViewModel;
@@ -24,7 +27,8 @@ function activeItemLabel(itemCount: number): string {
 
 export function GroceriesScreen({
   claimAction,
-  finishAction,
+  addAction,
+  buyAgainAction,
   joinAction,
   mergeAction,
   model,
@@ -37,28 +41,37 @@ export function GroceriesScreen({
         titleId="groceries-title"
         trailing={
           <Link
-            className={buttonVariants({ className: "no-underline" })}
-            href="/groceries/new"
+            className={buttonVariants({
+              className: "no-underline",
+              variant: "outline",
+            })}
+            href="/groceries/categories"
           >
-            Add item
+            Categories
           </Link>
         }
       />
+      {addAction ? <QuickAdd action={addAction} /> : null}
       {model.liveSession === null ? null : (
         <ShoppingSessionRail
-          finishAction={finishAction}
           joinAction={joinAction}
           session={model.liveSession}
         />
       )}
+      <GroceryList categories={model.categories} claimAction={claimAction} />
       <DuplicateSuggestionList
+        categories={model.categories}
         duplicates={model.duplicates}
         mergeAction={mergeAction}
       />
-      <GroceryList categories={model.categories} claimAction={claimAction} />
       <Card size="sm">
         <CardContent>
-          <PurchasedHistory recentHistoryLabel={model.recentHistoryLabel} />
+          <PurchasedHistory
+            recentHistoryLabel={model.recentHistoryLabel}
+            items={model.history}
+            shops={model.recentShops}
+            buyAgainAction={buyAgainAction}
+          />
         </CardContent>
       </Card>
     </AppPage>
