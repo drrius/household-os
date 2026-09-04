@@ -40,6 +40,12 @@ export function MoneyScreen({ confirmDraftAction, model }: MoneyScreenProps) {
         confirmDraftAction={confirmDraftAction}
         drafts={model.drafts}
       />
+      <Link
+        className="flex min-h-11 items-center font-semibold underline underline-offset-4"
+        href="/money/recurring"
+      >
+        Manage recurring expenses
+      </Link>
       <EventLedger events={model.events} />
     </AppPage>
   );
