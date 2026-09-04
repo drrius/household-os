@@ -497,10 +497,10 @@ create trigger project_tasks_completion before insert or update on public.projec
   for each row execute function private.stamp_project_task_completion();
 
 create function public.choose_household_decision_option(p_decision_id uuid, p_option_id uuid)
-returns void language plpgsql security invoker set search_path = '' as $$
+returns void language plpgsql security definer set search_path = '' as $$
 declare v_decision public.household_decisions%rowtype;
 begin
-  select * into v_decision from public.household_decisions where id = p_decision_id for update;
+  select * into v_decision from public.household_decisions where id = p_decision_id and private.is_household_member(household_id) for update;
   if not found then raise exception 'Decision not found' using errcode = '42501'; end if;
   if p_option_id is not null and not exists (
     select 1 from public.decision_options where id = p_option_id and decision_id = p_decision_id
@@ -516,10 +516,10 @@ revoke all on function public.choose_household_decision_option(uuid, uuid) from 
 grant execute on function public.choose_household_decision_option(uuid, uuid) to authenticated;
 
 create function public.convert_household_decision(p_decision_id uuid, p_kind text)
-returns uuid language plpgsql security invoker set search_path = '' as $$
+returns uuid language plpgsql security definer set search_path = '' as $$
 declare v_decision public.household_decisions%rowtype; v_project_id uuid;
 begin
-  select * into v_decision from public.household_decisions where id = p_decision_id for update;
+  select * into v_decision from public.household_decisions where id = p_decision_id and private.is_household_member(household_id) for update;
   if not found then raise exception 'Decision not found' using errcode = '42501'; end if;
   if v_decision.converted_project_id is not null then return v_decision.converted_project_id; end if;
   if p_kind not in ('trip', 'project') then raise exception 'Invalid project kind' using errcode = '23514'; end if;
@@ -548,3 +548,54 @@ begin
   end loop;
 end;
 $$;
+
+-- Choice and conversion state have one transactional writer.
+revoke insert, update on public.household_decisions from authenticated;
+grant insert (id, household_id, created_by, created_at, updated_at, title, notes, project_id, archived_at),
+  update (id, household_id, created_by, created_at, updated_at, title, notes, project_id, archived_at)
+  on public.household_decisions to authenticated;
+revoke insert, update on public.decision_options from authenticated;
+grant insert (id, household_id, created_by, created_at, updated_at, decision_id, title, website, estimated_amount_cents, notes, archived_at),
+  update (id, household_id, created_by, created_at, updated_at, decision_id, title, website, estimated_amount_cents, notes, archived_at)
+  on public.decision_options to authenticated;
+
+create function public.set_household_decision_status(p_decision_id uuid, p_status text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if p_status is null or p_status not in ('considering', 'decided', 'dismissed') then
+    raise exception 'Invalid decision status' using errcode = '23514';
+  end if;
+  perform 1 from public.household_decisions where id = p_decision_id
+    and private.is_household_member(household_id) for update;
+  if not found then raise exception 'Decision not found' using errcode = '42501'; end if;
+  if p_status <> 'decided' then
+    update public.decision_options set chosen = false where decision_id = p_decision_id and chosen;
+  end if;
+  update public.household_decisions set status = p_status where id = p_decision_id;
+end;
+$$;
+revoke all on function public.set_household_decision_status(uuid, text) from public, anon;
+grant execute on function public.set_household_decision_status(uuid, text) to authenticated;
+
+-- Composite FK also serializes a concurrent parent-kind change with booking creation.
+alter table public.household_projects add unique(household_id, id, kind);
+alter table public.trip_bookings add column project_kind text generated always as ('trip'::text) stored;
+alter table public.trip_bookings add foreign key(household_id, project_id, project_kind)
+  references public.household_projects(household_id, id, kind);
+
+create function private.guard_paid_cost_link()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if auth.uid() is not null and not private.is_household_member(new.household_id) then
+    raise exception 'Not a household member' using errcode = '42501';
+  end if;
+  if not exists(select 1 from public.financial_events e where e.id = new.financial_event_id
+    and e.household_id = new.household_id and e.type in ('expense', 'replacement')) then
+    raise exception 'Link a posted expense. Refunds and corrections follow their original expense.' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.guard_paid_cost_link() from public, anon, authenticated;
+create trigger zz_household_financial_links_expense before insert or update on public.household_financial_links
+  for each row execute function private.guard_paid_cost_link();

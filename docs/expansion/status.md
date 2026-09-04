@@ -11,9 +11,9 @@ Base: latest main `39f9363`, including the assistant and recurrence fixes. Exist
 | Groceries: quick entry, editing, checkout, history           | groceries / codex/groceries-household   | Implemented; 365 tests and 8 browser checks passed     | [#47](https://github.com/drrius/household-os/pull/47), review requested |
 | Routines, Today, onboarding, home maintenance controls       | routines / codex/routines-household     | Implemented; 357 tests and 6 new browser checks passed | [#46](https://github.com/drrius/household-os/pull/46), review requested |
 | Money detail/correction/refund and recurring rules           | money / codex/money-complete            | Implementing                                           | Pending                                                                 |
-| Trips and projects with linked work and paid expenses        | integration                             | Schema/design next                                     | Pending                                                                 |
+| Trips and projects with linked work and paid expenses        | integration                             | Schema implemented in #48; UI underway                 | Pending                                                                 |
 | Shared calendar and private iCloud sync                      | calendar / codex/calendar-icloud        | Implementing                                           | Pending                                                                 |
-| Inventory, commitments, decisions/wishlists                  | integration                             | Planned                                                | Pending                                                                 |
+| Inventory, commitments, decisions/wishlists                  | home-records / codex/home-records       | Schema implemented in #48; UI underway                 | Pending                                                                 |
 | App-wide completeness and UX/accessibility audit             | integration                             | Continuous; final independent pass required            | Pending                                                                 |
 
 ## Verification
@@ -30,4 +30,4 @@ Base: latest main `39f9363`, including the assistant and recurrence fixes. Exist
 - Latest main contains approved assistant scope exceptions (ADR 0027); preserve those, introduce no new paid infrastructure.
 
 - Codex #44 findings accepted: cleanup for abandoned uploads; accurate PDF support copy; completion-photo type enforcement at Storage boundary. Fixes in progress with concurrency-safe attachment claims.
-- Financial audit found missing concurrent refund caps and recurring-rule editing; implemented in the Money lane with database tests.
+- Financial audit found missing concurrent refund caps and recurring-rule editing; being implemented in the Money lane with database tests.
