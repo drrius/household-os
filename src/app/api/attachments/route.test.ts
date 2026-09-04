@@ -4,6 +4,7 @@ vi.mock("server-only", () => ({}));
 
 const mock = vi.hoisted(() => ({
   member: vi.fn(),
+  fetch: vi.fn(),
   rpc: vi.fn(),
   remove: vi.fn(),
   upload: vi.fn(),
@@ -12,7 +13,21 @@ const mock = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth/member-context", () => ({ getMemberContext: mock.member }));
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ storage: { from: mock.from }, rpc: mock.rpc }),
+  createClient: async () => ({
+    storage: { from: mock.from },
+    rpc: mock.rpc,
+    auth: {
+      getSession: async () => ({
+        data: { session: { access_token: "fixture-session" } },
+      }),
+    },
+  }),
+}));
+vi.mock("@/lib/env", () => ({
+  getPublicEnv: () => ({
+    NEXT_PUBLIC_SUPABASE_URL: "https://storage.example",
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "fixture-public",
+  }),
 }));
 import { DELETE, GET, POST } from "./route";
 
@@ -39,6 +54,10 @@ function uploadRequest(
 beforeEach(() => {
   vi.clearAllMocks();
   mock.member.mockResolvedValue({ householdId: household });
+  vi.stubGlobal("fetch", mock.fetch);
+  mock.fetch.mockImplementation(async () =>
+    Response.json({ path }, { status: 201 }),
+  );
   mock.from.mockReturnValue({
     upload: mock.upload,
     remove: mock.remove,
@@ -79,11 +98,14 @@ describe("private attachment routes", () => {
     expect(response.status).toBe(201);
     const result = await response.json();
     expect(result.path).toMatch(new RegExp(`^${household}/receipts/.+\\.pdf$`));
-    expect(mock.upload).toHaveBeenCalledWith(
-      result.path,
-      expect.any(Uint8Array),
-      { contentType: "application/pdf", upsert: false },
+    expect(mock.fetch).toHaveBeenCalledWith(
+      expect.any(URL),
+      expect.objectContaining({
+        body: expect.any(Uint8Array),
+        headers: expect.objectContaining({ "Content-Type": "application/pdf" }),
+      }),
     );
+    expect(mock.upload).not.toHaveBeenCalled();
   });
   it("rejects unsupported content and PDF completion photos", async () => {
     expect((await POST(uploadRequest(new Uint8Array(20)))).status).toBe(400);
@@ -107,9 +129,9 @@ describe("private attachment routes", () => {
     expect(mock.upload).not.toHaveBeenCalled();
   });
   it("keeps storage failure details private", async () => {
-    mock.upload.mockResolvedValue({
-      error: { message: "internal bucket credentials" },
-    });
+    mock.fetch.mockResolvedValue(
+      Response.json({ error: "internal bucket credentials" }, { status: 502 }),
+    );
     const response = await POST(uploadRequest());
     expect(response.status).toBe(502);
     expect(await response.text()).not.toContain("credentials");
@@ -155,10 +177,9 @@ describe("attachment retries and cleanup", () => {
     expect(mock.upload).not.toHaveBeenCalled();
   });
   it("does not upload when a removed path cannot be reserved again", async () => {
-    mock.rpc.mockImplementation(async (name: string) => ({
-      data: [],
-      error: name === "reserve_household_attachment" ? {} : null,
-    }));
+    mock.fetch.mockResolvedValue(
+      Response.json({ error: "expired" }, { status: 409 }),
+    );
     expect((await POST(uploadRequest())).status).toBe(409);
     expect(mock.upload).not.toHaveBeenCalled();
   });
@@ -180,6 +201,32 @@ describe("attachment retries and cleanup", () => {
     expect(mock.rpc).toHaveBeenCalledWith(
       "finish_household_attachment_cleanup",
       { p_path: path },
+    );
+  });
+  it("batches only atomically claimed cleanup paths and finishes them after deletion", async () => {
+    const second = path.replace("000000000002.pdf", "000000000003.pdf");
+    mock.rpc.mockImplementation(async (name: string) => ({
+      data:
+        name === "begin_household_attachment_cleanup"
+          ? [{ path }, { path: second }]
+          : null,
+      error: null,
+    }));
+    expect(
+      (
+        await DELETE(
+          new Request(`https://home.example/api/attachments?path=${path}`, {
+            method: "DELETE",
+            headers: { origin: "https://home.example" },
+          }),
+        )
+      ).status,
+    ).toBe(204);
+    expect(mock.remove).toHaveBeenCalledTimes(1);
+    expect(mock.remove).toHaveBeenCalledWith([path, second]);
+    expect(mock.rpc).toHaveBeenCalledWith(
+      "finish_household_attachment_cleanup",
+      { p_path: second },
     );
   });
   it("leaves failed deletions available for retry", async () => {

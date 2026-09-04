@@ -117,3 +117,35 @@ test("replacing a ready attachment discards the previous temporary upload", asyn
     replacement,
   );
 });
+
+test("an expired upload offers a fresh file selection instead of an impossible retry", async ({
+  page,
+}) => {
+  const ids: string[] = [];
+  await page.route("**/api/attachments", async (route) => {
+    ids.push(
+      (route.request().postData() ?? "").match(
+        /name="uploadId"\r\n\r\n([^\r]+)/,
+      )?.[1] ?? "",
+    );
+    await route.fulfill({
+      status: ids.length === 1 ? 409 : 201,
+      contentType: "application/json",
+      body: JSON.stringify(
+        ids.length === 1
+          ? { error: "This upload expired. Choose the file again." }
+          : { path },
+      ),
+    });
+  });
+  await page.goto("/m7-fixture/attachment");
+  await page.getByLabel("Receipt (optional)").setInputFiles(file);
+  await expect(page.getByRole("status")).toContainText("Choose the file again");
+  await expect(page.getByRole("button", { name: "Retry upload" })).toHaveCount(
+    0,
+  );
+  await page.getByLabel("Receipt (optional)").setInputFiles(file);
+  await expect(page.getByRole("status")).toHaveText("Attachment ready.");
+  expect(ids).toHaveLength(2);
+  expect(ids[1]).not.toBe(ids[0]);
+});

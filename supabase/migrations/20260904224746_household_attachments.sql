@@ -32,12 +32,12 @@ declare v_household uuid; v_upload public.household_attachment_uploads;
 begin
   select m.household_id into v_household from public.household_members m where m.user_id = auth.uid();
   if v_household is null or p_path is null or p_content_type is null
-    or split_part(p_path, '/', 1) <> v_household::text
-    or p_path !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(receipts|completions|documents)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp|pdf)$'
-    or p_content_type <> (case split_part(p_path, '.', 2)
+    or lower(split_part(p_path, '/', 1)) <> v_household::text
+    or p_path !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(receipts|completions|documents)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp|pdf)$'
+    or p_content_type <> (case lower(split_part(p_path, '.', 2))
       when 'jpg' then 'image/jpeg' when 'png' then 'image/png'
       when 'webp' then 'image/webp' when 'pdf' then 'application/pdf' else '' end)
-    or (split_part(p_path, '/', 2) = 'completions' and p_content_type = 'application/pdf')
+    or (lower(split_part(p_path, '/', 2)) = 'completions' and p_content_type = 'application/pdf')
   then raise exception 'Invalid attachment' using errcode = '22023'; end if;
   insert into public.household_attachment_uploads(path, household_id, uploaded_by, content_type)
     values(p_path, v_household, auth.uid(), p_content_type) on conflict do nothing;
@@ -47,15 +47,21 @@ begin
   return exists (select 1 from storage.objects where bucket_id = 'household-files' and name = p_path);
 end $$;
 
-create function private.can_upload_household_attachment(p_path text, p_metadata jsonb)
-returns boolean language plpgsql security definer set search_path = '' as $$
+-- The Edge writer is privileged, so this trigger (not an RLS-only check) must
+-- lock the same pending row as cleanup before any household object is inserted.
+create function private.guard_household_attachment_insert()
+returns trigger language plpgsql security definer set search_path = '' as $$
 declare v_upload public.household_attachment_uploads;
 begin
-  select * into v_upload from public.household_attachment_uploads where path = p_path for update;
-  return coalesce(v_upload.state = 'pending' and v_upload.uploaded_by = auth.uid()
-    and v_upload.content_type = p_metadata->>'mimetype'
-    and exists(select 1 from public.household_members m where m.household_id = v_upload.household_id and m.user_id = auth.uid()), false);
+  if new.bucket_id <> 'household-files' then return new; end if;
+  select * into v_upload from public.household_attachment_uploads where path = new.name for update;
+  if not found or v_upload.state <> 'pending'
+    or v_upload.content_type is distinct from new.metadata->>'mimetype'
+  then raise exception 'Attachment is no longer pending' using errcode = '22023'; end if;
+  return new;
 end $$;
+create trigger guard_household_attachment_insert before insert on storage.objects
+  for each row execute function private.guard_household_attachment_insert();
 
 -- Called only by parent-table triggers, including household_documents when added.
 -- A claimed row stays claimed even after a receipt is reversed or replaced.
@@ -80,7 +86,7 @@ begin
   v_path := to_jsonb(new)->>tg_argv[0];
   if tg_op = 'INSERT' or v_path is distinct from (to_jsonb(old)->>tg_argv[0]) then
     if tg_argv[0] = 'photo_path' and v_path is not null
-      and v_path !~ '/completions/[0-9a-f-]+\.(jpg|png|webp)$'
+      and v_path !~* '/completions/[0-9a-f-]+\.(jpg|png|webp)$'
     then raise exception 'Choose a completion photo' using errcode = '22023'; end if;
     perform private.claim_household_attachment(v_path, new.household_id);
   end if;
@@ -122,16 +128,16 @@ end $$;
 
 revoke all on function public.reserve_household_attachment(text,text), public.begin_household_attachment_cleanup(text), public.finish_household_attachment_cleanup(text) from public, anon;
 grant execute on function public.reserve_household_attachment(text,text), public.begin_household_attachment_cleanup(text), public.finish_household_attachment_cleanup(text) to authenticated;
-revoke all on function private.claim_household_attachment(text,uuid), private.claim_parent_household_attachment(), private.can_upload_household_attachment(text,jsonb) from public, anon, authenticated;
-grant execute on function private.can_upload_household_attachment(text,jsonb) to authenticated;
+revoke all on function private.claim_household_attachment(text,uuid), private.claim_parent_household_attachment(), private.guard_household_attachment_insert() from public, anon, authenticated;
+
 
 create policy household_files_read on storage.objects for select to authenticated
 using (bucket_id = 'household-files' and exists (
   select 1 from public.household_members m where m.user_id = (select auth.uid())
     and m.household_id::text = split_part(name, '/', 1)
 ));
-create policy household_files_insert on storage.objects for insert to authenticated
-with check (bucket_id = 'household-files' and private.can_upload_household_attachment(name, metadata));
+-- No authenticated INSERT policy: only the byte-inspecting Edge Function writes.
+-- Bucket MIME metadata alone cannot distinguish a PDF disguised as an image.
 create policy household_files_cleanup on storage.objects for delete to authenticated
 using (bucket_id = 'household-files' and exists (
   select 1 from public.household_attachment_uploads u where u.path = name and u.state = 'deleting'

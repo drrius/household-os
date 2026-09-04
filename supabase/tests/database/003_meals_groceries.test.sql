@@ -676,8 +676,10 @@ set local role authenticated;
 
 select public.reserve_household_attachment(
   '10000000-0000-4000-8000-000000000021/receipts/20000000-0000-4000-8000-000000000021.jpg', 'image/jpeg');
+reset role;
 insert into storage.objects(bucket_id, name, metadata) values (
   'household-files', '10000000-0000-4000-8000-000000000021/receipts/20000000-0000-4000-8000-000000000021.jpg', '{"mimetype":"image/jpeg"}'::jsonb);
+set local role authenticated;
 
 select lives_ok(
   $$

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { ATTACHMENT_BUCKET } from "@/domain/attachments/files";
 import type { createClient } from "@/lib/supabase/server";
+import { getPublicEnv } from "@/lib/env";
 import { cleanupAttachments } from "./cleanup";
 
 export async function uploadAttachment(
@@ -12,27 +12,42 @@ export async function uploadAttachment(
 ): Promise<
   { status: number; path: string } | { status: number; error: string }
 > {
-  // Cleanup failures remain retryable and do not block a new upload.
   await cleanupAttachments(supabase).catch(() => false);
-  const args = { p_path: path, p_content_type: mime };
-  const reservation = await supabase.rpc("reserve_household_attachment", args);
-  if (reservation.error)
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return { status: 401, error: "Sign in to upload a file." };
+  const env = getPublicEnv();
+  const url = new URL(
+    `${env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/household-attachment-upload`,
+  );
+  url.searchParams.set("purpose", path.split("/")[1] ?? "");
+  url.searchParams.set("uploadId", path.split("/")[2]?.split(".")[0] ?? "");
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${data.session.access_token}`,
+        apikey: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": mime,
+      },
+      body: new Uint8Array(bytes),
+      cache: "no-store",
+    });
+    const result = await response.json();
+    if (response.ok && result.path === path) return { status: 201, path };
+    const status = [400, 401, 403, 409, 413, 429].includes(response.status)
+      ? response.status
+      : 502;
     return {
-      status: 409,
-      error: "This upload expired. Choose the file again.",
+      status,
+      error:
+        status === 409
+          ? "This upload expired. Choose the file again."
+          : "Couldn't upload the file. Choose it again or try later.",
     };
-  if (reservation.data === true) return { status: 201, path };
-  const { error } = await supabase.storage
-    .from(ATTACHMENT_BUCKET)
-    .upload(path, bytes, { contentType: mime, upsert: false });
-  if (error) {
-    // A concurrent retry may have finished the same immutable upload.
-    const recovered = await supabase.rpc("reserve_household_attachment", args);
-    if (recovered.error || recovered.data !== true)
-      return {
-        status: 502,
-        error: "Couldn't upload the file. Please try again.",
-      };
+  } catch {
+    return {
+      status: 502,
+      error: "Couldn't upload the file. Please try again.",
+    };
   }
-  return { status: 201, path };
 }

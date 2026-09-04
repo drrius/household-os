@@ -18,15 +18,21 @@ insert into public.household_members (household_id, user_id, display_name) value
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000081', true);
 select is(public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/receipts/20000000-0000-4000-8000-000000000081.pdf', 'application/pdf'), false, 'reserve a new upload');
-select lives_ok($$insert into storage.objects (bucket_id, name, metadata) values ('household-files', '10000000-0000-4000-8000-000000000081/receipts/20000000-0000-4000-8000-000000000081.pdf', '{"mimetype":"application/pdf"}')$$, 'member can upload a registered object');
+select throws_ok($$insert into storage.objects (bucket_id, name, metadata) values ('household-files', '10000000-0000-4000-8000-000000000081/receipts/20000000-0000-4000-8000-000000000081.pdf', '{"mimetype":"application/pdf"}')$$, '42501', null, 'registered clients cannot bypass the Edge byte inspection');
+reset role;
+insert into storage.objects (bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/receipts/20000000-0000-4000-8000-000000000081.pdf','{"mimetype":"application/pdf"}');
+set local role authenticated;
 select is(public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/receipts/20000000-0000-4000-8000-000000000081.pdf', 'application/pdf'), true, 'lost upload response recovers existing object');
-select throws_ok($$insert into storage.objects (bucket_id, name) values ('household-files', '10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000082.pdf')$$, '42501', null, 'direct unregistered uploads rejected');
+select throws_ok($$insert into storage.objects (bucket_id, name) values ('household-files', '10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000082.pdf')$$, '22023', null, 'direct unregistered uploads rejected');
 select throws_ok($$select public.reserve_household_attachment('10000000-0000-4000-8000-000000000082/receipts/20000000-0000-4000-8000-000000000081.pdf', 'application/pdf')$$, '22023', null, 'cross-household reservation rejected');
 select throws_ok($$select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000081.pdf', 'application/pdf')$$, '22023', null, 'completion PDFs rejected at database boundary');
-select throws_ok($$insert into storage.objects (bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000081.pdf','{"mimetype":"application/pdf"}')$$, '42501', null, 'direct Storage completion PDF rejected');
+select throws_ok($$insert into storage.objects (bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000081.pdf','{"mimetype":"application/pdf"}')$$, '22023', null, 'direct Storage completion PDF rejected');
 select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000082.jpg', 'image/jpeg');
-select throws_ok($$insert into storage.objects (bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000082.jpg','{"mimetype":"application/pdf"}')$$, '42501', null, 'PDF MIME rejected even with reserved image extension');
+select throws_ok($$insert into storage.objects (bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000082.jpg','{"mimetype":"application/pdf"}')$$, '22023', null, 'PDF MIME rejected even with reserved image extension');
+select throws_ok($$insert into storage.objects(bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000082.jpg','{"mimetype":"image/jpeg"}')$$,'42501',null,'matching forged image MIME cannot bypass Edge inspection');
+reset role;
 insert into storage.objects(bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000082.jpg','{"mimetype":"image/jpeg"}');
+set local role authenticated;
 select throws_ok($$update public.household_attachment_uploads set state = 'claimed'$$, '42501', null, 'clients cannot bypass claim state machine');
 select is_empty($$select * from public.begin_household_attachment_cleanup()$$, 'fresh pending uploads have a grace period');
 
@@ -57,6 +63,9 @@ select throws_ok($$select public.reserve_household_attachment('10000000-0000-400
 select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000085.pdf','application/pdf');
 select * from public.begin_household_attachment_cleanup('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000085.pdf');
 select public.finish_household_attachment_cleanup('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000085.pdf');
+reset role;
+select throws_ok($$insert into storage.objects(bucket_id,name,metadata) values ('household-files','10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000085.pdf','{"mimetype":"application/pdf"}')$$,'22023',null,'privileged writer cannot resurrect an upload after cleanup');
+set local role authenticated;
 select is((select state from public.household_attachment_uploads where path like '%000000000085.pdf'), 'deleted', 'missing object cleanup finishes with tombstone');
 select throws_ok($$select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000085.pdf','application/pdf')$$, '22023', null, 'deleted tombstone prevents stale retry resurrection');
 select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000083.pdf','application/pdf');
@@ -77,6 +86,9 @@ select is_empty($$select * from public.begin_household_attachment_cleanup('10000
 set local role anon;
 select is((select count(*) from storage.objects where bucket_id = 'household-files'), 0::bigint, 'anonymous users cannot read attachments');
 select throws_ok($$select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000084.pdf','application/pdf')$$, '42501', null, 'anonymous users cannot reserve');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000081', true);
+select is(public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000099.PDF','application/pdf'),false,'uppercase extension maps to normalized MIME');
 reset role;
 select * from finish();
 rollback;

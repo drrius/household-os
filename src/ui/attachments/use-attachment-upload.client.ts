@@ -20,6 +20,15 @@ function clearInput(input: { current: HTMLInputElement | null }) {
   }
 }
 
+class UploadRejection extends Error {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message);
+  }
+}
+
 async function sendUpload(
   file: File,
   purpose: AttachmentPurpose,
@@ -36,8 +45,30 @@ async function sendUpload(
   });
   const result: { path?: string; error?: string } = await response.json();
   if (!response.ok || !result.path)
-    throw new Error(result.error ?? "Couldn't upload the attachment.");
+    throw new UploadRejection(
+      result.error ?? "Couldn't upload the attachment.",
+      response.status >= 500 ||
+        response.status === 408 ||
+        response.status === 429,
+    );
   return result.path;
+}
+
+function uploadError(failure: unknown) {
+  return failure instanceof Error
+    ? failure.message
+    : "Couldn't upload the attachment.";
+}
+
+function rejectValidity(
+  input: { current: HTMLInputElement | null },
+  retryable: boolean,
+) {
+  input.current?.setCustomValidity(
+    retryable
+      ? "Retry, choose another file, or remove this attachment before saving."
+      : "Choose the file again or remove this attachment before saving.",
+  );
 }
 
 export function useAttachmentUpload(
@@ -72,15 +103,12 @@ export function useAttachmentUpload(
       if (previous && previous !== uploadedPath)
         await discard(previous).catch(() => {});
     } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Couldn't upload the attachment.",
-      );
-      setCanRetry(true);
-      input.current?.setCustomValidity(
-        "Retry, choose another file, or remove this attachment before saving.",
-      );
+      setError(uploadError(failure));
+      const retryable =
+        !(failure instanceof UploadRejection) || failure.retryable;
+      setCanRetry(retryable);
+      if (!retryable) attempt.current = null;
+      rejectValidity(input, retryable);
     } finally {
       setPending(false);
     }
