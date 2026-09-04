@@ -4,17 +4,21 @@ import { useId } from "react";
 import type { AttachmentPurpose } from "@/domain/attachments/files";
 import { useAttachmentUpload } from "./use-attachment-upload.client";
 
+type AttachmentFieldProps = {
+  name: string;
+  label: string;
+  purpose: AttachmentPurpose;
+  initialPath?: string | null;
+  required?: boolean;
+};
+
 export function AttachmentField({
   name,
   label,
   purpose,
   initialPath = "",
-}: {
-  name: string;
-  label: string;
-  purpose: AttachmentPurpose;
-  initialPath?: string | null;
-}) {
+  required = false,
+}: AttachmentFieldProps) {
   const id = useId();
   const { input, path, pending, error, upload, remove } = useAttachmentUpload(
     purpose,
@@ -25,7 +29,9 @@ export function AttachmentField({
     <div className="grid gap-2 text-base sm:text-sm">
       <label className="font-medium" htmlFor={id}>
         {label}{" "}
-        <span className="font-normal text-muted-foreground">(optional)</span>
+        {!required ? (
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        ) : null}
       </label>
       <input type="hidden" name={name} value={path} />
       <input
