@@ -38,6 +38,16 @@ export default async function GroceryItemPage({
   if (result.error) throw new Error("Couldn't load this grocery item.");
   if (!result.data) notFound();
   const item = result.data;
+  const linkedMeal = item.originating_meal_plan_entry_id
+    ? await supabase
+        .from("meal_plan_entries")
+        .select("id")
+        .eq("household_id", member.householdId)
+        .eq("id", item.originating_meal_plan_entry_id)
+        .is("removed_at", null)
+        .maybeSingle()
+    : null;
+  if (linkedMeal?.error) throw new Error("Couldn't load the linked meal.");
   return (
     <FormPage
       backHref="/groceries"
@@ -48,7 +58,7 @@ export default async function GroceryItemPage({
       }
       title={item.name}
     >
-      {item.originating_meal_plan_entry_id ? (
+      {linkedMeal?.data ? (
         <p className="pb-4 text-sm">
           <Link
             className="underline underline-offset-4"

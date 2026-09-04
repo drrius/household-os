@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { useFormFieldValue } from "@/ui/forms/form-fields.client";
+import { useFormFieldsState } from "@/ui/forms/form-fields.client";
 
 export function CheckboxField({
   defaultChecked,
@@ -14,8 +14,9 @@ export function CheckboxField({
   name: string;
   value?: string;
 }) {
-  const echoed = useFormFieldValue(name);
-  const checked = echoed === "" ? Boolean(defaultChecked) : echoed === value;
+  const { values, submissionId } = useFormFieldsState();
+  const checked =
+    submissionId === 0 ? Boolean(defaultChecked) : values[name] === value;
   return (
     <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
       <Checkbox defaultChecked={checked} name={name} value={value} />

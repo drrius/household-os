@@ -245,3 +245,31 @@ describe("mapGroceriesViewModel", () => {
     expect(model.recentHistoryLabel).toBeNull();
   });
 });
+
+it("retains grocery history without dead links to removed meals", () => {
+  const base = {
+    name: "Rice",
+    quantity: null,
+    unit: null,
+    purchased_at: "2026-09-01T00:00:00Z",
+    originating_meal_plan_entry_id: "meal",
+  };
+  const model = mapGroceriesViewModel(
+    groceriesInput({
+      history: [
+        { ...base, id: "live", meal: { removed_at: null } },
+        {
+          ...base,
+          id: "removed",
+          meal: { removed_at: "2026-09-02T00:00:00Z" },
+        },
+        { ...base, id: "missing", meal: null },
+      ],
+    }),
+  );
+  expect(model.history?.map((item) => item.mealId)).toEqual([
+    "meal",
+    null,
+    null,
+  ]);
+});

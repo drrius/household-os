@@ -6,6 +6,7 @@ export const SURFACE_INVALIDATION_MAP = {
   routines: ["today", "home", "plan"],
   meal_plan_entries: ["plan", "today"],
   grocery_items: ["groceries", "today"],
+  grocery_categories: ["groceries", "plan"],
   shopping_sessions: ["groceries", "today"],
   expense_drafts: ["money", "today"],
   financial_events: ["money", "today"],

@@ -198,6 +198,7 @@ export type WatchedTable =
   | "routines"
   | "meal_plan_entries"
   | "grocery_items"
+  | "grocery_categories"
   | "shopping_sessions"
   | "expense_drafts"
   | "financial_events"

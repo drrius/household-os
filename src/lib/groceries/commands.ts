@@ -1,4 +1,5 @@
 import "server-only";
+import { nextGroceryPosition } from "@/domain/groceries/order";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
@@ -35,7 +36,9 @@ export async function createGroceryItem(input: {
     throw new Error(`grocery_item_order failed: ${orderError.message}`);
   }
   const previousOrder = orderRows?.[0]?.sort_order;
-  const sortOrder = typeof previousOrder === "number" ? previousOrder + 10 : 0;
+  const sortOrder = nextGroceryPosition(
+    typeof previousOrder === "number" ? previousOrder : undefined,
+  );
   const { data, error } = await supabase
     .from("grocery_items")
     .insert({

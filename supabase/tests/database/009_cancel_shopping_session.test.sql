@@ -36,5 +36,6 @@ select is((select count(*)::integer from public.expense_drafts),0,'cancellation 
 select lives_ok($$select public.start_shopping_session('10000000-0000-4000-8000-000000000071')$$,'owner can start a fresh empty session');
 select lives_ok($$select public.cancel_shopping_session(id) from public.shopping_sessions where member_id=auth.uid() and finished_at is null$$,'empty session can be cancelled');
 select is((select count(*)::integer from public.shopping_sessions where member_id=auth.uid() and finished_at is null),0,'no abandoned empty active session');
+select ok(exists(select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'grocery_categories'),'category changes are published to shared clients');
 select * from finish();
 rollback;

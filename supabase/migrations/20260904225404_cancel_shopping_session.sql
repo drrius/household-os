@@ -34,3 +34,10 @@ end;
 $$;
 revoke all on function public.cancel_shopping_session(uuid) from public, anon;
 grant execute on function public.cancel_shopping_session(uuid) to authenticated;
+
+do $$ begin
+  if not exists(select 1 from pg_publication_tables where pubname = 'supabase_realtime'
+    and schemaname = 'public' and tablename = 'grocery_categories') then
+    alter publication supabase_realtime add table public.grocery_categories;
+  end if;
+end $$;

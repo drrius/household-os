@@ -29,6 +29,7 @@ type HistoryRow = {
   unit: string | null;
   purchased_at: string;
   originating_meal_plan_entry_id: string | null;
+  meal?: { removed_at: string | null } | null;
 };
 
 type GroceriesReadRows = {
@@ -174,7 +175,10 @@ export function mapGroceriesViewModel(
       quantity: item.quantity,
       unit: item.unit,
       purchasedAt: item.purchased_at,
-      mealId: item.originating_meal_plan_entry_id,
+      mealId:
+        item.meal?.removed_at === null
+          ? item.originating_meal_plan_entry_id
+          : null,
     })),
     recentHistoryLabel:
       input.history.length === 0
@@ -237,7 +241,7 @@ export async function loadGroceriesViewModel(): Promise<GroceriesViewModel> {
       supabase
         .from("grocery_items")
         .select(
-          "id, name, quantity, unit, purchased_at, originating_meal_plan_entry_id",
+          "id, name, quantity, unit, purchased_at, originating_meal_plan_entry_id, meal:meal_plan_entries(removed_at)",
         )
         .eq("household_id", member.householdId)
         .eq("state", "purchased")
