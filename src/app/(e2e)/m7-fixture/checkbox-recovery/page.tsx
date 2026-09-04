@@ -1,15 +1,19 @@
 "use client";
-import { FormFields } from "@/ui/forms/form-fields.client";
-import { CheckboxField } from "@/ui/forms/checkbox-field.client";
+import { GroceryCategoryManager } from "@/ui/groceries/category-manager.client";
 import { formRejection } from "@/lib/forms/action-state";
 import { echoValues } from "@/lib/forms/echo";
-
 export default function CheckboxRecoveryFixture() {
   return (
     <main className="p-6">
-      <h1>Restore category</h1>
-      <FormFields
-        submitLabel="Save category"
+      <GroceryCategoryManager
+        data={[
+          {
+            id: "00000000-0000-4000-8000-000000000099",
+            name: "Archived category",
+            sort_order: 10,
+            archived_at: "2026-01-01T00:00:00Z",
+          },
+        ]}
         action={async (previous, form) =>
           formRejection(
             previous,
@@ -17,13 +21,7 @@ export default function CheckboxRecoveryFixture() {
             echoValues(form),
           )
         }
-      >
-        <CheckboxField
-          defaultChecked
-          name="archive"
-          label="Keep category archived"
-        />
-      </FormFields>
+      />
     </main>
   );
 }
