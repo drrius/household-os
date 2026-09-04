@@ -2,6 +2,8 @@
 
 Status: active. User scope clarification supersedes the narrower wording of the runtime goal.
 
+Latest user direction: “Nothing missed isn’t specific to those workflows. Anything at all app related.” This applies to both feature discovery and the completion criteria below. The starting scope is a minimum, not a closed feature list.
+
 ## Objective
 
 Turn Household OS into a complete, functional, polished operating system for this two-person household. Implement everything agreed in the conversation and actively discover and implement other worthwhile missing features or functionality anywhere in the app. The completeness audit is explicitly not limited to the previously discussed workflows.
@@ -14,6 +16,7 @@ The user authorized autonomous product decisions, broad UI redesign, branches, c
 - Deliver trips/vacations, flights/hotels/bookings/itinerary/checklists, projects, shared calendar, private shared-iCloud synchronization, home inventory and maintenance, recurring commitments and renewals, decisions and wishlists, and their useful relationships with tasks and paid expenses.
 - Make the app feel excellent on phones and desktop, with clear hierarchy, comfortable touch targets, context-preserving interactions, tasteful responsive motion, reduced-motion support, and robust accessibility.
 - Audit the entire application for additional missing product capabilities, dead ends, lifecycle actions, integration gaps, reliability issues, accessibility failures, setup/deployment gaps, and useful household functionality. Implement worthwhile additions beyond the starting scope, recording each decision and its rationale. Avoid filler features or complexity that creates more household administration than it removes.
+- Repeat that audit after the new features are connected. Inspect navigation, search and discovery, onboarding, daily coordination, cross-feature actions, settings, account and household lifecycle, notifications, recovery, and operational readiness as well as individual screens. Do not stop merely because every item in the starting scope has a PR. Additional worthwhile app-related gaps become required work, with the same implementation, verification, and review standards.
 
 ## Boundaries
 
