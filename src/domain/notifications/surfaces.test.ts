@@ -13,6 +13,20 @@ const WATCHED_TABLES = [
   "expense_drafts",
   "financial_events",
   "activity_events",
+  "household_projects",
+  "project_tasks",
+  "calendar_events",
+  "trip_bookings",
+  "household_contacts",
+  "household_assets",
+  "household_commitments",
+  "household_decisions",
+  "decision_options",
+  "household_financial_links",
+  "household_documents",
+  "asset_maintenance",
+  "asset_routines",
+  "grocery_categories",
 ] as const satisfies readonly WatchedTable[];
 
 describe("SURFACE_INVALIDATION_MAP", () => {

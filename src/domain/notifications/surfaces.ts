@@ -10,6 +10,20 @@ export const SURFACE_INVALIDATION_MAP = {
   expense_drafts: ["money", "today"],
   financial_events: ["money", "today"],
   activity_events: ["home"],
+  household_projects: ["plan", "today", "home"],
+  project_tasks: ["plan", "today"],
+  calendar_events: ["plan", "today"],
+  trip_bookings: ["plan", "today"],
+  household_contacts: ["home"],
+  household_assets: ["home", "today"],
+  household_commitments: ["home", "today", "money"],
+  household_decisions: ["home", "plan"],
+  decision_options: ["home", "plan"],
+  household_financial_links: ["money", "plan", "home"],
+  household_documents: ["home", "plan", "money"],
+  asset_maintenance: ["home"],
+  asset_routines: ["home", "today"],
+  grocery_categories: ["groceries", "plan"],
 } as const satisfies Readonly<Record<WatchedTable, readonly AppSurface[]>>;
 
 export function surfacesForTableChange(
