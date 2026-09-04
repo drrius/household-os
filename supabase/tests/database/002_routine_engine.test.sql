@@ -191,12 +191,12 @@ select results_eq(
   $$,
   $$
     values
-      ('Cleaning'::text, 1),
-      ('Kitchen'::text, 2),
-      ('Laundry'::text, 3),
-      ('Dog'::text, 4),
-      ('Meals'::text, 5),
-      ('General'::text, 6)
+      ('Cleaning'::text, 10),
+      ('Kitchen'::text, 20),
+      ('Laundry'::text, 30),
+      ('Dog'::text, 40),
+      ('Meals'::text, 50),
+      ('General'::text, 60)
   $$,
   'default areas have the product-defined order'
 );
