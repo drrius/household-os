@@ -89,6 +89,37 @@ select throws_ok($$select public.reserve_household_attachment('10000000-0000-400
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000081', true);
 select is(public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000099.PDF','application/pdf'),false,'uppercase extension maps to normalized MIME');
+-- Valid inspected uploads cannot be repurposed as shopping or financial receipts.
+select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000090.jpg','image/jpeg');
+select public.reserve_household_attachment('10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000091.pdf','application/pdf');
+reset role;
+insert into storage.objects(bucket_id,name,metadata) values
+('household-files','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000090.jpg','{"mimetype":"image/jpeg"}'),
+('household-files','10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000091.pdf','{"mimetype":"application/pdf"}');
+select throws_ok(format($sql$
+  insert into public.shopping_sessions(household_id,member_id,finished_at,receipt_path)
+  values ('10000000-0000-4000-8000-000000000081','00000000-0000-4000-8000-000000000081',now(),%L)
+$sql$, path),'22023','Choose a receipt attachment','shopping rejects a valid ' || purpose || ' upload as its receipt')
+from (values
+ ('completions','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000090.jpg'),
+ ('documents','10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000091.pdf')
+) as wrong_purpose(purpose,path);
+select throws_ok(format($sql$
+  insert into public.financial_events(household_id,type,occurred_on,created_by_member_id,payer_member_id,description,amount_cents,receipt_path)
+  values ('10000000-0000-4000-8000-000000000081','expense',current_date,'00000000-0000-4000-8000-000000000081','00000000-0000-4000-8000-000000000081','Receipt purpose fixture',0,%L)
+$sql$, path),'22023','Choose a receipt attachment','financial event rejects a valid ' || purpose || ' upload as its receipt')
+from (values
+ ('completions','10000000-0000-4000-8000-000000000081/completions/20000000-0000-4000-8000-000000000090.jpg'),
+ ('documents','10000000-0000-4000-8000-000000000081/documents/20000000-0000-4000-8000-000000000091.pdf')
+) as wrong_purpose(purpose,path);
+select lives_ok($sql$
+  insert into public.shopping_sessions(household_id,member_id,finished_at,receipt_path)
+  values ('10000000-0000-4000-8000-000000000081','00000000-0000-4000-8000-000000000081',now(),null)
+$sql$,'shopping receipt remains optional');
+select lives_ok($sql$
+  insert into public.financial_events(household_id,type,occurred_on,created_by_member_id,payer_member_id,description,amount_cents,receipt_path)
+  values ('10000000-0000-4000-8000-000000000081','expense',current_date,'00000000-0000-4000-8000-000000000081','00000000-0000-4000-8000-000000000081','No receipt fixture',0,null)
+$sql$,'financial receipt remains optional');
 reset role;
 select * from finish();
 rollback;

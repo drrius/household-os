@@ -88,6 +88,9 @@ begin
     if tg_argv[0] = 'photo_path' and v_path is not null
       and v_path !~* '/completions/[0-9a-f-]+\.(jpg|png|webp)$'
     then raise exception 'Choose a completion photo' using errcode = '22023'; end if;
+    if tg_argv[0] = 'receipt_path' and v_path is not null
+      and v_path !~* '/receipts/[0-9a-f-]+\.(jpg|png|webp|pdf)$'
+    then raise exception 'Choose a receipt attachment' using errcode = '22023'; end if;
     perform private.claim_household_attachment(v_path, new.household_id);
   end if;
   return new;
