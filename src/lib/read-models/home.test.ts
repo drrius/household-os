@@ -121,6 +121,7 @@ describe("buildHomeViewModel", () => {
           areaName: "Kitchen",
         },
       ],
+      archivedRoutines: [{ id: "routine-archived", title: "Old flea check" }],
       activity: [
         {
           id: "activity-today",
@@ -152,6 +153,7 @@ describe("buildHomeViewModel", () => {
       pets: [],
       areas: [],
       routines: [],
+      archivedRoutines: [],
       activity: [],
       storageUsedLabel: null,
     });

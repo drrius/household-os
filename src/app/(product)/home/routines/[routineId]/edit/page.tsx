@@ -7,11 +7,14 @@ import { loadRoutineFormOptions } from "@/lib/forms/options";
 import { createClient } from "@/lib/supabase/server";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { FormPage } from "@/ui/forms/form-page";
+import { RoutineLifecycle } from "@/ui/home/routine-lifecycle";
+import { RoutineHistory } from "@/ui/home/routine-history";
 import { RoutineForm } from "@/ui/forms/routine-form";
 
 const routineSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
+  paused_at: z.string().nullable(),
   instructions: z.string().nullable(),
   area_id: z.string().uuid(),
   pet_id: z.string().uuid().nullable(),
@@ -50,7 +53,7 @@ export default async function EditRoutinePage({
   const { data, error } = await supabase
     .from("routines")
     .select(
-      "id, title, instructions, area_id, pet_id, assignment_policy, assigned_member_id, rotation_anchor_member_id, schedule_rule, priority",
+      "id, title, instructions, area_id, pet_id, assignment_policy, assigned_member_id, rotation_anchor_member_id, schedule_rule, priority, paused_at",
     )
     .eq("household_id", member.householdId)
     .eq("id", routineId)
@@ -62,7 +65,7 @@ export default async function EditRoutinePage({
   return (
     <FormPage
       backHref="/home"
-      description="Update the definition; existing completion history remains intact."
+      description="Change how this routine works for both of you."
       title="Edit routine"
     >
       <RoutineForm
@@ -86,6 +89,11 @@ export default async function EditRoutinePage({
         pets={options.pets}
         submitLabel="Save routine"
       />
+      <RoutineLifecycle
+        routineId={routine.id}
+        paused={routine.paused_at !== null}
+      />
+      <RoutineHistory routineId={routine.id} />
     </FormPage>
   );
 }

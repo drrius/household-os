@@ -1,3 +1,5 @@
+"use client";
+
 import type { FormAction } from "@/lib/forms/action-state";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { FormField, FormFields, FormSection } from "@/ui/forms/form-page";
@@ -36,15 +38,7 @@ function RoutineDetails({
   pets: readonly Option[];
 }) {
   return (
-    <FormSection legend="Routine">
-      <FormField label="Title">
-        <EchoedInput
-          initialValue={defaults.title}
-          maxLength={120}
-          name="title"
-          required
-        />
-      </FormField>
+    <FormSection legend="Details">
       <FormField
         label="Instructions"
         description="Details both members can see."
@@ -58,7 +52,12 @@ function RoutineDetails({
       </FormField>
       <FormField label="Area">
         <EchoedSelect
-          initialValue={defaults.areaId ?? areas[0]?.id ?? ""}
+          initialValue={
+            defaults.areaId ??
+            areas.find((area) => area.name === "General")?.id ??
+            areas[0]?.id ??
+            ""
+          }
           items={areas.map((area) => ({
             label: area.name,
             value: area.id,
@@ -118,11 +117,24 @@ export function RoutineForm({
   submitLabel: string;
 }) {
   return (
-    <FormFields action={action} submitLabel={submitLabel}>
+    <FormFields
+      action={action}
+      submitLabel={submitLabel}
+      showRequiredNotice={false}
+    >
       {defaults.routineId ? (
         <input name="routineId" type="hidden" value={defaults.routineId} />
       ) : null}
-      <RoutineDetails areas={areas} defaults={defaults} pets={pets} />
+      <FormSection legend="What needs doing?">
+        <FormField label="Title">
+          <EchoedInput
+            initialValue={defaults.title}
+            maxLength={120}
+            name="title"
+            required
+          />
+        </FormField>
+      </FormSection>
       <RoutineResponsibilityFields
         defaultMemberId={defaults.memberId ?? null}
         defaultPolicy={defaults.assignmentPolicy ?? "shared"}
@@ -133,6 +145,15 @@ export function RoutineForm({
         defaultMode={defaults.scheduleMode ?? "one_off"}
         rule={defaults.scheduleRule ?? {}}
       />
+      <details
+        className="group border-t pt-4"
+        open={Boolean(defaults.instructions || defaults.petId)}
+      >
+        <summary className="min-h-11 cursor-pointer font-medium">
+          Area, instructions & more
+        </summary>
+        <RoutineDetails areas={areas} defaults={defaults} pets={pets} />
+      </details>
     </FormFields>
   );
 }

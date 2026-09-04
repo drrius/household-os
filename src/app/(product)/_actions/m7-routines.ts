@@ -18,6 +18,9 @@ import {
 } from "@/lib/forms/routine";
 import {
   createRoutine,
+  pauseRoutine,
+  unpauseRoutine,
+  archiveRoutine,
   updateRoutineDefinition,
 } from "@/lib/routines/commands";
 import { createClient } from "@/lib/supabase/server";
@@ -31,7 +34,7 @@ export async function createRoutineAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
-  redirect("/home");
+  redirect("/home?saved=routine");
 }
 
 export async function updateRoutineAction(
@@ -83,5 +86,23 @@ export async function updateRoutineAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
-  redirect("/home");
+  redirect("/home?saved=routine");
+}
+
+export async function routineLifecycleAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
+    const routineId = uuidSchema.parse(formData.get("routineId"));
+    const intent = z
+      .enum(["pause", "resume", "archive"])
+      .parse(formData.get("intent"));
+    if (intent === "pause") await pauseRoutine(routineId);
+    if (intent === "resume") await unpauseRoutine(routineId);
+    if (intent === "archive") await archiveRoutine(routineId);
+  });
+  if (rejected) return rejected;
+  revalidateProduct(["/", "/home"]);
+  redirect("/home?saved=routine");
 }
