@@ -16,7 +16,7 @@ revoke all on function private.guard_household_record_identity() from public, an
 
 create table public.household_projects (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -49,7 +49,7 @@ create trigger household_projects_identity before update on public.household_pro
 
 create table public.household_contacts (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -79,7 +79,7 @@ create trigger household_contacts_identity before update on public.household_con
 
 create table public.household_assets (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -113,7 +113,7 @@ create trigger household_assets_identity before update on public.household_asset
 
 create table public.household_commitments (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -152,7 +152,7 @@ create trigger household_commitments_identity before update on public.household_
 
 create table public.project_tasks (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -189,7 +189,7 @@ create trigger project_tasks_identity before update on public.project_tasks
 
 create table public.calendar_events (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -228,7 +228,7 @@ create trigger calendar_events_identity before update on public.calendar_events
 
 create table public.trip_bookings (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -270,7 +270,7 @@ create trigger trip_bookings_identity before update on public.trip_bookings
 
 create table public.household_decisions (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -301,7 +301,7 @@ create trigger household_decisions_identity before update on public.household_de
 
 create table public.decision_options (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -332,7 +332,7 @@ create trigger decision_options_identity before update on public.decision_option
 
 create table public.household_financial_links (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -369,7 +369,7 @@ create trigger household_financial_links_identity before update on public.househ
 
 create table public.asset_maintenance (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -400,7 +400,7 @@ create trigger asset_maintenance_identity before update on public.asset_maintena
 
 create table public.asset_routines (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -429,7 +429,7 @@ create trigger asset_routines_identity before update on public.asset_routines
 
 create table public.household_documents (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -524,7 +524,7 @@ begin
   if v_decision.converted_project_id is not null then return v_decision.converted_project_id; end if;
   if p_kind not in ('trip', 'project') then raise exception 'Invalid project kind' using errcode = '23514'; end if;
   insert into public.household_projects (household_id, kind, title, description)
-    values (v_decision.household_id, p_kind, left(v_decision.title, 160), v_decision.notes)
+    values (v_decision.household_id, p_kind, left(trim(v_decision.title), 160), v_decision.notes)
     returning id into v_project_id;
   update public.household_decisions set converted_project_id = v_project_id, status = 'decided'
     where id = p_decision_id;
@@ -633,3 +633,10 @@ end;
 $$;
 revoke all on function public.archive_household_decision_option(uuid, boolean) from public, anon;
 grant execute on function public.archive_household_decision_option(uuid, boolean) to authenticated;
+
+-- The composite FK also protects against concurrent edits to either parent.
+alter table public.calendar_events add constraint calendar_events_project_identity
+  unique (household_id, id, project_id);
+alter table public.trip_bookings add constraint trip_bookings_calendar_project
+  foreign key (household_id, calendar_event_id, project_id)
+  references public.calendar_events(household_id, id, project_id);
