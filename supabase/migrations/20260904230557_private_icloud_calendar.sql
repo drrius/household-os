@@ -1,6 +1,6 @@
 create table public.calendar_connections (
  id uuid primary key default extensions.gen_random_uuid(),
- household_id uuid not null unique references public.households(id),
+ household_id uuid not null unique references public.households(id) on delete cascade,
  connected_by uuid not null default auth.uid(),
  encrypted_credentials text not null check(length(encrypted_credentials) between 20 and 4096),
  selected_calendar_url text check(length(selected_calendar_url)<=2000),

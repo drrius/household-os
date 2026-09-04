@@ -54,5 +54,7 @@ select is((select sync_state from public.calendar_events),'local','disconnected 
 select is((select connection_id from public.calendar_events),null::uuid,'disconnected events release connection reference');
 reset role;
 select is_empty($$select 1 from pg_publication_tables where pubname='supabase_realtime' and tablename='calendar_connections'$$,'encrypted connections are never realtime published');
+select lives_ok($$delete from public.households where id='00000100-0000-4000-8000-000000000202'$$,'administrative whole-household deletion cascades its empty calendar connection');
+select is((select count(*) from public.calendar_connections where household_id='00000100-0000-4000-8000-000000000202'),0::bigint,'whole-household deletion leaves no encrypted calendar credentials');
 select * from finish();
 rollback;
