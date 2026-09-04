@@ -48,7 +48,7 @@ test("cancelled passkey attempts stay on sign-in with their destination intact",
   expect(new URL(page.url()).searchParams.get("returnTo")).toBe("/home/inbox");
 });
 
-test("sign-out retries keep the device endpoint after browser push is removed", async ({
+test("sign-out preserves browser push until server cleanup and authentication succeed", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -83,7 +83,7 @@ test("sign-out retries keep the device endpoint after browser push is removed", 
     await page.evaluate(() =>
       sessionStorage.getItem("account-fixture-push-removed"),
     ),
-  ).toBe("yes");
+  ).toBeNull();
   await page.getByRole("button", { name: "Sign out of this device" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
   expect(
@@ -91,6 +91,11 @@ test("sign-out retries keep the device endpoint after browser push is removed", 
       sessionStorage.getItem("account-fixture-endpoint"),
     ),
   ).toBe("https://push.example.invalid/this-device");
+  expect(
+    await page.evaluate(() =>
+      sessionStorage.getItem("account-fixture-push-removed"),
+    ),
+  ).toBe("yes");
   await page.goto("/security");
   await expect(page).toHaveURL(/\/sign-in\?returnTo=%2Fsecurity$/);
 });
@@ -116,3 +121,46 @@ test("sign-out remains available when a service worker has no push support", asy
     ),
   ).toBe("none");
 });
+
+for (const failure of ["reject", "false", "pending"]) {
+  test(`browser push cleanup ${failure} cannot block completed sign-out`, async ({
+    page,
+  }) => {
+    await page.addInitScript((mode) => {
+      Object.defineProperty(navigator.serviceWorker, "getRegistration", {
+        value: async () => ({
+          pushManager: {
+            getSubscription: async () => ({
+              endpoint: "https://push.example.invalid/this-device",
+              unsubscribe: () => {
+                sessionStorage.setItem(
+                  "account-fixture-cleanup-attempted",
+                  "yes",
+                );
+                if (mode === "reject")
+                  return Promise.reject(new Error("Push unavailable"));
+                if (mode === "pending") return new Promise(() => {});
+                return Promise.resolve(false);
+              },
+            }),
+          },
+        }),
+      });
+    }, failure);
+    await page.goto("/m7-fixture/account/sign-out");
+    await page.getByRole("button", { name: "Sign out of this device" }).click();
+    await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
+    expect(
+      await page.evaluate(() =>
+        sessionStorage.getItem("account-fixture-cleanup-attempted"),
+      ),
+    ).toBeNull();
+    await page.getByRole("button", { name: "Sign out of this device" }).click();
+    await expect(page).toHaveURL(/\/sign-in$/);
+    expect(
+      await page.evaluate(() =>
+        sessionStorage.getItem("account-fixture-cleanup-attempted"),
+      ),
+    ).toBe("yes");
+  });
+}

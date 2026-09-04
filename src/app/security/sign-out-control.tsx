@@ -20,19 +20,19 @@ export function SignOutControl({
     setPending(true);
     setError(null);
     try {
+      let subscription: PushSubscription | null | undefined;
       if ("serviceWorker" in navigator) {
         const registration = await navigator.serviceWorker.getRegistration("/");
-        const subscription = await registration?.pushManager?.getSubscription();
+        subscription = await registration?.pushManager?.getSubscription();
         if (subscription) {
           endpointRef.current = subscription.endpoint;
-          if (!(await subscription.unsubscribe()))
-            throw new Error(
-              "Could not turn off notifications on this device. Try again.",
-            );
         }
       }
       const result = await action(endpointRef.current);
       if (!result.ok) throw new Error(result.error);
+      // The server has already disabled delivery and ended the session.
+      // Browser cleanup must not hold sign-out hostage to a push-service failure.
+      void subscription?.unsubscribe().catch(() => undefined);
       // A full navigation discards this tab's authenticated router state.
       window.location.replace("/sign-in");
     } catch (failure) {
