@@ -50,8 +50,8 @@ export function SettingsList({
 }: Pick<HomeViewModel, "storageUsedLabel">) {
   const storageHint =
     storageUsedLabel === null
-      ? "Images only · Warning at 500 MB"
-      : `${storageUsedLabel} used · Warning at 500 MB`;
+      ? "Private photos & PDFs · Up to 4 MB each"
+      : `${storageUsedLabel} used · Up to 4 MB each`;
 
   return (
     <Card>

@@ -19,7 +19,12 @@ export function isHouseholdAttachment(
 ): boolean {
   const match = pathPattern.exec(path);
   return (
-    match !== null && match[1]?.toLowerCase() === householdId.toLowerCase()
+    match !== null &&
+    match[1]?.toLowerCase() === householdId.toLowerCase() &&
+    !(
+      match[2]?.toLowerCase() === "completions" &&
+      match[3]?.toLowerCase() === "pdf"
+    )
   );
 }
 
