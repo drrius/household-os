@@ -19,7 +19,14 @@ async function fixtureAction(
     if (input.note === "retry me")
       throw new Error("Couldn't save. Your note is still here.");
   });
-  if (rejected) return rejected;
+  if (rejected)
+    return {
+      ...rejected,
+      values: {
+        ...rejected.values,
+        idempotencyKey: String(formData.get("idempotencyKey")),
+      },
+    };
   redirect(`/m7-fixture/routine-polish?saved=${formData.get("intent")}`);
 }
 

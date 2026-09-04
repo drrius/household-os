@@ -758,6 +758,11 @@ select is(
   1,
   'archive keeps the actionable current occurrence as history-in-waiting'
 );
+select lives_ok($$select public.skip_occurrence(
+  (select id from public.routine_occurrences where routine_id = (select id from public.routines where title = 'Reschedule daily') and status = 'open' and role = 'current'),
+  'close-archived-current')$$, 'archived unfinished occurrence can be explicitly closed');
+select is_empty($$select id from public.routine_occurrences where routine_id = (select id from public.routines where title = 'Reschedule daily') and status = 'open'$$, 'closing archived occurrence generates no further work');
+
 
 reset role;
 

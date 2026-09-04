@@ -20,8 +20,8 @@ export async function loadRoutineHistory(routineId: string, page: number) {
       .select("id, due_date, status")
       .eq("household_id", member.householdId)
       .eq("routine_id", routineId)
-      .in("status", ["completed", "skipped"])
-      .order("closed_at", { ascending: false })
+      .or("status.in.(completed,skipped),and(status.eq.open,role.eq.current)")
+      .order("closed_at", { ascending: false, nullsFirst: true })
       .order("id")
       .range(page * 30, page * 30 + 30),
   ]);

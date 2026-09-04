@@ -70,7 +70,7 @@ export async function loadOccurrenceDetail(id: string) {
     canAct:
       occurrence.status === "open" &&
       occurrence.role === "current" &&
-      !occurrence.routine.paused_at &&
-      !occurrence.routine.archived_at,
+      (!occurrence.routine.paused_at ||
+        Boolean(occurrence.routine.archived_at)),
   };
 }

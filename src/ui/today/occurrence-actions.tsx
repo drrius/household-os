@@ -1,3 +1,4 @@
+import { RoutineOccurrenceFields } from "@/ui/forms/routine-occurrence-fields.client";
 import type { FormAction } from "@/lib/forms/action-state";
 import { RoutinePhotoField } from "@/ui/forms/routine-photo-field.client";
 import { updateOccurrenceAction } from "@/app/(product)/_actions/routines";
@@ -7,11 +8,11 @@ import { FormFields } from "@/ui/forms/form-page";
 
 function OccurrenceFields({ id, intent }: { id: string; intent: string }) {
   return (
-    <>
-      <input type="hidden" name="occurrenceId" value={id} />
-      <input type="hidden" name="intent" value={intent} />
-      <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
-    </>
+    <RoutineOccurrenceFields
+      id={id}
+      intent={intent}
+      initialKey={crypto.randomUUID()}
+    />
   );
 }
 
@@ -56,7 +57,8 @@ export function OccurrenceActions({
             <DateField
               label="New date"
               name="newDueDate"
-              defaultValue={dueDate}
+              defaultValue=""
+              description={`Currently due ${dueDate}. Choose a different day.`}
               required
             />
           </FormFields>

@@ -84,8 +84,17 @@ export default async function OccurrencePage({
           title={occurrence.routine.title}
           titleId="occurrence-title"
           trailing={
-            <Link className={buttonVariants({ variant: "outline" })} href="/">
-              Back to Today
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href={
+                occurrence.routine.archived_at
+                  ? `/home/routines/${occurrence.routine_id}/history`
+                  : "/"
+              }
+            >
+              {occurrence.routine.archived_at
+                ? "Back to history"
+                : "Back to Today"}
             </Link>
           }
         />
@@ -115,7 +124,8 @@ export default async function OccurrencePage({
           </Link>
         ) : (
           <p className="text-muted-foreground">
-            This routine is archived. Its history is kept here.
+            This routine is archived. You can close its unfinished occurrence;
+            no new occurrence will be created.
           </p>
         )}
       </div>

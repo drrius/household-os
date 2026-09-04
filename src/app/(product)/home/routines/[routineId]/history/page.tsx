@@ -33,8 +33,8 @@ export default async function RoutineHistoryPage({
           }
         />
         <p className="text-muted-foreground">
-          {model.routine.archived_at ? "Archived routine · " : ""}Completed and
-          skipped occurrences
+          {model.routine.archived_at ? "Archived routine · " : ""}Unfinished
+          work and past occurrences
         </p>
         <ul role="list" className="divide-y divide-border">
           {model.occurrences.map((occurrence) => (
@@ -45,7 +45,11 @@ export default async function RoutineHistoryPage({
               >
                 <p>{formatZurichDayLabel(occurrence.due_date)}</p>
                 <p className="text-base text-muted-foreground sm:text-sm">
-                  {occurrence.status === "completed" ? "Completed" : "Skipped"}
+                  {occurrence.status === "open"
+                    ? "Unfinished · Take care of this"
+                    : occurrence.status === "completed"
+                      ? "Completed"
+                      : "Skipped"}
                 </p>
               </Link>
             </li>

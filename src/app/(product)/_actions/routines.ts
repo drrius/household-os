@@ -1,7 +1,9 @@
 "use server";
 
-import { isHouseholdAttachment } from "@/domain/attachments/files";
-import { requireMemberContext } from "@/lib/auth/member-context";
+import {
+  validateCompletionPhoto,
+  validateRescheduleDate,
+} from "@/lib/routines/occurrence-validation";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { settleFormAction } from "@/lib/forms/action-state";
@@ -54,16 +56,10 @@ export async function updateOccurrenceAction(
   const rejected = await settleFormAction(previous, formData, async () => {
     const input = parseOccurrenceAction(formData);
     if (input.intent === "complete") {
-      const member = await requireMemberContext();
-      if (
-        input.photoPath &&
-        !isHouseholdAttachment(input.photoPath, member.householdId)
-      ) {
-        throw new Error("Choose a photo uploaded to this household.");
-      }
+      await validateCompletionPhoto(input.photoPath);
       await completeOccurrence({
         occurrenceId: input.occurrenceId,
-        idempotencyKey: `complete-occurrence:${input.occurrenceId}`,
+        idempotencyKey: input.idempotencyKey,
         completedOn: zurichCivilDate(),
         note: input.note || null,
         photoPath: input.photoPath || null,
@@ -71,10 +67,11 @@ export async function updateOccurrenceAction(
     } else if (input.intent === "skip") {
       await skipOccurrence({
         occurrenceId: input.occurrenceId,
-        idempotencyKey: `skip-occurrence:${input.occurrenceId}`,
+        idempotencyKey: input.idempotencyKey,
       });
     } else {
-      if (!input.newDueDate) throw new Error("Choose the new date.");
+      await validateRescheduleDate(input.occurrenceId, input.newDueDate);
+      if (!input.newDueDate) return;
       await rescheduleOccurrence({
         occurrenceId: input.occurrenceId,
         idempotencyKey: input.idempotencyKey,
@@ -82,7 +79,12 @@ export async function updateOccurrenceAction(
       });
     }
   });
-  if (rejected) return rejected;
+  if (rejected) {
+    const key = formData.get("idempotencyKey");
+    return typeof key === "string" && uuidPattern.test(key)
+      ? { ...rejected, values: { ...rejected.values, idempotencyKey: key } }
+      : rejected;
+  }
   revalidatePath("/");
   revalidatePath("/home");
   redirect(

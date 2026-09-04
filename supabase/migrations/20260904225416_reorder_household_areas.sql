@@ -34,3 +34,29 @@ end;
 $$;
 revoke all on function public.reorder_household_areas(uuid[]) from public, anon;
 grant execute on function public.reorder_household_areas(uuid[]) to authenticated;
+
+-- Ordering updates use the complete-list RPC. New areas append while holding
+-- the same household lock, including direct inserts and concurrent creations.
+revoke update (sort_order) on public.areas from authenticated;
+create function private.append_household_area()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  perform 1 from public.households where id = new.household_id for update;
+  select coalesce(max(sort_order), 0) + 10 into new.sort_order
+    from public.areas where household_id = new.household_id;
+  return new;
+end $$;
+revoke all on function private.append_household_area() from public, anon, authenticated;
+create trigger areas_append_order before insert on public.areas
+  for each row execute function private.append_household_area();
+
+do $$
+declare table_name text;
+begin
+  foreach table_name in array array['areas','pets'] loop
+    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime'
+      and schemaname = 'public' and tablename = table_name) then
+      execute format('alter publication supabase_realtime add table public.%I', table_name);
+    end if;
+  end loop;
+end $$;

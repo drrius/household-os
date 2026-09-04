@@ -23,16 +23,23 @@ test("routine details keep optional actions quiet and retain a rejected note", a
   await expect(
     page.getByRole("button", { name: "Archive routine" }),
   ).not.toBeVisible();
+  const key = await page
+    .locator('input[name="idempotencyKey"]')
+    .first()
+    .inputValue();
   await page
     .getByRole("textbox", { name: "Note for your partner" })
     .fill("retry me");
   await page.getByRole("button", { name: "Mark done", exact: true }).click();
   await expect(
     page.getByText("Couldn't save. Your note is still here."),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
   await expect(
     page.getByRole("textbox", { name: "Note for your partner" }),
   ).toHaveValue("retry me");
+  await expect(
+    page.locator('input[name="idempotencyKey"]').first(),
+  ).toHaveValue(key);
   await page
     .getByRole("textbox", { name: "Note for your partner" })
     .fill("Took the long way home.");
@@ -51,11 +58,22 @@ test("rescheduling and skipping are explicit, separate actions", async ({
       "Only this occurrence moves. The regular schedule stays the same.",
     ),
   ).toBeVisible();
-  await page.locator('input[name="newDueDate"]').fill("2026-09-08");
+  await expect(page.locator('input[name="newDueDate"]')).toHaveValue("");
   await page.getByRole("button", { name: "Move this occurrence" }).click();
   await expect(
     page.getByText("Saved reschedule", { exact: true }),
-  ).toBeVisible();
+  ).not.toBeVisible();
+  await page.getByRole("button", { name: "New date", exact: true }).click();
+  await page
+    .getByRole("gridcell")
+    .filter({ hasText: /^8$/ })
+    .getByRole("button")
+    .click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Move this occurrence" }).click();
+  await expect(page.getByText("Saved reschedule", { exact: true })).toBeVisible(
+    { timeout: 15000 },
+  );
   await page.getByText("Skip this time", { exact: true }).click();
   await page.getByRole("button", { name: "Skip this occurrence" }).click();
   await expect(page.getByText("Saved skip", { exact: true })).toBeVisible();

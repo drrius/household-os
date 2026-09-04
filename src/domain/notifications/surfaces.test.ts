@@ -4,6 +4,8 @@ import { SURFACE_INVALIDATION_MAP, surfacesForTableChange } from "./surfaces";
 import type { WatchedTable } from "./types";
 
 const WATCHED_TABLES = [
+  "areas",
+  "pets",
   "inbox_notifications",
   "routine_occurrences",
   "routines",
@@ -23,6 +25,8 @@ describe("SURFACE_INVALIDATION_MAP", () => {
   });
 
   it.each([
+    ["areas", ["home", "today"]],
+    ["pets", ["home", "today"]],
     ["inbox_notifications", ["inbox", "today"]],
     ["routine_occurrences", ["today", "home", "plan"]],
     ["routines", ["today", "home", "plan"]],
