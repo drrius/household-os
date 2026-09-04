@@ -34,9 +34,9 @@ begin
   if v_household is null or p_path is null or p_content_type is null
     or split_part(p_path, '/', 1) <> v_household::text
     or p_path !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(receipts|completions|documents)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp|pdf)$'
-    or p_content_type <> case split_part(p_path, '.', 2)
+    or p_content_type <> (case split_part(p_path, '.', 2)
       when 'jpg' then 'image/jpeg' when 'png' then 'image/png'
-      when 'webp' then 'image/webp' when 'pdf' then 'application/pdf' else '' end
+      when 'webp' then 'image/webp' when 'pdf' then 'application/pdf' else '' end)
     or (split_part(p_path, '/', 2) = 'completions' and p_content_type = 'application/pdf')
   then raise exception 'Invalid attachment' using errcode = '22023'; end if;
   insert into public.household_attachment_uploads(path, household_id, uploaded_by, content_type)
