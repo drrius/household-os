@@ -599,3 +599,37 @@ $$;
 revoke all on function private.guard_paid_cost_link() from public, anon, authenticated;
 create trigger zz_household_financial_links_expense before insert or update on public.household_financial_links
   for each row execute function private.guard_paid_cost_link();
+
+revoke update (archived_at) on public.decision_options from authenticated;
+create function private.guard_decision_option_parent()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.decision_id <> old.decision_id then
+    raise exception 'An option belongs to its original decision' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.guard_decision_option_parent() from public, anon, authenticated;
+create trigger decision_options_parent before update on public.decision_options
+  for each row execute function private.guard_decision_option_parent();
+
+create function public.archive_household_decision_option(p_option_id uuid, p_archived boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_decision_id uuid; v_chosen boolean;
+begin
+  if p_archived is null then raise exception 'Choose an archive state' using errcode = '23514'; end if;
+  select decision_id into v_decision_id from public.decision_options
+    where id = p_option_id and private.is_household_member(household_id);
+  if not found then raise exception 'Option not found' using errcode = '42501'; end if;
+  perform 1 from public.household_decisions where id = v_decision_id for update;
+  select chosen into v_chosen from public.decision_options where id = p_option_id for update;
+  update public.decision_options set archived_at = case when p_archived then now() else null end,
+    chosen = false where id = p_option_id;
+  if v_chosen then
+    update public.household_decisions set status = 'considering' where id = v_decision_id;
+  end if;
+end;
+$$;
+revoke all on function public.archive_household_decision_option(uuid, boolean) from public, anon;
+grant execute on function public.archive_household_decision_option(uuid, boolean) to authenticated;
