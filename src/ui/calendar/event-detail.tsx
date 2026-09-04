@@ -13,6 +13,7 @@ export function EventDetail({
   issue,
   editable,
   formatted,
+  displayTimeZone,
   recurring,
   occurrence,
   memberName,
@@ -23,6 +24,7 @@ export function EventDetail({
   issue: string;
   editable: boolean;
   formatted: string;
+  displayTimeZone: string;
   recurring: boolean;
   occurrence?: string;
   memberName: string | null;
@@ -35,7 +37,7 @@ export function EventDetail({
       description={
         row.cancelled_at
           ? "Cancelled event"
-          : `${formatted} · ${input.timeZone}`
+          : `${formatted} · ${displayTimeZone}${displayTimeZone !== input.timeZone ? ` (converted from ${input.timeZone})` : ""}`
       }
     >
       <div className="@container grid gap-5">

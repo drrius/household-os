@@ -1,3 +1,4 @@
+import { calendarTimePresentation } from "@/domain/calendar/presentation";
 import { calendarEditingIssue } from "@/domain/calendar/ical-write";
 import { isTimeZone } from "@/domain/calendar/date-time";
 import { calendarOccurrence, readCalendar } from "@/domain/calendar/ical-read";
@@ -41,13 +42,7 @@ export default async function CalendarEventPage({
     row.sync_state !== "conflict" &&
     !issue &&
     isTimeZone(input.timeZone);
-  const formatted = input.allDay
-    ? `${input.startsAt.slice(0, 10)} · All day`
-    : new Intl.DateTimeFormat("en-GB", {
-        dateStyle: "full",
-        timeStyle: "short",
-        timeZone: isTimeZone(input.timeZone) ? input.timeZone : "UTC",
-      }).format(new Date(input.startsAt));
+  const { displayTimeZone, formatted } = calendarTimePresentation(input);
   return (
     <EventDetail
       {...{
@@ -57,6 +52,7 @@ export default async function CalendarEventPage({
         issue,
         editable,
         formatted,
+        displayTimeZone,
         recurring,
         occurrence,
         memberName,

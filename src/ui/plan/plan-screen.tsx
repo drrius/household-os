@@ -110,6 +110,18 @@ export function PlanScreen({ plan }: PlanScreenProps) {
           </div>
         }
       />
+      <Link
+        href="/plan/calendar"
+        className="flex min-h-16 items-center justify-between gap-4 rounded-2xl border bg-card p-4 no-underline hover:bg-accent focus-visible:outline-2 focus-visible:outline-primary"
+      >
+        <span>
+          <strong className="block">Our calendar</strong>
+          <span className="text-sm text-muted-foreground">
+            Shared plans, appointments and iCloud sync
+          </span>
+        </span>
+        <span aria-hidden>→</span>
+      </Link>
       <MealBoard days={plan.days} />
       <MealLibrary meals={plan.library} />
     </AppPage>

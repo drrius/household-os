@@ -40,6 +40,11 @@ alter table public.calendar_events
  add foreign key(household_id,connection_id) references public.calendar_connections(household_id,id),
  add unique(household_id,ical_uid),
  add check ((connection_id is null)=(sync_state='local'));
+-- Browsers may propose local event edits, but cannot seed remote acknowledgements.
+-- The server revalidates the full payload and fresh Apple resource before any network write.
+revoke insert on public.calendar_events from authenticated;
+grant insert(id,household_id,created_by,title,starts_at,ends_at,time_zone,all_day,attendance,attending_member_id,location,notes,project_id,recurrence_rule,cancelled_at,ical_uid,ical_data,ical_edit_base,connection_id,sync_state,last_sync_error) on public.calendar_events to authenticated;
+
 create unique index calendar_events_remote_href_idx on public.calendar_events(connection_id,remote_href) where remote_href is not null;
 
 create or replace function public.claim_calendar_sync(p_connection_id uuid)
@@ -153,9 +158,11 @@ declare changed boolean; resolved_remote boolean;
 begin
  if current_user <> 'authenticated' then return new; end if;
  if tg_op='INSERT' then
-  if new.connection_id is not null then new.sync_state:='pending'; new.remote_href:=null; new.remote_etag:=null; new.last_synced_ical:=null; end if;
+  new.remote_href:=null; new.remote_etag:=null; new.last_synced_ical:=null; new.remote_conflict_ical:=null; new.remote_conflict_etag:=null; new.last_sync_error:=null;
+  new.sync_state:=case when new.connection_id is null then 'local' else 'pending' end;
   return new;
  end if;
+ if new.ical_uid is distinct from old.ical_uid then raise exception 'calendar event identity is immutable'; end if;
  resolved_remote:=coalesce(old.sync_state='conflict' and new.remote_conflict_ical is null and (new.ical_data=old.remote_conflict_ical or old.remote_conflict_ical='' and new.cancelled_at is not null) and new.remote_etag is not distinct from old.remote_conflict_etag,false);
  if new.remote_href is distinct from old.remote_href or (new.remote_etag is distinct from old.remote_etag and not resolved_remote and not(old.sync_state='conflict' and new.remote_conflict_ical is null and new.sync_state='pending' and new.remote_etag is not distinct from old.remote_conflict_etag)) then raise exception 'remote calendar metadata is owned by sync'; end if;
  if new.last_synced_ical is distinct from old.last_synced_ical and not(old.sync_state='conflict' and new.remote_conflict_ical is null and new.last_synced_ical is not distinct from nullif(old.remote_conflict_ical,'')) then raise exception 'remote calendar baseline is owned by sync'; end if;

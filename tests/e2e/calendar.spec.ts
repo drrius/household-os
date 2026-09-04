@@ -63,3 +63,42 @@ test("iCloud setup honestly requires encryption before collecting credentials", 
     page.getByText("HOUSEHOLD_CALENDAR_ENCRYPTION_KEY", { exact: true }),
   ).toBeVisible();
 });
+
+test("initially all-day event stays timed after a rejected submission", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/calendar?surface=initial-all-day");
+  await expect(page.getByLabel("All day", { exact: true })).toBeChecked();
+  await page.getByLabel("Title", { exact: true }).fill("Timed plan");
+  await page.getByLabel("All day", { exact: true }).uncheck();
+  await page.getByLabel("Starts", { exact: true }).fill("2026-09-07T11:00");
+  await page.getByLabel("Ends", { exact: true }).fill("2026-09-07T10:00");
+  await page.getByRole("button", { name: "Add event", exact: true }).click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Couldn't save" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("All day", { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel("Starts", { exact: true })).toHaveValue(
+    "2026-09-07T11:00",
+  );
+  await expect(page.getByLabel("Ends", { exact: true })).toHaveValue(
+    "2026-09-07T10:00",
+  );
+  await page.getByLabel("Ends", { exact: true }).fill("2026-09-07T12:00");
+  await page.getByRole("button", { name: "Add event", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Plan saved" })).toBeVisible();
+});
+test("agenda omits a previous-week midnight ending and shows this week's midnight ending once", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/calendar?surface=agenda");
+  await expect(
+    page.getByRole("link", { name: /Sunday night train/ }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: /Monday night train/ }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("link", { name: "Connect iCloud" }),
+  ).toHaveAttribute("href", "/home/calendar");
+});

@@ -1,3 +1,4 @@
+import type { AgendaModel } from "@/lib/calendar/agenda";
 import { notFound, redirect } from "next/navigation";
 import { parseCalendarForm } from "@/domain/calendar/forms";
 import { calendarWeek } from "@/domain/calendar/date-time";
@@ -41,6 +42,41 @@ const input = {
   projectId: null,
   recurrenceRule: null,
 };
+const agendaItems: AgendaModel["items"] = [
+  {
+    ...input,
+    id: "00000000-0000-4000-8000-000000000001",
+    title: "Dinner at our favourite place",
+    startsAt: "2026-09-07T17:00:00Z",
+    endsAt: "2026-09-07T19:00:00Z",
+    recurrenceId: "2026-09-07T19:00:00",
+    isException: false,
+    syncState: "local",
+    recurring: true,
+  },
+  {
+    ...input,
+    id: "00000000-0000-4000-8000-000000000002",
+    title: "Sunday night train",
+    startsAt: "2026-09-06T21:00:00Z",
+    endsAt: "2026-09-06T22:00:00Z",
+    recurrenceId: "2026-09-06T23:00:00",
+    isException: false,
+    syncState: "local",
+    recurring: false,
+  },
+  {
+    ...input,
+    id: "00000000-0000-4000-8000-000000000003",
+    title: "Monday night train",
+    startsAt: "2026-09-07T21:00:00Z",
+    endsAt: "2026-09-07T22:00:00Z",
+    recurrenceId: "2026-09-07T23:00:00",
+    isException: false,
+    syncState: "local",
+    recurring: false,
+  },
+];
 export default async function CalendarFixture({
   searchParams,
 }: {
@@ -62,19 +98,7 @@ export default async function CalendarFixture({
         <AgendaScreen
           model={{
             week: calendarWeek("2026-09-07"),
-            items: [
-              {
-                ...input,
-                id: "00000000-0000-4000-8000-000000000001",
-                title: "Dinner at our favourite place",
-                startsAt: "2026-09-07T17:00:00Z",
-                endsAt: "2026-09-07T19:00:00Z",
-                recurrenceId: "2026-09-07T19:00:00",
-                isException: false,
-                syncState: "local",
-                recurring: true,
-              },
-            ],
+            items: agendaItems,
             warnings: [],
             attention: [],
             connection: null,
@@ -90,7 +114,16 @@ export default async function CalendarFixture({
         >
           <EventForm
             action={saveFixture}
-            input={input}
+            input={
+              query.surface === "initial-all-day"
+                ? {
+                    ...input,
+                    allDay: true,
+                    startsAt: "2026-09-07T00:00:00Z",
+                    endsAt: "2026-09-08T00:00:00Z",
+                  }
+                : input
+            }
             options={{
               members: [
                 {
