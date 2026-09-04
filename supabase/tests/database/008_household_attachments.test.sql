@@ -24,7 +24,13 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000082
 select is((select count(*) from storage.objects where bucket_id = 'household-files'), 1::bigint, 'partner can read shared attachments');
 update storage.objects set name = 'replacement.pdf' where bucket_id = 'household-files';
 select is((select count(*) from storage.objects where bucket_id = 'household-files' and name like '%/receipts/%'), 1::bigint, 'receipt objects cannot be overwritten');
-delete from storage.objects where bucket_id = 'household-files';
+select throws_like($$delete from storage.objects where bucket_id = 'household-files'$$,
+  'Direct deletion from storage tables is not allowed.%',
+  'storage also blocks direct SQL deletion');
+select is_empty($$select policyname from pg_policies where schemaname = 'storage'
+  and tablename = 'objects' and cmd in ('DELETE', 'ALL')
+  and roles && array['public', 'anon', 'authenticated']::name[]$$,
+  'the Storage API has no user deletion policy');
 select is((select count(*) from storage.objects where bucket_id = 'household-files'), 1::bigint, 'receipt objects cannot be deleted');
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000083', true);
 select is((select count(*) from storage.objects where bucket_id = 'household-files'), 0::bigint, 'other household cannot read attachments');
