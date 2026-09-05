@@ -1,3 +1,4 @@
+import { searchResultWithContext } from "@/lib/search/return-context";
 import { searchCharacterCount } from "@/domain/search/query";
 import Link from "next/link";
 import { ArrowRight, SearchX } from "lucide-react";
@@ -7,7 +8,6 @@ import { AppPage } from "@/ui/layout/app-page";
 import { PageHeader } from "@/ui/layout/page-header";
 import {
   searchHref,
-  searchResultHref,
   type SearchRequest,
   type SearchKind,
 } from "@/domain/search/query";
@@ -100,7 +100,7 @@ function SearchResults({
         <ul className="grid list-none gap-3" aria-label="Search results">
           {page.results.map((result) => (
             <li key={`${result.kind}-${result.id}`}>
-              <ResultCard result={result} />
+              <ResultCard result={result} request={request} />
             </li>
           ))}
         </ul>
@@ -143,7 +143,13 @@ function SearchResults({
     </section>
   );
 }
-function ResultCard({ result }: { result: SearchResult }) {
+function ResultCard({
+  result,
+  request,
+}: {
+  result: SearchResult;
+  request: SearchRequest;
+}) {
   const date = result.date
     ? new Intl.DateTimeFormat("en-GB", {
         day: "numeric",
@@ -154,7 +160,7 @@ function ResultCard({ result }: { result: SearchResult }) {
     : null;
   return (
     <Link
-      href={searchResultHref(result)}
+      href={searchResultWithContext(result, request)}
       prefetch={false}
       className="group flex min-h-24 items-center gap-4 rounded-2xl border bg-card p-4 no-underline transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-primary"
     >

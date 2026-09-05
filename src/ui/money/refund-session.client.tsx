@@ -19,7 +19,7 @@ export function RefundSession({
   const [idempotencyKey] = useState(initialKey);
   return (
     <ReadyMoneyForm>
-      <FormFields action={action} submitLabel="Record refund">
+      <FormFields protectChanges action={action} submitLabel="Record refund">
         <input name="idempotencyKey" type="hidden" value={idempotencyKey} />
         <input name="eventId" type="hidden" value={eventId} />
         {children}

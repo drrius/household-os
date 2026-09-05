@@ -37,7 +37,14 @@ for (const kind of ["project", "trip", "task"] as const) {
         `Retry operation ${id}. No household was changed by this fixture.`,
       ),
     ).toBeVisible();
-    await page.getByRole("link", { name: `Start another ${kind}` }).click();
+    const confirmation = page.waitForEvent("dialog");
+    const navigation = page
+      .getByRole("link", { name: `Start another ${kind}` })
+      .click();
+    const dialog = await confirmation;
+    expect(dialog.message()).toBe("Discard your unsaved changes?");
+    await dialog.accept();
+    await navigation;
     await expect(page.locator('[name="id"]')).not.toHaveValue(id);
     await expect(title).toHaveValue("");
   });

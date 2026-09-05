@@ -1,4 +1,5 @@
 "use server";
+import { withSearchReturn } from "@/lib/search/save-return";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -60,5 +61,10 @@ export async function recordAction(
   if (rejected) return rejected;
   revalidatePath("/home", "layout");
   revalidatePath("/plan");
-  redirect(`${target}${target.includes("?") ? "&" : "?"}saved=1`);
+  redirect(
+    withSearchReturn(
+      `${target}${target.includes("?") ? "&" : "?"}saved=1`,
+      form,
+    ),
+  );
 }

@@ -225,10 +225,15 @@ async function noAction(): Promise<void> {
   "use server";
 }
 
-function renderSurface(surface: Surface) {
+function renderSurface(surface: Surface, agendaUnavailable = false) {
   switch (surface) {
     case "today":
-      return <TodayScreen view={todayFixture} />;
+      return (
+        <TodayScreen
+          view={todayFixture}
+          agenda={agendaUnavailable ? null : undefined}
+        />
+      );
     case "plan":
       return <PlanScreen plan={planFixture} />;
     case "groceries":
@@ -256,8 +261,10 @@ function renderSurface(surface: Surface) {
 
 export default async function M6FixturePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ surface: string }>;
+  searchParams: Promise<{ agendaError?: string }>;
 }) {
   if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") {
     notFound();
@@ -268,5 +275,12 @@ export default async function M6FixturePage({
     notFound();
   }
 
-  return <AppShell>{renderSurface(surface as Surface)}</AppShell>;
+  return (
+    <AppShell>
+      {renderSurface(
+        surface as Surface,
+        (await searchParams).agendaError === "1",
+      )}
+    </AppShell>
+  );
 }

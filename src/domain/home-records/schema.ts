@@ -105,12 +105,17 @@ const schemas = {
       asset_id: optionalId,
       commitment_id: optionalId,
       project_id: optionalId,
+      booking_id: optionalId,
     })
     .refine(
       (v) =>
         [v.asset_id, v.commitment_id, v.project_id].filter(Boolean).length <= 1,
       { message: "Link the document to one home record.", path: ["asset_id"] },
-    ),
+    )
+    .refine((v) => !v.booking_id || Boolean(v.project_id), {
+      message: "Choose the trip for this booking.",
+      path: ["project_id"],
+    }),
   maintenance: z.object({
     asset_id: uuid,
     title: title(200),

@@ -89,7 +89,7 @@ function GroceryItemFields({
   onCategoryChange: (value: string) => void;
 }) {
   return (
-    <FormFields action={action} submitLabel="Save item">
+    <FormFields protectChanges action={action} submitLabel="Save item">
       <input name="itemId" type="hidden" value={item.id} />
       <input name="updatedAt" type="hidden" value={item.updated_at} />
       <FormField label="Item">

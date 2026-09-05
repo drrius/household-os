@@ -90,7 +90,7 @@ function CheckoutFields({
 
 export function CheckoutForm({ action, ...props }: Props) {
   return (
-    <FormFields action={action} submitLabel="Finish shopping">
+    <FormFields protectChanges action={action} submitLabel="Finish shopping">
       <CheckoutFields {...props} />
     </FormFields>
   );

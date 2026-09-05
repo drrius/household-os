@@ -140,7 +140,11 @@ jobs:
       - run: pnpm db:test
       - run: node scripts/test-search-index-retry.mjs
 
-  e2e:
+  e2e-browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, mobile-safari]
     needs: changes
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
     runs-on: ubuntu-latest
@@ -161,4 +165,40 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm db:start
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --project=${{ matrix.browser }}
+
+  e2e:
+    needs: e2e-browser
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all browser jobs
+        env:
+          BROWSER_RESULT: ${{ needs.e2e-browser.result }}
+        run: test "$BROWSER_RESULT" = success || test "$BROWSER_RESULT" = skipped
+
+  member-e2e:
+    needs: changes
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm db:start
+      - run: pnpm exec playwright test --config playwright.members.config.ts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: member-visual-evidence
+          path: test-results/**/member-evidence-*
+          if-no-files-found: ignore
+          retention-days: 3

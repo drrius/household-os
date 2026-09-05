@@ -64,14 +64,14 @@ it("uses a stable descending keyset, limits IDs to the visible page and counts w
     totalCount: 5000,
     nextCursor: { createdAt: row.created_at, id },
   });
-  expect(queries).toHaveLength(3);
+  expect(queries).toHaveLength(4);
   expect(queries[0]).toContainEqual(["limit", 2]);
   expect(queries[0]).toContainEqual(["order", "id", { ascending: false }]);
   expect(queries[0]).toContainEqual([
     "or",
     `created_at.lt.${row.created_at},and(created_at.eq.${row.created_at},id.lt.${second})`,
   ]);
-  for (const query of queries) {
+  for (const query of queries.slice(0, 3)) {
     expect(query).toContainEqual(["eq", "household_id", "home"]);
     expect(query).toContainEqual(["eq", "recipient_member_id", "me"]);
   }
@@ -129,3 +129,34 @@ it("reports network errors and concurrent disappearance without claiming success
   mock.rpc.mockResolvedValue({ data: { marked: 0 }, error: null });
   await expect(markInboxPageRead([id])).rejects.toThrow("page changed");
 });
+
+it.each([
+  ["financial_event", "financial_events", `/money/events/${id}`, "/money"],
+  [
+    "shopping_session",
+    "shopping_sessions",
+    `/groceries/shopping/${id}`,
+    "/groceries",
+  ],
+])(
+  "opens an accessible %s and falls back when it cannot be resolved",
+  async (kind, table, detail, fallback) => {
+    for (const target of [
+      { data: [{ id }] },
+      { data: [] },
+      { error: { message: "unavailable" } },
+    ]) {
+      const queries = database([
+        { data: [{ ...row, entity_type: kind }] },
+        { count: 1 },
+        { count: 1 },
+        target,
+      ]);
+      const feed = await loadInboxFeed();
+      expect(feed.items[0]?.href).toBe(target.data?.length ? detail : fallback);
+      expect(queries[3]).toContainEqual(["from", table]);
+      expect(queries[3]).toContainEqual(["eq", "household_id", "home"]);
+      expect(queries[3]).toContainEqual(["in", "id", [id]]);
+    }
+  },
+);

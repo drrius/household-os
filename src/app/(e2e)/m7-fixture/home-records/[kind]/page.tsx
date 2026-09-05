@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { documentDefaults } from "@/lib/home-records/document-defaults";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { isRecordKind, type HomeRecord } from "@/domain/home-records/schema";
@@ -15,14 +16,35 @@ const options = {
   routine_id: [{ value: parentId, label: "Clean the filter" }],
   asset_id: [{ value: parentId, label: "Dishwasher" }],
   commitment_id: [{ value: parentId, label: "Internet" }],
-  project_id: [{ value: parentId, label: "Weekend away" }],
+  project_id: [
+    { value: parentId, label: "Weekend away" },
+    { value: "f0000000-0000-4000-8000-000000000010", label: "Summer trip" },
+  ],
+  booking_id: [
+    {
+      value: "f0000000-0000-4000-8000-000000000011",
+      label: "Weekend hotel",
+      projectId: parentId,
+    },
+    {
+      value: "f0000000-0000-4000-8000-000000000012",
+      label: "Summer flight",
+      projectId: "f0000000-0000-4000-8000-000000000010",
+    },
+  ],
 };
 export default async function Page({
   params,
   searchParams,
 }: {
   params: Promise<{ kind: string }>;
-  searchParams: Promise<{ edit?: string; saved?: string; uncertain?: string }>;
+  searchParams: Promise<{
+    edit?: string;
+    saved?: string;
+    uncertain?: string;
+    project?: string;
+    booking?: string;
+  }>;
 }) {
   if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") notFound();
   const [{ kind }, query, jar] = await Promise.all([
@@ -60,7 +82,7 @@ export default async function Page({
         {editing ? (
           <RecordForm
             kind={kind}
-            record={uncertain ? { id: record.id } : record}
+            record={formRecord(record, kind, uncertain, query)}
             options={options}
             returnTo={`/home/${kind}`}
             parent={parent}
@@ -85,4 +107,19 @@ export default async function Page({
       </section>
     </AppShell>
   );
+}
+
+function formRecord(
+  record: HomeRecord,
+  kind: string,
+  uncertain: boolean,
+  query: Record<string, string | undefined>,
+) {
+  if (uncertain) return { id: record.id };
+  return {
+    ...record,
+    ...(!record.updated_at && kind === "documents"
+      ? documentDefaults(query, options)
+      : {}),
+  };
 }

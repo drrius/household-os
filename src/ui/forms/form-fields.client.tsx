@@ -14,6 +14,7 @@ import {
   type RefObject,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { SearchReturnField } from "@/ui/search/search-origin.client";
 import { useDiscardGuard } from "./use-discard-guard.client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -210,6 +211,7 @@ export function FormFields({
         liveRegionRef={alertRef}
         showRequiredNotice={showRequiredNotice}
       />
+      <SearchReturnField />
       <FormFieldsContext value={state}>
         <fieldset
           className="grid min-w-0 gap-5"

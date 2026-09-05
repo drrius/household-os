@@ -44,7 +44,11 @@ function TaskEditor(props: TaskFormProps) {
 
 function TaskFields({ id, projectId, task, members, action }: TaskFormProps) {
   return (
-    <FormFields action={action} submitLabel={task ? "Save task" : "Add task"}>
+    <FormFields
+      protectChanges
+      action={action}
+      submitLabel={task ? "Save task" : "Add task"}
+    >
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="project_id" value={projectId} />
       <input type="hidden" name="updatedAt" value={task?.updated_at ?? ""} />

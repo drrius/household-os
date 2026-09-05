@@ -226,3 +226,23 @@ it("passes the opened option version and reports stale archive attempts", async 
     },
   );
 });
+it("retains the booking relationship when creating or editing a confirmation", async () => {
+  const input = form();
+  input.set("file_path", `${household}/documents/${id}.pdf`);
+  input.set("project_id", household);
+  input.set("booking_id", id);
+  await saveRecord("documents", input);
+  expect(mock.insert).toHaveBeenCalledWith(
+    expect.objectContaining({ project_id: household, booking_id: id }),
+  );
+  input.set("version", "2026-09-05T12:00:00Z");
+  await saveRecord("documents", input);
+  expect(mock.update).toHaveBeenCalledWith(
+    expect.objectContaining({ project_id: household, booking_id: id }),
+  );
+  input.delete("project_id");
+  await expect(saveRecord("documents", input)).rejects.toMatchObject({
+    field: "project_id",
+  });
+  expect(mock.update).toHaveBeenCalledTimes(1);
+});

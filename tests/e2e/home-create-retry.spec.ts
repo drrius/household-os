@@ -23,9 +23,14 @@ test("an uncertain create followed by changed details preserves input and recove
   await expect(page.locator('input[name="id"]')).toHaveValue(id);
   await expect(page.getByText("Saved record", { exact: true })).toHaveCount(0);
   expect(new URL(page.url()).searchParams.has("saved")).toBe(false);
-  await page
+  const confirmation = page.waitForEvent("dialog");
+  const navigation = page
     .getByRole("link", { name: "Cancel and open existing records" })
     .click();
+  const dialog = await confirmation;
+  expect(dialog.message()).toBe("Discard your unsaved changes?");
+  await dialog.accept();
+  await navigation;
   await expect(
     page.getByRole("heading", { name: "Dishwasher A", exact: true }),
   ).toBeVisible();

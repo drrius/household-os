@@ -33,7 +33,7 @@ export async function RecordDetailPage({
       aria-labelledby="record-title"
     >
       <Link href={back} className="w-fit min-h-11 content-center">
-        ← {labels[kind].title}
+        ← {back.startsWith("/plan/") ? "Back to plan" : labels[kind].title}
       </Link>
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1

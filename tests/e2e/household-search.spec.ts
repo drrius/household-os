@@ -10,11 +10,15 @@ test("search filters shared plans and opens the exact booking", async ({
   await page.getByLabel("Search in", { exact: true }).selectOption("trip");
   await page.getByLabel("What are you looking for?").press("Enter");
   await expect(page.getByRole("status")).toHaveText("3 matches");
-  await expect(
-    page.getByRole("link", { name: /Lisbon flight Zurich/ }),
-  ).toHaveAttribute(
-    "href",
+  const bookingHref = await page
+    .getByRole("link", { name: /Lisbon flight Zurich/ })
+    .getAttribute("href");
+  const bookingUrl = new URL(bookingHref!, page.url());
+  expect(bookingUrl.pathname).toBe(
     "/plan/projects/00000000-0000-4000-8000-000000000001/bookings/00000000-0000-4000-8000-000000000002",
+  );
+  expect(bookingUrl.searchParams.get("fromSearch")).toBe(
+    "/search?q=Lisbon&type=trip",
   );
   await expect(
     page.getByRole("heading", { name: "Lisbon flight payment" }),
@@ -140,6 +144,37 @@ test("Unicode query limits agree between input and server validation", async ({
   await expect(page.getByRole("main").getByRole("alert")).toContainText(
     "120 characters",
   );
+});
+
+test("record return links preserve search pagination through reload and authentication", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/search?q=Warranty&type=asset&archived=1");
+  await page.getByRole("link", { name: "More results" }).click();
+  await expect(page).toHaveURL(/cursor=100.asset/u);
+  await expect(
+    page.getByRole("list", { name: "Search results" }).getByRole("listitem"),
+  ).toHaveCount(7);
+  const result = page
+    .getByRole("list", { name: "Search results" })
+    .getByRole("link")
+    .first();
+  const destination = new URL((await result.getAttribute("href"))!, page.url());
+  const context = destination.searchParams.get("fromSearch")!;
+  expect(context).toContain("cursor=");
+  expect(context).toContain("archived=1");
+  await page.goto(
+    `/m7-fixture/plan-resources?fromSearch=${encodeURIComponent(context)}`,
+  );
+  await page.reload();
+  const back = page.getByRole("link", {
+    name: "Back to search results",
+    exact: true,
+  });
+  await expect(back).toHaveAttribute("href", context);
+  await back.click();
+  await expect(page).toHaveURL(/sign-in/);
+  expect(new URL(page.url()).searchParams.get("returnTo")).toBe(context);
 });
 
 test("a valid absent cursor keeps keyset pagination instead of restarting", async ({

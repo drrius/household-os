@@ -48,7 +48,11 @@ function EventFormSession({
     recurring: initialRecurring,
   });
   return (
-    <FormFields action={action} submitLabel={id ? "Save event" : "Add event"}>
+    <FormFields
+      protectChanges
+      action={action}
+      submitLabel={id ? "Save event" : "Add event"}
+    >
       <input type="hidden" name="id" value={id ?? ""} />
       <input type="hidden" name="version" value={version ?? ""} />
       <input type="hidden" name="recurrenceId" value={recurrenceId ?? ""} />

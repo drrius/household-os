@@ -53,7 +53,11 @@ export function ManageMealForms({ entry }: { entry: ManageMealEntry }) {
           Leftover
         </Badge>
       ) : null}
-      <FormFields action={updateMealEntryAction} submitLabel="Save changes">
+      <FormFields
+        protectChanges
+        action={updateMealEntryAction}
+        submitLabel="Save changes"
+      >
         <input name="entryId" type="hidden" value={entry.id} />
         <input
           name="idempotencyKey"

@@ -8,6 +8,8 @@ export async function availableInboxTargets(
   db: Awaited<ReturnType<typeof createClient>>,
 ) {
   const configs = [
+    { kind: "financial_event", table: "financial_events", column: null },
+    { kind: "shopping_session", table: "shopping_sessions", column: null },
     { kind: "routine", table: "routines", column: "archived_at" },
     {
       kind: "meal_plan_entry",
@@ -35,10 +37,9 @@ export async function availableInboxTargets(
         .select("id")
         .eq("household_id", householdId)
         .in("id", ids);
-      query =
-        config.kind === "expense_draft"
-          ? query.eq("status", "pending")
-          : query.is(config.column, null);
+      if (config.kind === "expense_draft")
+        query = query.eq("status", "pending");
+      else if (config.column) query = query.is(config.column, null);
       const { data, error } = await query;
       // A section link remains useful if an optional destination cannot be resolved.
       if (error) return [];

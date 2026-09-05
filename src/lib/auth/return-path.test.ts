@@ -68,3 +68,10 @@ describe("post-authentication destination", () => {
     );
   });
 });
+it("preserves an encoded search continuation on a record through sign-in", () => {
+  const search =
+    "/search?q=Lisbon%20flight&type=trip&archived=1&cursor=100.booking.00000000-0000-4000-8000-000000000001";
+  const detail = `/plan/projects/00000000-0000-4000-8000-000000000001?${new URLSearchParams({ fromSearch: search })}`;
+  expect(safeReturnPath(detail)).toBe(detail);
+  expect(safeReturnPath(search)).toBe(search);
+});

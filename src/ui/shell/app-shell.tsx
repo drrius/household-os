@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { SearchReturn } from "@/ui/search/search-return.client";
 import Link from "next/link";
 import { Search } from "lucide-react";
 
@@ -58,6 +59,9 @@ export function AppShell({
                   Search household
                 </Link>
               </div>
+              <Suspense fallback={null}>
+                <SearchReturn />
+              </Suspense>
               {children}
             </main>
 

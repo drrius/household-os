@@ -1,4 +1,5 @@
 "use server";
+import { withSearchReturn } from "@/lib/search/save-return";
 
 import { redirect } from "next/navigation";
 
@@ -72,7 +73,9 @@ export async function createMealAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect(mealPlanHref(mealDate(formData.get("date"))));
+  redirect(
+    withSearchReturn(mealPlanHref(mealDate(formData.get("date"))), formData),
+  );
 }
 
 export async function placeFromLibraryAction(
@@ -92,7 +95,9 @@ export async function placeFromLibraryAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect(mealPlanHref(mealDate(formData.get("date"))));
+  redirect(
+    withSearchReturn(mealPlanHref(mealDate(formData.get("date"))), formData),
+  );
 }
 
 export async function removeMealEntryAction(formData: FormData): Promise<void> {
@@ -116,7 +121,9 @@ export async function removeMealEntryAction(formData: FormData): Promise<void> {
     redirect(errorHref(fallback, failure));
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect(mealPlanHref(mealDate(formData.get("date"))));
+  redirect(
+    withSearchReturn(mealPlanHref(mealDate(formData.get("date"))), formData),
+  );
 }
 
 export async function updateMealEntryAction(
@@ -137,7 +144,9 @@ export async function updateMealEntryAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect(mealPlanHref(mealDate(formData.get("date"))));
+  redirect(
+    withSearchReturn(mealPlanHref(mealDate(formData.get("date"))), formData),
+  );
 }
 
 export async function moveMealEntryAction(
@@ -149,7 +158,9 @@ export async function moveMealEntryAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect(mealPlanHref(mealDate(formData.get("date"))));
+  redirect(
+    withSearchReturn(mealPlanHref(mealDate(formData.get("date"))), formData),
+  );
 }
 
 export async function placeLeftoverMealAction(
@@ -164,7 +175,9 @@ export async function placeLeftoverMealAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan"]);
-  redirect(mealPlanHref(mealDate(formData.get("date"))));
+  redirect(
+    withSearchReturn(mealPlanHref(mealDate(formData.get("date"))), formData),
+  );
 }
 
 export async function createMealPreparationAction(

@@ -1,4 +1,8 @@
+import { AgendaUnavailable } from "./agenda-unavailable.client";
 import Link from "next/link";
+import { BalanceStatus } from "./balance-status";
+import type { HouseholdAgendaModel } from "@/lib/read-models/household-agenda";
+import { HouseholdAgenda } from "./household-agenda";
 
 import { confirmTodayExpenseDraft } from "@/app/(product)/_actions/routines";
 import { Badge } from "@/components/ui/badge";
@@ -24,43 +28,8 @@ import type {
   TodayViewModel,
 } from "@/ui/today/today-view-model";
 
-type BalancePill = NonNullable<TodayViewModel["balancePill"]>;
-
-function BalanceStatus({ balance }: { balance: BalancePill }) {
-  switch (balance.kind) {
-    case "partner_owes_you":
-      return (
-        <Link className="no-underline" href="/money">
-          <Badge variant="accent">
-            {balance.partnerName} owes you <Amount value={balance.amount} />
-          </Badge>
-        </Link>
-      );
-    case "you_owe_partner":
-      return (
-        <Link className="no-underline" href="/money">
-          <Badge variant="warning">
-            You owe {balance.partnerName} <Amount value={balance.amount} />
-          </Badge>
-        </Link>
-      );
-    case "settled":
-      return (
-        <Link className="no-underline" href="/money">
-          <Badge variant="success">
-            Settled <Amount value={balance.amount} />
-          </Badge>
-        </Link>
-      );
-    default: {
-      const exhaustiveBalance: never = balance.kind;
-      return exhaustiveBalance;
-    }
-  }
-}
-
 function progressLabel(progress: TodayViewModel["progress"]): string {
-  if (progress.totalCount === 0) return "Nothing due today";
+  if (progress.totalCount === 0) return "No routines due today";
   return `${progress.completedCount} down, ${progress.totalCount - progress.completedCount} to go`;
 }
 
@@ -272,7 +241,13 @@ function MoneySection({ drafts }: { drafts: readonly DraftGlance[] }) {
   );
 }
 
-export function TodayScreen({ view }: { view: TodayViewModel }) {
+export function TodayScreen({
+  view,
+  agenda,
+}: {
+  view: TodayViewModel;
+  agenda?: HouseholdAgendaModel | null;
+}) {
   const summary = progressLabel(view.progress);
   return (
     <AppPage labelledBy="today-title">
@@ -289,12 +264,17 @@ export function TodayScreen({ view }: { view: TodayViewModel }) {
       {view.progress.totalCount > 0 ? (
         <ProgressMeter
           id="today-progress"
-          label="Household work today"
+          label="Routines today"
           max={view.progress.totalCount}
           value={view.progress.completedCount}
           valueLabel={summary}
           valueText={summary}
         />
+      ) : null}
+      {agenda === null ? (
+        <AgendaUnavailable />
+      ) : agenda ? (
+        <HouseholdAgenda model={agenda} />
       ) : null}
       <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
         <RoutineSections view={view} />

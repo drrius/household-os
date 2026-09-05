@@ -64,6 +64,10 @@ function hrefForInbox(row: InboxRow, targetAvailable: boolean): string {
         row.entity_id &&
         z.uuid().safeParse(row.entity_id).success
       ) {
+        if (row.entity_type === "financial_event")
+          return `/money/events/${row.entity_id}`;
+        if (row.entity_type === "shopping_session")
+          return `/groceries/shopping/${row.entity_id}`;
         if (row.entity_type === "routine")
           return `/home/routines/${row.entity_id}/edit`;
         if (row.entity_type === "meal_plan_entry")

@@ -157,10 +157,11 @@ async function loadLedger(
   return rows<LedgerSource>(result.data, "Ledger entries");
 }
 
-export async function loadTodayViewModel(): Promise<TodayViewModel> {
+export async function loadTodayViewModel(
+  civilDate = zurichCivilDate(),
+): Promise<TodayViewModel> {
   const member = await requireMemberContext();
   const supabase = await createClient();
-  const civilDate = zurichCivilDate();
   const [members, routines, meals, shopping, drafts, ledgerEntries] =
     await Promise.all([
       loadMembers(supabase, member.householdId),

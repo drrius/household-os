@@ -17,13 +17,22 @@ function DetailValue({
   field,
   value,
   options,
+  record,
   isDate,
 }: {
+  record: HomeRecord;
   isDate: boolean;
   field: string;
   value: string | number | boolean;
   options: RecordOptions;
 }) {
+  if (field === "booking_id" && record.project_id)
+    return (
+      <Link href={`/plan/projects/${record.project_id}/bookings/${value}`}>
+        {options.booking_id?.find((option) => option.value === value)?.label ??
+          "Open booking"}
+      </Link>
+    );
   if (isDate)
     return (
       <time dateTime={String(value)}>
@@ -131,6 +140,7 @@ export function RecordDetails({
                     field={field.name}
                     value={record[field.name] as string | number | boolean}
                     options={options}
+                    record={record}
                   />
                 </dd>
               </div>

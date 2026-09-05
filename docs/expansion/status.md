@@ -56,7 +56,7 @@ The user made the repository public. Hosted CI runs are available and are the da
 
 Use `pnpm --config.verify-deps-before-run=false` in this environment. Exact dependencies and the lockfile remain committed. Local PostgreSQL at 127.0.0.1:54322 is unavailable; database tests and advisors have been attempted and must not be reported as passing.
 
-Automatic approval review rejected feature-branch integration twice and requested additional user authorization. The question is pending. No copying, cherry-picking or alternative import of the rejected dependency commits has been used. The calendar date helper `482d4a2` remains outside the root trip branch. Updated PR44 attachment helpers and routine019 are among the required dependencies. Independent work and same-branch pushes continue.
+The user subsequently authorized feature-branch integration explicitly. The previous automatic-approval blocker is cleared; the dependency stack and source fixes have been integrated and pushed. This authorization excludes merges into main and production deployments.
 
 Codex previously returned review-quota errors. Later explicit approval of PR44 `87fd556` and PR58 `b2d1e93`, followed by an accepted running review of `5050d98`, established that review requests could resume. Outstanding changed heads have been requested once; prior approvals are never extended to later code by assumption. No credits or usage resets were purchased or redeemed.
 
@@ -84,6 +84,76 @@ Home and search still require their assembled dependencies and route-level verif
 
 The user explicitly approved feature-branch integration on September 5. The previous automatic-approval blocker is cleared. The connected foundation now incorporates main through 700cf39, including the merged routine/Money work, attachment security and recovery, push setup, release guide and updated CI policy. Attachment conflicts retain main’s reviewed implementation; calendar parser dependencies remain pinned alongside jpeg-js. Nineteen directly affected attachment/invalidation tests and TypeScript checking passed locally. Hosted integration checks remain required.
 
-## PR48 integration after merged groceries
+## Combined integration checkpoint — September 5, 2026
 
-PR48 now incorporates main through `fba131f`, including the merged grocery workflows and their notification surface. The conflict resolution preserves grocery invalidation alongside the connected Plan and Home cost surfaces. The connected schema, RLS, attachment lifecycle, timezone, decision and cost-context changes remain unchanged. Hosted CI is the final merge gate; no rereview is requested per the user's current instruction.
+The explicit branch-integration authorization has been carried out: all eleven feature PR branches now include current main or their updated parent dependency. Draft [PR #66](https://github.com/drrius/household-os/pull/66) assembles them on `codex/household-integration`; it does not authorize or perform a merge into main. Main remains at the externally merged `700cf39` snapshot used for integration.
+
+- Hosted full CI passed for foundation #48 (`29a21df`), calendar #50 (`c0282cd`) and meals #59 (`b5b41c0`). These CI results alone are not current CodeRabbit approval.
+- Household records #51 passed verification and database CI at `ae95f56`, including document release test 023. The six original fixed review findings are replied to and resolved. The existing release migration already handles replaced uploads; no duplicate migration was needed. Two prose typos were corrected in `c0785ac`, and that comment is resolved too.
+- Account #53's browser failures came from an outage fixture that recovered on the second effect invocation. `b4c5073` keeps the outage active until explicit fixture recovery. All three directly affected Chromium flows and targeted lint pass; hosted browser CI must validate the full branch.
+- The first assembled run exposed incomplete `next/navigation` mocks and two database fixtures incompatible with archive guards. `8fe3375` preserves the real navigation exports and follows the valid restore/archive order in fixtures. All 17 affected unit tests and targeted lint pass. Database execution remains a hosted CI gate. These fixes are included in the pushed assembled head `2152c85`.
+- Requested CodeRabbit rereview on #51, #53 and draft #66 after pushing. Fixed threads are resolved; a request or green skipped check is not approval.
+
+Still required: combined CI and final CodeRabbit review, the full linked trip/cost/document journey, search return context, substantial-form discard coverage, and the final two-member browser audit. Live iCloud/push configuration and the four-week household trial remain separately unverified. No production migration, deployment, paid service or PR merge was performed.
+
+## Today and reviewable integration stages
+
+Today agenda implementation is now in #66 (`00883fd`): open tasks, project targets, bookings, shared calendar occurrences and renewal/notice deadlines, with exact links and explicit-link deduplication. Ten affected tests, targeted lint/typechecking and four Chromium/mobile Safari flows pass. See [Today agenda evidence](today-household-agenda.md); live realtime and iCloud remain separately unverified.
+
+CodeRabbit skipped the original 469-file integration diff. The stack is now #51 → [#67](https://github.com/drrius/household-os/pull/67) (103 files: household records with trips/calendar) → [#66](https://github.com/drrius/household-os/pull/66) (219 files: remaining integrations and Today). Both stages have the e2e label and explicit CodeRabbit review requests. This is a reviewable dependency split, not a main merge. The preceding combined head `d28b187` passed database CI; its verification job stopped on status-document formatting, corrected in this checkpoint. Current-head CI remains required.
+
+## Search, planning forms and independent PR checks
+
+The assembled branch now includes project/booking document lists, exact linked calendar destinations and paid-cost totals/actions (see [plan resources evidence](plan-resources.md)). Database CI passed on `a65950b`, including the new document-to-booking RLS/relationship assertions. Its verification failure was a single test-file formatting issue, corrected in `ed6f88e`.
+
+`ed6f88e` adds canonical search return links preserving category, archived state and pagination, including reload and sign-in. Booking search opens the exact booking; `/search` is now an allowed authenticated return destination in account PR #53 (`face0bc`). Project, task, booking and calendar forms use the shared unsaved-change guard. Evidence: 67 focused unit/property tests, targeted lint/TypeScript, and 12 relevant Chromium/mobile Safari cases pass. Search context currently survives landing on a result and returning; nested edit/save links do not yet propagate it. The guard covers ordinary links and unload, with the previously documented browser-history limitation.
+
+Search PR #55 now includes every mapped detail route. Its original missing-destination finding and required-database-verification finding are resolved with route and hosted-CI evidence. The valid-but-absent cursor fixture bug is fixed in `a64cf32`, with two focused browser cases passing; that review thread is resolved. The index-plan performance observation remains open for assessment. A passing status alone is not treated as an explicit final approval.
+
+Independent CI failures were corrected at their source: #57 (`1257677`) now retains real Next navigation exports in test mocks (8 affected tests pass); #51 (`0523d87`) supplies the successful attachment-removal response and waits for it before simulating partner refresh (both focused browsers pass). These source fixes are propagated through #67 (`f30d444`), #55 (`be10014`) and #66 (`2d1a925`). Current-head hosted checks and CodeRabbit rereviews remain required.
+
+Still open: final current-head CI/reviews, any further substantiated review findings, remaining substantial-form/navigation audit, and the final integrated two-member journeys. Live iCloud, push, production uploads and the household replacement trial remain unverified. No main merge, production change or paid service was performed.
+
+## Latest review fixes and remaining navigation work
+
+The assembly includes expanded discard protection for detailed meal, shopping and Money forms (`42c8e44`): ten focused Chromium/mobile Safari cases passed, including rejected refunds and expense retry. Browser-history traversal remains an unresolved limitation and CodeRabbit finding; ordinary anchors and unload are covered. Search context still needs propagation through nested edit/save journeys.
+
+Account #53 now preserves the exact browser subscription authorized for cleanup across failed sign-out attempts (`740bc4e`). The server returns the completed cleanup effect on auth failure, and the client retains it until successful sign-out. Six focused browser cases and 16 unit tests passed, including partner-owned subscriptions. `8b38824` makes array-valued return-path rejection an explicit assertion. Grocery #47 (`58f3af5`) gates its checkbox fixture server-side, keeps the mutation live region mounted, and tests the Other-label collision explicitly. Fixed review threads have been replied to and resolved.
+
+Today isolates agenda query failures (`8f82d13`) without hiding the failure: the plans section explains the outage and offers Retry while routine/meal/shopping content remains available. Core Today failures still reach the existing route error boundary; authentication redirects still propagate. Four focused tests, lint/TypeScript and two browser cases pass. Meal #59 (`99f0eda`) validates fixture run identifiers and fixes its bounded map eviction, with a focused capacity regression test.
+
+Hosted verification on `34a9e12` caught URL APIs in the pure domain layer. `ab9a301` moves that helper and its tests to `src/lib/search`; the domain-only typecheck, targeted lint and 67 search/auth tests pass. Earlier database CI is green; current-head full CI remains required. The volatile-default migration suggestion was declined with transactional-lock reasoning rather than introducing an unverified backfill rewrite.
+
+Still to assess/finish: browser Back/Forward discard protection, search context through record edits, search query index-plan concerns, the grocery fallback-position suggestion, any additional current reviewer findings, and final integrated two-member journeys. Review requests and fixture evidence do not prove live private-iCloud/push/production upload operation or the real-use trial. Production operations and main merges remain unauthorized.
+
+## Search return and browser-history acceptance follow-up
+
+Browser Back/Forward protection is implemented in #57 (`6b2284b`) and integrated in #66. The root tracker preserves Next history metadata and does not create sentinel entries; cancellation retains the mounted form. Eight focused browser cases pass, with details in [form-shell verification](form-shell-verification.md). The corresponding review finding is resolved.
+
+Search now retains a record-scoped origin across edit navigation, reload and save (`fd6fc79`). Successful task, meal, grocery, routine, Home-record and correction/refund actions also propagate a validated search return value to their normal parent/list/replacement destination. Search query, filters, cursor, existing destination query and fragment are preserved. Duplicate or forged return values are ignored, and return metadata does not make an untouched form dirty. Four focused Chromium/mobile Safari cases and 37 directly affected server/form/helper tests pass, together with targeted lint/TypeScript. The fixtures prove navigation mechanics; they do not establish an authenticated two-member database journey.
+
+The remaining category-sentinel suggestion was declined because positions permit deterministic ties and the proposed change does not establish a new invariant. The search-index observation is retained as a measured-tuning consideration: contextual text can need household-scoped scans, and no representative performance regression or safe index-removal evidence was supplied. Both discussions are resolved with reasoning, following the user's instruction to fix only agreed bugs.
+
+#67's completed E2E job recorded connection-refused errors and a delayed fixture response; its failed job in run 33962893153 was rerun. This is a verification retry, not a claimed product fix or a passing result. Current-head full CI, final CodeRabbit coverage and the final integrated household journeys remain open. The credential/deployment-dependent live checks remain separate.
+
+## Integrated agenda timing correction
+
+A fresh source audit found that Today coalesced explicitly linked bookings and calendar occurrences whenever their intervals overlapped. This incorrectly replaced a flight's departure time with a different calendar time and could pull a future flight into Today through an ongoing all-day trip event. Coalescing now requires the same timed interval; different intervals remain independently visible and retain their own dates. Both new regressions failed before the fix, including a property over shifted departure minutes. Fifteen affected agenda/recovery tests, targeted lint, formatting and domain typechecking pass. No financial or database behavior changed.
+
+At the preceding assembly head `4408a57`, hosted verification and database jobs passed; browser job `101301305870` was still running when checked. Planning job `101300601897` and search job `101299445391` were also live. These observations are not passing browser results. No unresolved review threads were present on #66, but final positive CodeRabbit review was still absent.
+
+Authenticated local member verification is unavailable: the Docker socket denies access and noninteractive sudo requires a password. No database was reset and no existing household was changed. Fixture proof remains explicitly separate from the outstanding real member journeys and credential/device-dependent checks.
+
+## Exact notification destinations
+
+The integrated audit found that financial-event and shopping-session partner notifications still opened only their broad sections despite existing detail routes. Inbox resolution now checks the referenced record within the authenticated household and opens its exact ledger event or shopping history. Missing records and optional lookup failures keep the section fallback. No ledger mutation, balance rule, notification payload or push content changed. Twelve affected notification tests pass, covering accessible, missing and failed lookups, household constraints, pagination and project assignment links; targeted lint, formatting and TypeScript also pass. Hosted browser verification remains required.
+
+## Authorized merge checkpoint — September 5, 2026
+
+The user subsequently authorized completing and merging the expansion PRs, followed by a separate AI parity PR. Earlier statements in this historical log that merges were not authorized describe the earlier scope, not the current authorization. PR #40 remains excluded.
+
+The current merge sequence has completed #52, #70, #68, #58, #51, and #71. Main at `071fb99` includes the readable record dates and cancellation status. Bookings #60, planning integration #67, search #55, and final integration #66 remain open at this checkpoint. Fixed review threads are resolved; no rereview requests are required by the user's current direction.
+
+The combined booking/contextual-expense database fixture now archives its booking before the parent trip. Hosted database CI passes at booking head `92d11dc`; the production lifecycle guard is unchanged. Main E2E runs are still live, so this checkpoint does not establish final browser acceptance. Vercel preview deployments are currently rate limited; no paid service or limit bypass was requested.
+
+AI parity remains unimplemented and is the explicitly authorized next PR after expansion merges. Live Apple-account connection/sync, device push, and passkey checks remain distinct from fixture verification. The configured encryption key enables credential storage, but does not itself connect the shared Apple calendar; connection and calendar selection happen in the app.

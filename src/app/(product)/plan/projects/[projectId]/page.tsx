@@ -1,3 +1,4 @@
+import { PlanResources } from "@/ui/projects/plan-resources";
 import { TripItinerary } from "@/ui/trips/itinerary";
 import { loadBookings } from "@/lib/trips/queries";
 import { loadProjectActivity } from "@/lib/projects/activity";
@@ -22,6 +23,8 @@ export default async function ProjectPage({
     bookingPage?: string;
     archivedBookings?: string;
     historyPage?: string;
+    documentPage?: string;
+    archivedDocuments?: string;
   }>;
 }) {
   const { projectId } = await params;
@@ -69,6 +72,11 @@ export default async function ProjectPage({
         archivedTasks={archivedTasks}
         page={taskPage}
         hasMore={work.hasMoreTasks}
+      />
+      <PlanResources
+        projectId={projectId}
+        archived={Boolean(project.archived_at)}
+        query={search}
       />
       <ProjectHistory
         entries={history.entries}

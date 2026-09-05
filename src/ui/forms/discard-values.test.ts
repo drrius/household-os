@@ -13,6 +13,7 @@ it("detects edited and reverted business values while ignoring form metadata", (
       ...initial,
       { name: "idempotencyKey", value: "new key" },
       { name: "$ACTION_ID", value: "new action" },
+      { name: "searchReturn", value: "/search?q=Lisbon" },
     ]),
   ).toBe(before);
   expect(
