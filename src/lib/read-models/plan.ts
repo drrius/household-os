@@ -32,13 +32,14 @@ export type PlanViewModel = {
       };
     }>;
   }>;
+  ideas?: Array<{ id: string; title: string; notes: string | null }>;
   library: Array<{ id: string; title: string }>;
 };
 
 type MealPlanEntryRow = {
   id: string;
   date: string;
-  slot: MealSlot;
+  slot: MealSlot | null;
   title_snapshot: string;
   notes: string | null;
   leftover_of_entry_id: string | null;
@@ -169,6 +170,7 @@ function indexEntries(
   >();
 
   for (const row of rows) {
+    if (row.slot === null) continue;
     const key = entryKey(row.date, row.slot);
     if (!entries.has(key)) {
       entries.set(key, {
@@ -214,6 +216,13 @@ export function buildPlanViewModel({
     timeZoneLabel: ZURICH_TIME_ZONE,
     today,
     days,
+    ideas: entries
+      .filter((entry) => entry.slot === null && entry.date === weekStart)
+      .map((entry) => ({
+        id: entry.id,
+        title: entry.title_snapshot,
+        notes: entry.notes,
+      })),
     library: library.map((meal) => ({ id: meal.id, title: meal.name })),
   };
 }
@@ -233,7 +242,6 @@ export async function loadPlanViewModel(
     .gte("date", weekStart)
     .lte("date", weekEnd)
     .is("removed_at", null)
-    .not("slot", "is", null)
     .order("created_at")
     .order("id")
     .overrideTypes<MealPlanEntryRow[], { merge: false }>();

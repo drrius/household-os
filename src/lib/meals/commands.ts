@@ -1,5 +1,7 @@
 import "server-only";
 
+import { mealCommandError } from "@/lib/meals/command-error";
+
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,7 +28,7 @@ export type PlaceMealInput = {
 export async function createAndPlaceMeal(input: {
   name: string;
   date: string;
-  slot: "breakfast" | "lunch" | "dinner";
+  slot: "breakfast" | "lunch" | "dinner" | null;
   idempotencyKey: string;
   recipeUrl?: string | null;
   notes?: string | null;
@@ -43,7 +45,7 @@ export async function createAndPlaceMeal(input: {
     p_notes: input.notes ?? null,
   });
   if (error) {
-    throw new Error(`create_and_place_meal failed: ${error.message}`);
+    throw mealCommandError(error);
   }
   return asRecord(data);
 }
@@ -67,7 +69,7 @@ export async function placeMeal(
   });
 
   if (error) {
-    throw new Error(`place_meal failed: ${error.message}`);
+    throw mealCommandError(error);
   }
 
   return asRecord(data);
@@ -89,7 +91,7 @@ export async function moveMealPlanEntry(input: {
   });
 
   if (error) {
-    throw new Error(`move_meal_plan_entry failed: ${error.message}`);
+    throw mealCommandError(error);
   }
 
   return asRecord(data);
@@ -107,7 +109,7 @@ export async function removeMealPlanEntry(input: {
   });
 
   if (error) {
-    throw new Error(`remove_meal_plan_entry failed: ${error.message}`);
+    throw mealCommandError(error);
   }
 
   return asRecord(data);
@@ -136,7 +138,7 @@ export async function updateMealPlanEntry(input: {
   });
 
   if (error) {
-    throw new Error(`update_meal_plan_entry failed: ${error.message}`);
+    throw mealCommandError(error);
   }
 
   return asRecord(data);
@@ -168,7 +170,7 @@ export async function createMealPreparation(input: {
   });
 
   if (error) {
-    throw new Error(`create_meal_preparation failed: ${error.message}`);
+    throw mealCommandError(error);
   }
 
   return asRecord(data);
