@@ -6,14 +6,24 @@ import {
   getVerifiedIdentity,
 } from "@/lib/auth/member-context";
 import { ACCESS_DENIED_PATH } from "@/lib/auth/paths";
+import { safeReturnPath } from "@/lib/auth/return-path";
 import { GateShell } from "@/ui/layout/gate-shell";
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    returnTo?: string | string[];
+    push?: string | string[];
+  }>;
+}) {
+  const query = await searchParams;
+  const returnTo = safeReturnPath(query.returnTo);
   const identity = await getVerifiedIdentity();
 
   if (identity !== null) {
     const member = await getMemberContext();
-    redirect(member === null ? ACCESS_DENIED_PATH : "/");
+    redirect(member === null ? ACCESS_DENIED_PATH : returnTo);
   }
 
   return (
@@ -33,7 +43,15 @@ export default async function SignInPage() {
       title="Sign in"
       titleId="sign-in-title"
     >
-      <SignInForm />
+      {query.push === "paused" && (
+        <p role="status" className="mb-4 text-base text-muted-foreground">
+          You’re signed out. Push notifications were paused on your devices
+          because this browser couldn’t identify its subscription. After signing
+          in, reconnect each device in Home → Notifications. Your partner’s
+          notifications are unchanged.
+        </p>
+      )}
+      <SignInForm returnTo={returnTo} />
     </GateShell>
   );
 }

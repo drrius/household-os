@@ -27,10 +27,11 @@ export function subscribeHouseholdSurfaces(
 ): () => void {
   const supabase = createClient();
   const dirty = new Set<AppSurface>();
+  let disposed = false;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   const flush = () => {
-    if (dirty.size === 0) {
+    if (disposed || dirty.size === 0) {
       return;
     }
     const surfaces = [...dirty];
@@ -39,6 +40,7 @@ export function subscribeHouseholdSurfaces(
   };
 
   const markDirty = (table: WatchedTable) => {
+    if (disposed) return;
     for (const surface of surfacesForTableChange(table)) {
       dirty.add(surface);
     }
@@ -54,7 +56,10 @@ export function subscribeHouseholdSurfaces(
     }
   };
 
-  let channel = supabase.channel(`household-surfaces:${input.householdId}`);
+  // Channel removal is asynchronous; a new listener must not reuse a closing channel.
+  let channel = supabase.channel(
+    `household-surfaces:${input.householdId}:${crypto.randomUUID()}`,
+  );
   for (const table of WATCHED_TABLES) {
     channel = channel.on(
       "postgres_changes",
@@ -87,6 +92,8 @@ export function subscribeHouseholdSurfaces(
   document.addEventListener("visibilitychange", onVisibility);
 
   return () => {
+    disposed = true;
+    dirty.clear();
     if (debounceTimer !== null) {
       clearTimeout(debounceTimer);
     }
