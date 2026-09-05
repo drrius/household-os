@@ -14,7 +14,7 @@ Validation: all 398 tests and the production build pass. All 24 browser cases pa
 
 Time zones now suggest matching cities, accept spaces in searches such as New York, support pointer and keyboard selection, and retain named-zone server validation. The suggestions reuse Base UI already installed in the app. Dirty-field tracking runs after child input/change handlers, preventing controlled fields from losing their first edit. Choosing a suggestion also notifies draft tracking; reverting it releases a waiting partner refresh. New selected values survive rejected submissions.
 
-Full verification passed with 398 tests/build in an isolated checkout of this exact change. Browser verification also covers the existing project, task and starter forms affected by event timing. Mobile visual inspection confirmed 16px input text, a 44px control, scale1 and no horizontal overflow with the picker open. Evidence: `/tmp/trip-city-full-verify.log`, `/tmp/trip-city-mobile-search.png`.
+Full verification passed with 398 tests/build in an isolated checkout of this exact change. Browser verification also covers the existing project, task and starter forms affected by event timing. Mobile visual inspection confirmed 16px input text, a 44px control, scale 1 and no horizontal overflow with the picker open. Evidence: `/tmp/trip-city-full-verify.log`, `/tmp/trip-city-mobile-search.png`.
 
 The final combined run passed all 75 project/task/starter/booking browser cases (`/tmp/trip-city-final-e2e.log`). The city-search tests tap the field before typing, so mobile Safari positions suggestions around an on-screen input as in actual use.
 
@@ -22,6 +22,6 @@ The final combined run passed all 75 project/task/starter/booking browser cases 
 
 The proposed stale controlled-zone bug was not reproduced. `BookingFields` is keyed by the booking edit version: a pristine partner refresh remounts its controls with matching fields and version, while an actual local draft retains its original snapshot. No synchronization effect was added to the production picker.
 
-An additional fixture changes both partner zones, verifies two successive pristine refreshes (so the first cannot silently freeze the form), submits the form, and checks both received zone values and rejected-submission retention. All 18 booking refresh cases pass across desktop Chromium, desktop Safari and mobile Safari; full verification still passes with398 tests/build. Evidence: `/tmp/trip-zone-refresh-e2e.log` and `/tmp/trip-review-followup-verify.log`.
+An additional fixture changes both partner zones, verifies two successive pristine refreshes (so the first cannot silently freeze the form), submits the form, and checks both received zone values and rejected-submission retention. All 18 booking refresh cases pass across desktop Chromium, desktop Safari and mobile Safari; full verification still passes with 398 tests/build. Evidence: `/tmp/trip-zone-refresh-e2e.log` and `/tmp/trip-review-followup-verify.log`.
 
 The ADR now repeats the exact requirement for explicit positive CodeRabbit review. Direct CI workflow dispatch can verify a feature head even when its PR conflicts with the target; it does not prove the pending combined integration.
