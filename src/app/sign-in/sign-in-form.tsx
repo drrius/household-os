@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { describeSignInError } from "@/app/sign-in/sign-in-error-copy";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { returnPathWithFragment } from "@/lib/auth/return-path";
 import { createClient } from "@/lib/supabase/client";
 
 function debugSignInFailure(error: unknown) {
@@ -49,7 +50,17 @@ function SignInProgress({
   );
 }
 
-export function SignInForm() {
+async function authenticateWithPasskey(signal: AbortSignal) {
+  return createClient().auth.signInWithPasskey({ options: { signal } });
+}
+
+export function SignInForm({
+  returnTo = "/",
+  authenticate = authenticateWithPasskey,
+}: {
+  returnTo?: string;
+  authenticate?: (signal: AbortSignal) => Promise<{ error: unknown }>;
+}) {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -66,10 +77,7 @@ export function SignInForm() {
     setErrorMessage(null);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPasskey({
-        options: { signal: attempt.signal },
-      });
+      const { error } = await authenticate(attempt.signal);
 
       // A cancelled ceremony is a decision, not a failure worth alerting about.
       if (attempt.signal.aborted) {
@@ -82,7 +90,7 @@ export function SignInForm() {
         return;
       }
 
-      router.replace("/");
+      router.replace(returnPathWithFragment(returnTo, window.location.hash));
       router.refresh();
     } catch (error) {
       debugSignInFailure(error);
