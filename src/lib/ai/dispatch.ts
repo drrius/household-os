@@ -1,92 +1,19 @@
 import "server-only";
-import { readAttachmentTool } from "./attachments";
-import { attachmentSchemas } from "./definitions/attachment-tools";
-import { readGroceryCategories } from "./reads-categories";
-import { moneyDetailSchemas } from "./definitions/money-detail-tools";
-import { readMoneyDetail } from "./reads-money-details";
-import { notificationSchemas } from "./definitions/notification-tools";
-import { readNotificationTool } from "./reads-notifications";
-import { dailyDetailSchemas } from "./definitions/daily-detail-tools";
-import { readDailyDetail } from "./reads-daily-details";
-import { groceryDetailSchemas } from "./definitions/grocery-detail-tools";
-import { readGroceryHistory } from "./reads-grocery-history";
-import { librarySchemas } from "./definitions/library-tools";
-import { readLibraryTool } from "./reads-library";
-import { loadRecurringRules } from "@/lib/read-models/money-recurring";
-import { projectDetailSchemas } from "./definitions/project-detail-tools";
-import { readProjectDetail } from "./reads-project-details";
-import { costReadSchemas } from "./definitions/cost-tools";
-import { readCostTool } from "./reads-costs";
-import { listConnectedCalendars } from "@/lib/calendar/connection";
-import { connectedReadSchemas } from "./definitions/connected-read-tools";
-import { readConnectedTool } from "./reads-connected";
+import { getAiToolDefinition } from "./definitions";
+import { executeAiWrite } from "./execute";
+import { AI_READ_HANDLERS } from "./read-registry";
 
-import { getAiToolDefinition } from "@/lib/ai/definitions";
-import { executeAiWrite } from "@/lib/ai/execute";
-import {
-  readGroceryList,
-  readHousehold,
-  readRoutines,
-  readTodayOverview,
-  readWeekPlan,
-} from "@/lib/ai/reads";
-import { readMoneyOverview } from "@/lib/ai/reads-money";
-
-/**
- * Single entry point for both the chat agent and the MCP bridge: validates
- * the input against the tool's schema and runs it as the signed-in member.
- */
+/** Shared chat/bridge boundary: validate inputs before any read or mutation. */
 export async function executeAiTool(
   name: string,
   rawInput: unknown,
   invocationId: string,
 ): Promise<Record<string, unknown> | { done: true }> {
   const definition = getAiToolDefinition(name);
-  if (definition === null) {
-    throw new Error(`Unknown assistant tool: ${name}`);
-  }
-  if (definition.kind !== "read") {
+  if (!definition) throw new Error(`Unknown assistant tool: ${name}`);
+  if (definition.kind !== "read")
     return executeAiWrite(name, rawInput, invocationId);
-  }
-  const input = definition.inputSchema.parse(rawInput ?? {});
-  if (Object.hasOwn(attachmentSchemas, name))
-    return readAttachmentTool(name, input);
-  if (Object.hasOwn(moneyDetailSchemas, name))
-    return readMoneyDetail(name, input);
-  if (Object.hasOwn(notificationSchemas, name))
-    return readNotificationTool(name, input);
-  if (Object.hasOwn(dailyDetailSchemas, name))
-    return readDailyDetail(name, input);
-  if (Object.hasOwn(groceryDetailSchemas, name))
-    return readGroceryHistory(name, input);
-  if (Object.hasOwn(librarySchemas, name)) return readLibraryTool(name, input);
-  if (Object.hasOwn(projectDetailSchemas, name))
-    return readProjectDetail(name, input);
-  if (Object.hasOwn(costReadSchemas, name)) return readCostTool(name, input);
-  if (Object.hasOwn(connectedReadSchemas, name))
-    return readConnectedTool(name, input);
-  switch (name) {
-    case "list_icloud_calendars":
-      return { calendars: await listConnectedCalendars() };
-    case "get_today_overview":
-      return readTodayOverview();
-    case "get_routines":
-      return readRoutines(input as { includeArchived: boolean });
-    case "get_week_plan":
-      return readWeekPlan(input as { weekOf?: string; librarySearch?: string });
-    case "get_grocery_categories":
-      return readGroceryCategories(input);
-    case "get_grocery_list":
-      return readGroceryList();
-    case "get_recurring_expense_rules":
-      return { rules: await loadRecurringRules() };
-    case "get_money_overview":
-      return readMoneyOverview(
-        input as Parameters<typeof readMoneyOverview>[0],
-      );
-    case "get_household":
-      return readHousehold();
-    default:
-      throw new Error(`Unhandled assistant read tool: ${name}`);
-  }
+  const handler = AI_READ_HANDLERS[name];
+  if (!handler) throw new Error(`Unhandled assistant read tool: ${name}`);
+  return handler(definition.inputSchema.parse(rawInput ?? {}));
 }

@@ -42,6 +42,11 @@ export const contextualExpenseSchema = withSplitAmountCheck(
     occurredOn: isoDate,
     categoryId: uuid.nullish(),
     note: z.string().max(500).nullish(),
+    receiptPath: z
+      .string()
+      .max(300)
+      .nullish()
+      .describe("Existing household receipt path from a real member upload"),
   }),
 );
 export const associationSchema = z.object({

@@ -25,7 +25,7 @@ import { ROUTINE_HANDLERS } from "@/lib/ai/execute/routines";
 import type { AiWriteResult } from "@/lib/ai/execute/types";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 
-const WRITE_HANDLERS = {
+export const AI_WRITE_HANDLERS = {
   ...ATTACHMENT_HANDLERS,
   ...CATEGORY_HANDLERS,
   ...NOTIFICATION_HANDLERS,
@@ -58,10 +58,12 @@ export async function executeAiWrite(
   invocationId: string,
 ): Promise<AiWriteResult> {
   const definition = getAiToolDefinition(name);
-  const handler = WRITE_HANDLERS[name];
+  const handler = AI_WRITE_HANDLERS[name];
   if (definition === null || definition.kind === "read" || !handler) {
     throw new Error(`Unknown assistant write tool: ${name}`);
   }
+  if (!invocationId.trim())
+    throw new Error("A stable tool invocation ID is required.");
   const input: unknown = definition.inputSchema.parse(rawInput);
   return handler(input, {
     idempotencyKey: `ai:${name}:${invocationId}`,

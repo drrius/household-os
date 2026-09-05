@@ -92,6 +92,13 @@ export const ROUTINE_TOOLS: readonly AiToolDefinition[] = [
     inputSchema: z.object({
       occurrenceId: uuid,
       note: z.string().max(500).nullish(),
+      photoPath: z
+        .string()
+        .max(300)
+        .nullish()
+        .describe(
+          "An existing completion-photo path uploaded by the member; never invent one",
+        ),
     }),
   },
   {

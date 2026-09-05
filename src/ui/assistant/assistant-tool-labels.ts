@@ -71,7 +71,7 @@ export type ActivityTone = "running" | "done" | "skipped" | "failed";
 function toolLabel(name: string, settled: boolean): string {
   const labels = TOOL_LABELS[name];
   if (labels === undefined) {
-    return name.replaceAll("_", " ");
+    return expandedToolLabel(name, settled);
   }
   return settled ? labels[1] : labels[0];
 }
@@ -125,4 +125,42 @@ export function activityLabel(name: string, tone: ActivityTone): string {
       return toolLabel(name, tone === "done");
     }
   }
+}
+
+/** Keep newly registered domain tools readable in running and completed states. */
+function expandedToolLabel(name: string, settled: boolean): string {
+  if (name === "clean_unused_attachment")
+    return settled ? "Checked unused upload" : "Checking unused upload";
+  const verbs: Record<string, readonly [string, string]> = {
+    search: ["Searching", "Searched"],
+    resolve: ["Resolving", "Resolved"],
+    get: ["Looking up", "Looked up"],
+    list: ["Listing", "Listed"],
+    save: ["Saving", "Saved"],
+    update: ["Updating", "Updated"],
+    set: ["Updating", "Updated"],
+    archive: ["Updating archive status for", "Updated archive status for"],
+    choose: ["Choosing", "Chose"],
+    convert: ["Converting", "Converted"],
+    select: ["Selecting", "Selected"],
+    sync: ["Syncing", "Synced"],
+    disconnect: ["Disconnecting", "Disconnected"],
+    cancel: ["Cancelling", "Cancelled"],
+    assign: ["Updating", "Updated"],
+    add: ["Adding", "Added"],
+    merge: ["Merging", "Merged"],
+    buy: ["Adding again", "Added again"],
+    reorder: ["Reordering", "Reordered"],
+    mark: ["Updating", "Updated"],
+  };
+  const [verb, ...parts] = name.split("_");
+  const tense = verbs[verb ?? ""];
+  if (!tense) return name.replaceAll("_", " ");
+  const subject = parts
+    .join(" ")
+    .replace("icloud", "iCloud")
+    .replace(/ archived$/, " archive status")
+    .replace(/ again$/, "")
+    .replace("home routines", "inventory routine links");
+  return `${tense[settled ? 1 : 0]} ${subject}`;
 }

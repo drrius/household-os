@@ -35,6 +35,7 @@ export const COST_HANDLERS: Record<string, AiWriteHandler> = {
       occurredOn: value.occurredOn,
       categoryId: value.categoryId ?? null,
       note: value.note ?? null,
+      receiptPath: value.receiptPath ?? null,
       idempotencyKey,
       contextKind: value.target.kind,
       contextId: value.target.id,

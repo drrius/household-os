@@ -61,6 +61,13 @@ export const GROCERY_TOOLS: readonly AiToolDefinition[] = [
     inputSchema: z
       .object({
         shoppingSessionId: uuid,
+        receiptPath: z
+          .string()
+          .max(300)
+          .nullish()
+          .describe(
+            "Existing receipt path for this shopping session from a real member upload",
+          ),
         receiptTotalCents: centimes
           .nullish()
           .describe("Full receipt total, including personal items"),
