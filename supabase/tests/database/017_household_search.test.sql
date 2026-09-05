@@ -71,6 +71,13 @@ select is(public.search_household('Needle Producecategory',array['grocery'])->>'
 select is(public.search_household('Copenhagen task',array['task'])->>'total_count','1','terms can span task text and parent project title');
 select is(public.search_household('Travelcategory',array['money'])->>'total_count','1','expense category is searchable');
 select is(public.search_household('Flightconfirmation',array['trip'])->>'total_count','1','booking confirmation finds its trip');
+update public.trip_bookings set starts_at='2026-10-01T23:30:00Z',time_zone='europe/zurich' where id='00000000-0000-4000-8000-000000010013';
+select is(public.search_household('Flightconfirmation',array['booking'])->'results'->0->>'date','2026-10-02','booking search dates respect valid lowercase zones across midnight');
+update public.calendar_events set starts_at='2026-10-01T23:30:00Z',ends_at='2026-10-02T00:30:00Z',time_zone='europe/zurich' where id='00000000-0000-4000-8000-000000010014';
+select is(public.search_household('Needle event',array['calendar'])->'results'->0->>'date','2026-10-02','calendar search dates respect valid lowercase zones across midnight');
+update public.trip_bookings set starts_at=null,time_zone='Europe/Zurich' where id='00000000-0000-4000-8000-000000010013';
+update public.calendar_events set starts_at='2026-10-01T09:00:00Z',ends_at='2026-10-01T10:00:00Z',time_zone='Europe/Zurich' where id='00000000-0000-4000-8000-000000010014';
+
 select is(public.search_household('Modelnumber',array['asset'])->>'total_count','1','appliance model is searchable');
 select is(public.search_household('Repaircompany',array['contact'])->>'total_count','1','contact company is searchable');
 select is(public.search_household('Insuranceprovider',array['commitment'])->>'total_count','1','commitment provider is searchable');
