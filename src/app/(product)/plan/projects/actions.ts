@@ -36,6 +36,11 @@ export async function saveProjectAction(
   const rejected = await settleFormAction(previous, form, async () => {
     const parsed = parseProjectForm(form);
     id = parsed.id;
+    if (parsed.version) {
+      const project = await loadProject(id);
+      if (!project || project.archived_at)
+        throw new Error("Restore this plan before editing its details.");
+    }
     await saveHouseholdRecord(
       "household_projects",
       id,
