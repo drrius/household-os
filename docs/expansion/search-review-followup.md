@@ -11,3 +11,9 @@ The search route now has its own refresh surface. Every source and joined label 
 Verification: full `pnpm verify` passed 407 tests in 61 files and the production build. All 15 production browser cases passed across Chromium, WebKit and mobile Safari. The first run exposed test selectors matching Next.js's route announcer; scoping assertions to product alerts resolved that test issue. Added SQL coverage for parent lifecycle, option search, archive filtering, tenant isolation and publication membership. Local `pnpm db:test` was attempted but PostgreSQL refused connection. The branch still requires the updated attachment dependency and result-route integration; no complete database or assembled-product pass is claimed.
 
 Evidence: `/tmp/search-review-verify.log`, `/tmp/search-review-fixture-build.log`, `/tmp/search-review-e2e-final.log`, `/tmp/search-review-db.log`.
+
+## Large decisions
+
+Finding 3939721071 is addressed: option rows are vectorized independently, then matches select the best result once per parent decision. Equal scores choose a stable excerpt. No unbounded aggregate is passed to PostgreSQL's text-vector constructor. SQL regression adds 500 options containing more than 1 MiB of distinct cumulative text, checks a term in the final option, and checks deduplicated parent and household-wide results.
+
+Full verification again passes 407 tests/build. Application rendering is unchanged from the 15 passing browser cases. Local database execution was attempted again but PostgreSQL remains unavailable. Search's missing product entry point (finding3939721069) and absent result destinations remain explicit dependency/integration work; they are not marked resolved.

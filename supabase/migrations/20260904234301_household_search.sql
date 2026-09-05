@@ -145,14 +145,11 @@ select 'commitment'::text kind,e.id,null::uuid parent_id,e.title title,
  and (p_types is null or 'commitment'=any(p_types))
  union all
 select 'decision'::text kind,e.id,null::uuid parent_id,e.title title,
- coalesce(e.notes,'') || ' ' || coalesce(o.text,'') body,'' labels,e.status status,(e.archived_at is not null or e.status='dismissed') archived,null::date date,
- to_tsvector('simple'::regconfig,coalesce(e.title,'') || ' ' || coalesce(e.notes,'') || ' ' || coalesce(o.text,'')) document,to_tsvector('simple'::regconfig,'') label_document
+ coalesce(e.notes,'') || ' ' || coalesce(o.title,'') || ' ' || coalesce(o.notes,'') body,'' labels,e.status status,(e.archived_at is not null or e.status='dismissed') archived,null::date date,
+ to_tsvector('simple'::regconfig,coalesce(e.title,'') || ' ' || coalesce(e.notes,'') || ' ' || coalesce(o.title,'') || ' ' || coalesce(o.notes,'')) document,to_tsvector('simple'::regconfig,'') label_document
  from public.household_decisions e
- left join lateral (
-  select string_agg(title || ' ' || coalesce(notes,''),' ' order by id) text
-  from public.decision_options where household_id=e.household_id and decision_id=e.id
-   and (p_include_archived or archived_at is null)
- ) o on true
+ left join public.decision_options o on o.household_id=e.household_id and o.decision_id=e.id
+  and (p_include_archived or o.archived_at is null)
  where e.household_id=tenant and true
  and (p_include_archived or not (e.archived_at is not null or e.status='dismissed'))
  and (p_types is null or 'decision'=any(p_types))
@@ -169,9 +166,13 @@ select 'document'::text kind,e.id,null::uuid parent_id,e.title title,
  and (p_include_archived or not (e.archived_at is not null or p.archived_at is not null or coalesce(p.status in('complete','cancelled'),false) or b.archived_at is not null or coalesce(b.status='cancelled',false) or a.archived_at is not null or c.archived_at is not null or coalesce(c.status='ended',false)))
  and (p_types is null or 'document'=any(p_types))
  ), matches as materialized (
+ -- Each option is vectorized independently, below PostgreSQL's vector size cap.
+ -- Pick the best matching option once per decision, with a stable excerpt tie.
+ select distinct on (kind,id) * from (
  select kind,id,parent_id,title,body,labels,status,archived,date,
  (least(1000000,ts_rank(document,query)*1000+ts_rank(document||label_document,query)*100)+case when lower(title)=lower(normalized) then 10000 else 0 end)::integer score
  from sources where document@@query or (label_document<>''::tsvector and (document||label_document)@@query)
+ ) ranked order by kind,id,score desc,body collate "C",labels collate "C"
  ), page as materialized (
  select * from matches where p_after_score is null or score<p_after_score or (score=p_after_score and (kind collate "C",id)>(p_after_kind collate "C",p_after_id))
  order by score desc,kind collate "C",id limit p_page_size+1

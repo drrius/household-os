@@ -263,4 +263,14 @@ select is(public.search_household('Needle document',array['document'])->>'total_
 select is(public.search_household('Needle document',array['document'],true)->>'total_count','1','history includes commitment documents');
 reset role;
 select is((select count(*)::integer from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename in('meal_definitions','areas','pets','routine_completions','expense_categories')),5,'all additional search sources publish changes');
+-- More than 1 MiB of distinct option text must not form one oversized vector.
+insert into public.decision_options(household_id,created_by,decision_id,title,notes)
+select '00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000000401','00000000-0000-4000-8000-000000010018',
+ 'Large option '||i, (select string_agg('lex'||(i*500+j)::text,' ' order by j) from generate_series(1,400) j)
+from generate_series(1,500) i;
+set local role authenticated;
+select is(public.search_household('lex250400',array['decision'])->>'total_count','1','an option beyond one MiB remains searchable without vector overflow');
+select is(public.search_household('Large option',array['decision'])->>'total_count','1','hundreds of matching options still return one decision');
+select is(public.search_household('lex250400')->>'total_count','1','large decision option sets do not break household-wide search');
+reset role;
 select * from finish(); rollback;
