@@ -52,7 +52,7 @@ The user made the repository public. Hosted CI runs are available and are the da
 
 Use `pnpm --config.verify-deps-before-run=false` in this environment. Exact dependencies and the lockfile remain committed. Local PostgreSQL at 127.0.0.1:54322 is unavailable; database tests and advisors have been attempted and must not be reported as passing.
 
-Automatic approval review rejected feature-branch integration twice and requested additional user authorization. The question is pending. No copying, cherry-picking or alternative import of the rejected dependency commits has been used. The calendar date helper `482d4a2` remains outside the root trip branch. Updated PR44 attachment helpers and routine019 are among the required dependencies. Independent work and same-branch pushes continue.
+The user subsequently authorized feature-branch integration explicitly. The previous automatic-approval blocker is cleared; the dependency stack and source fixes have been integrated and pushed. This authorization excludes merges into main and production deployments.
 
 Codex previously returned review-quota errors. Later explicit approval of PR44 `87fd556` and PR58 `b2d1e93`, followed by an accepted running review of `5050d98`, established that review requests could resume. Outstanding changed heads have been requested once; prior approvals are never extended to later code by assumption. No credits or usage resets were purchased or redeemed.
 
@@ -97,3 +97,15 @@ Still required: combined CI and final CodeRabbit review, the full linked trip/co
 Today agenda implementation is now in #66 (`00883fd`): open tasks, project targets, bookings, shared calendar occurrences and renewal/notice deadlines, with exact links and explicit-link deduplication. Ten affected tests, targeted lint/typechecking and four Chromium/mobile Safari flows pass. See [Today agenda evidence](today-household-agenda.md); live realtime and iCloud remain separately unverified.
 
 CodeRabbit skipped the original 469-file integration diff. The stack is now #51 → [#67](https://github.com/drrius/household-os/pull/67) (103 files: household records with trips/calendar) → [#66](https://github.com/drrius/household-os/pull/66) (219 files: remaining integrations and Today). Both stages have the e2e label and explicit CodeRabbit review requests. This is a reviewable dependency split, not a main merge. The preceding combined head `d28b187` passed database CI; its verification job stopped on status-document formatting, corrected in this checkpoint. Current-head CI remains required.
+
+## Search, planning forms and independent PR checks
+
+The assembled branch now includes project/booking document lists, exact linked calendar destinations and paid-cost totals/actions (see [plan resources evidence](plan-resources.md)). Database CI passed on `a65950b`, including the new document-to-booking RLS/relationship assertions. Its verification failure was a single test-file formatting issue, corrected in `ed6f88e`.
+
+`ed6f88e` adds canonical search return links preserving category, archived state and pagination, including reload and sign-in. Booking search opens the exact booking; `/search` is now an allowed authenticated return destination in account PR #53 (`face0bc`). Project, task, booking and calendar forms use the shared unsaved-change guard. Evidence: 67 focused unit/property tests, targeted lint/TypeScript, and 12 relevant Chromium/mobile Safari cases pass. Search context currently survives landing on a result and returning; nested edit/save links do not yet propagate it. The guard covers ordinary links and unload, with the previously documented browser-history limitation.
+
+Search PR #55 now includes every mapped detail route. Its original missing-destination finding and required-database-verification finding are resolved with route and hosted-CI evidence. The valid-but-absent cursor fixture bug is fixed in `a64cf32`, with two focused browser cases passing; that review thread is resolved. The index-plan performance observation remains open for assessment. A passing status alone is not treated as an explicit final approval.
+
+Independent CI failures were corrected at their source: #57 (`1257677`) now retains real Next navigation exports in test mocks (8 affected tests pass); #51 (`0523d87`) supplies the successful attachment-removal response and waits for it before simulating partner refresh (both focused browsers pass). These source fixes are propagated through #67 (`f30d444`), #55 (`be10014`) and #66 (`2d1a925`). Current-head hosted checks and CodeRabbit rereviews remain required.
+
+Still open: final current-head CI/reviews, any further substantiated review findings, remaining substantial-form/navigation audit, and the final integrated two-member journeys. Live iCloud, push, production uploads and the household replacement trial remain unverified. No main merge, production change or paid service was performed.
