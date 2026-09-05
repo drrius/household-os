@@ -4,7 +4,7 @@ import {
   groceryCategorySelection,
   type GroceryCategoryOption,
 } from "@/domain/groceries/category-options";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FormAction } from "@/lib/forms/action-state";
 import { updateGroceryItemAction } from "@/lib/groceries/list-actions";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
@@ -33,8 +33,61 @@ function GroceryEditSession({
   categories,
   action = updateGroceryItemAction,
 }: GroceryEditProps) {
-  // Keep the concurrency token attached to the values this edit began with.
-  const [item] = useState(initialItem);
+  const [snapshot, setSnapshot] = useState<{
+    item: EditableItem;
+    categories: GroceryCategoryOption[];
+  } | null>(null);
+  const current = snapshot ?? { item: initialItem, categories };
+  const container = useRef<HTMLDivElement>(null);
+  function captureChanges(categoryId?: string) {
+    const form = container.current?.querySelector("form");
+    if (!form) return;
+    const values = new FormData(form);
+    const item = current.item;
+    const baseline = {
+      name: item.name,
+      quantity: item.quantity ?? "",
+      unit: item.unit ?? "",
+      note: item.note ?? "",
+      sortOrder: String(item.sort_order),
+      categoryId: groceryCategorySelection(
+        current.categories,
+        item.category_id,
+      ),
+    };
+    if (categoryId !== undefined) values.set("categoryId", categoryId);
+    const dirty = Object.entries(baseline).some(
+      ([name, value]) => values.get(name) !== value,
+    );
+    setSnapshot(dirty ? current : null);
+  }
+  return (
+    <div
+      ref={container}
+      onInputCapture={() => captureChanges()}
+      onChangeCapture={() => captureChanges()}
+      onSubmitCapture={() => setSnapshot(current)}
+    >
+      <GroceryItemFields
+        key={JSON.stringify(current)}
+        item={current.item}
+        categories={current.categories}
+        action={action}
+        onCategoryChange={captureChanges}
+      />
+    </div>
+  );
+}
+
+function GroceryItemFields({
+  item,
+  categories,
+  action,
+  onCategoryChange,
+}: GroceryEditProps & {
+  action: FormAction;
+  onCategoryChange: (value: string) => void;
+}) {
   return (
     <FormFields action={action} submitLabel="Save item">
       <input name="itemId" type="hidden" value={item.id} />
@@ -68,6 +121,7 @@ function GroceryEditSession({
           initialValue={groceryCategorySelection(categories, item.category_id)}
           items={groceryCategoryOptions(categories)}
           name="categoryId"
+          onValueChange={onCategoryChange}
         />
       </FormField>
       <FormField label="Note" optional>

@@ -17,3 +17,9 @@ Full verification passed 390 tests/build. All 15 production browser cases passed
 Finding3939760142 is addressed. Category editors now use current shared data until their fields actually differ, then retain that editing baseline. Reverting the fields releases the snapshot and adopts a waiting partner update. A started submission retains its submitted baseline. Form fields remount only when the accepted category values change, so refreshed name/order/archive values and their hidden conflict fields stay paired.
 
 Full verification passed 390 tests/build after separating state handling from form rendering to satisfy the repository's function-size rule. All 24 production browser cases passed, including pristine refresh, dirty-field preservation, reverting to a waiting update and archive-only edits. Evidence: `/tmp/grocery-pristine-refresh-verify.log`, `/tmp/grocery-pristine-refresh-fixture-build.log`, `/tmp/grocery-pristine-refresh-e2e.log`.
+
+## Pristine item refresh
+
+Finding3939806306 is corrected: untouched item editors adopt refreshed values and the matching version token. A snapshot is retained only while fields differ or a submission begins, and reverting adopts a waiting update. Category options remain paired with dirty item state; category-only edits explicitly report their next value before the hidden input updates. This avoids treating a dropdown change as pristine.
+
+Full verification passed390 tests/build. All33 item/category production browser cases passed across Chromium, WebKit and mobile Safari, including untouched refresh/save, quantity reversion, category-only edits/reversion and existing dirty-field conflicts. Evidence: `/tmp/grocery-item-pristine-verify-final.log`, `/tmp/grocery-item-pristine-fixture-build.log`, `/tmp/grocery-item-pristine-e2e.log`. No database behavior changed in this follow-up.
