@@ -4,6 +4,8 @@ import { exerciseMoneyHistory } from "./money-history";
 import { exerciseProjectHandoff } from "./project-handoff";
 import { exerciseSearchReturn } from "./search-return";
 import { exerciseShoppingMoney } from "./shopping-money";
+import { exerciseHomeConnections } from "./home-connections";
+import { watchRealtime } from "./realtime-diagnostics";
 
 async function enroll(page: Page, link: string) {
   try {
@@ -67,6 +69,8 @@ test("two members share travel, paid history, assigned work and search context",
   try {
     const alex = await memberA.newPage();
     const sam = await memberB.newPage();
+    watchRealtime(alex, "Alex");
+    watchRealtime(sam, "Sam");
     await enroll(alex, links[0]!);
     await enroll(sam, links[1]!);
     await enterHousehold(alex);
@@ -119,6 +123,7 @@ test("two members share travel, paid history, assigned work and search context",
     await exerciseProjectHandoff(alex, sam, tripUrl);
     await exerciseSearchReturn(sam);
     await exerciseShoppingMoney(alex, sam);
+    await exerciseHomeConnections(alex, sam);
   } catch (error) {
     for (const [name, context] of [
       ["Alex", memberA],
