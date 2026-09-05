@@ -143,3 +143,9 @@ Observed polish gaps: Home and Money display raw ISO dates, and corrected expens
 Prepared remaining authenticated acceptance for simultaneous booking edits (stale rejection preserves input and deliberate discard reveals the winner), booking archive/restore, archived-parent edit restrictions and recovery without financial changes, and device sign-out protecting a saved destination while the partner stays signed in. Targeted lint and TypeScript pass; hosted execution is required.
 
 PR70 15dfb0b passed browser job 101318807855 and verify, has no unresolved threads, and received explicit CodeRabbit approval in 5552395668. It is ready after PR69. CodeRabbit also accepted the visual/warranty changes at 82d9cd0 in 5552396333.
+
+### Readable details and search acceptance
+
+- Search PR55 `8317481` passed browser rerun [101318950570](https://github.com/drrius/household-os/actions/runs/33969517467/job/101318950570). Together with passing verify/database and positive CodeRabbit comment 5552253899, it is ready after its dependencies. The earlier calendar fixture timeout did not reproduce in the rerun.
+- PR71 `27c7694` addresses the raw dates and internal replacement label seen in the actual member screenshots. It reuses the existing civil-date formatter and shares readable financial-event labels; stored dates and ledger calculations remain unchanged. Fifteen focused tests, lint and TypeScript passed. Assembly integration preserves booking-document links and asserts both the machine-readable warranty date and displayed date. Browser and final review gates remain pending.
+- Assembly push is deliberately held until full browser job 101319942152 finishes, preserving a complete baseline instead of canceling it with another commit. Local lifecycle/session test additions still require hosted execution.

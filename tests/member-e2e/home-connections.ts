@@ -3,6 +3,12 @@ import { Temporal } from "@js-temporal/polyfill";
 
 const heading = (page: Page, name: string) =>
   page.getByRole("heading", { name, exact: true, level: 1 });
+const dateLabel = (date: string) =>
+  Temporal.PlainDate.from(date).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
 async function exerciseInventory(alex: Page, sam: Page) {
   await alex.goto("/home/contacts/new");
@@ -38,12 +44,13 @@ async function exerciseInventory(alex: Page, sam: Page) {
   ).toBeVisible();
 
   await sam.goto(inventoryUrl);
-  await expect(
-    sam
-      .getByRole("region", { name: "CI dishwasher", exact: true })
-      .getByText("Warranty ends", { exact: true })
-      .locator(".."),
-  ).toContainText(warranty);
+  const warrantyDate = sam
+    .getByRole("region", { name: "CI dishwasher", exact: true })
+    .getByText("Warranty ends", { exact: true })
+    .locator("..")
+    .locator("time");
+  await expect(warrantyDate).toHaveAttribute("datetime", warranty);
+  await expect(warrantyDate).toHaveText(dateLabel(warranty));
   await expect(
     sam.getByRole("heading", { name: "CI filter cleaned", exact: true }),
   ).toBeVisible();
@@ -79,7 +86,9 @@ async function exerciseRenewal(alex: Page, sam: Page) {
   await sam.getByRole("link", { name: /CI home insurance/ }).click();
   await expect(sam).toHaveURL((url) => url.pathname === commitmentPath);
   await expect(
-    sam.getByRole("heading", { name: `Decide before ${today}` }),
+    sam.getByRole("heading", {
+      name: `Decide before ${dateLabel(today.toString())}`,
+    }),
   ).toBeVisible();
   await sam.goto("/money");
   // A renewal's expected cost must not create a financial obligation.
