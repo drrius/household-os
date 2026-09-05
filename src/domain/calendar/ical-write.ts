@@ -1,3 +1,4 @@
+import { validateAlarmTimes } from "./ical-alarms";
 import { ensureCalendarTimezones } from "./ical-timezones";
 import ICAL from "ical.js";
 import { isTimeZone } from "./date-time";
@@ -115,6 +116,7 @@ export function writeCalendar(
 }
 
 function ensureEditable(master: ICAL.Component) {
+  validateAlarmTimes(master);
   for (const field of ["dtstart", "dtend"]) {
     const zone = master.getFirstProperty(field)?.getParameter("tzid");
     if (typeof zone === "string" && !isTimeZone(zone))
