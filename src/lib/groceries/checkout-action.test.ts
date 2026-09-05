@@ -111,3 +111,21 @@ describe("finish shopping action", () => {
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });
 });
+
+it.each([0, 1, 3])(
+  "explains household setup when checkout sees %i members",
+  async (count) => {
+    mocks.options.mockResolvedValueOnce({
+      members: Array.from({ length: count }, () => ({ user_id: viewerId })),
+    });
+    const result = await finishShoppingCheckoutAction(
+      { submissionId: 0 },
+      checkout(),
+    );
+    expect(result.error).toBe(
+      "Shopping checkout needs both household members. Finish household setup, then try again.",
+    );
+    expect(result.values?.description).toBe("Coop groceries");
+    expect(mocks.finish).not.toHaveBeenCalled();
+  },
+);
