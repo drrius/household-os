@@ -38,6 +38,8 @@ The push worker accepts the platform's configured secret-key formats and authent
 
 ## Deployment order
 
+First confirm the configured deployment mechanism. Supabase's GitHub integration can apply migrations automatically when **Deploy to production** is enabled for `main`. This repository has a Supabase-managed check, but that check alone does not prove the production toggle is enabled or a migration succeeded. With automatic deployment configured, inspect its deployment result and applied migration history after merge; do not also run a manual push. The CLI sequence below is the manual release path when automatic deployment is not configured. See the [Supabase GitHub integration documentation](https://supabase.com/docs/guides/deployment/branching/github-integration).
+
 Use a release checkout containing all required dependency changes. Keep experimental branch schemas away from the production project. Run focused local checks according to [AGENTS.md](../AGENTS.md); use hosted CI for the full suite, database tests and relevant browser coverage. Require results and review for the commit being released.
 
 1. Verify the stable hostname and both members' existing enrollment. `pnpm check:webauthn` validates repository configuration; it does not prove hosted Auth is configured. Changing the RP ID after enrollment can strand existing passkeys.
