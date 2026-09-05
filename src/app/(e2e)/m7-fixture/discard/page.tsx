@@ -78,6 +78,8 @@ export default async function Page({
         <h1>
           {destination === "saved" ? "Saved fixture" : "Discard destination"}
         </h1>
+        <Link href="/m7-fixture/discard?kind=expense">Edit expense</Link>
+        <Link href="/m7-fixture/discard?kind=routine">Edit routine</Link>
       </main>
     );
   return (

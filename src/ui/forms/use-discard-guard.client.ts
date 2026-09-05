@@ -3,7 +3,19 @@
 import { useEffect, useRef, type RefObject } from "react";
 import type { FormActionState } from "@/lib/forms/action-state";
 import { leavesCurrentDocument } from "./discard-values";
+import { registerHistoryGuard } from "./history-guard.client";
 import { createDiscardControls } from "./discard-controls";
+
+function plainClick(event: MouseEvent) {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
 
 export function useDiscardGuard(
   formRef: RefObject<HTMLFormElement | null>,
@@ -19,16 +31,13 @@ export function useDiscardGuard(
     guard.current ??= createDiscardControls(form);
     const controls = guard.current;
     const dirty = () => controls.dirty();
+    const unregisterHistory = registerHistoryGuard({
+      dirty,
+      pending: () => pending,
+      discard: () => controls.discard(),
+    });
     function click(event: MouseEvent) {
-      if (
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey
-      )
-        return;
+      if (!plainClick(event)) return;
       const anchor =
         event.target instanceof Element
           ? event.target.closest("a[href]")
@@ -65,6 +74,7 @@ export function useDiscardGuard(
     document.addEventListener("click", click, true);
     window.addEventListener("beforeunload", unload);
     return () => {
+      unregisterHistory();
       form.removeEventListener("input", controls.input, true);
       form.removeEventListener("change", controls.input, true);
       document.removeEventListener("click", click, true);

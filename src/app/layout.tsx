@@ -1,3 +1,4 @@
+import { HistoryGuard } from "@/ui/forms/history-guard.client";
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
 import { Nunito, Work_Sans } from "next/font/google";
@@ -58,6 +59,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <HistoryGuard />
           <ServiceWorkerRegistrar />
           {children}
         </ThemeProvider>
