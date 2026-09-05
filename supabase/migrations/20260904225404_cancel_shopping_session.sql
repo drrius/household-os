@@ -2,7 +2,7 @@
 -- Session lifecycle columns stay command-owned: authenticated clients retain SELECT only.
 alter table public.shopping_sessions add column cancelled_at timestamptz;
 alter table public.shopping_sessions add constraint shopping_sessions_cancelled_finish_check
-  check (cancelled_at is null or (finished_at is not null and cancelled_at = finished_at));
+  check (cancelled_at is null or (finished_at is not null and cancelled_at = finished_at)) not valid;
 
 create function private.guard_grocery_receipt_purpose()
 returns trigger language plpgsql security definer set search_path = '' as $$

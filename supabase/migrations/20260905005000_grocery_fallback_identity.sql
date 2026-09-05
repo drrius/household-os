@@ -1,9 +1,9 @@
 -- The fallback category is an identity, independent of its editable name/order.
 alter table public.grocery_categories add column is_fallback boolean not null default false;
 create unique index grocery_categories_one_fallback on public.grocery_categories(household_id) where is_fallback;
--- Released v1 did not allow renaming categories. Pre-release renamed defaults
--- cannot be identified reliably; leave those households with the explicit
--- synthetic fallback rather than guessing from editable positions or labels.
+-- Released v1 did not allow renaming categories. A later migration creates a
+-- persistent fallback when a renamed pre-release default cannot be identified,
+-- without guessing from editable positions or labels.
 update public.grocery_categories set is_fallback=true where id in (
  select distinct on (household_id) id from public.grocery_categories
  where name='Other' order by household_id,(archived_at is null) desc,created_at,id
