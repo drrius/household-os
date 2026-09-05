@@ -15,6 +15,7 @@ const ruleSchema = z.object({
   day_of_month: z.number().int().nullable(),
   active: z.boolean(),
   next_occurrence_on: z.string(),
+  updated_at: z.string(),
 });
 export type MoneyRecurringRule = z.infer<typeof ruleSchema>;
 
@@ -24,7 +25,7 @@ export async function loadRecurringRules() {
   const result = await client
     .from("recurring_expense_rules")
     .select(
-      "id, description, amount_cents, payer_member_id, proposed_allocations, category_id, schedule_kind, iso_weekday, day_of_month, active, next_occurrence_on",
+      "id, description, amount_cents, payer_member_id, proposed_allocations, category_id, schedule_kind, iso_weekday, day_of_month, active, next_occurrence_on, updated_at",
     )
     .eq("household_id", member.householdId)
     .order("active", { ascending: false })

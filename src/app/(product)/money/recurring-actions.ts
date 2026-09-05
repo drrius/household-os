@@ -31,6 +31,9 @@ export async function saveRecurringRuleAction(
       await updateRecurringExpenseRule({
         ...input,
         ruleId: z.string().uuid().parse(ruleId),
+        expectedUpdatedAt: z.iso
+          .datetime({ offset: true })
+          .parse(form.get("expectedUpdatedAt")),
       });
     else await createRecurringExpenseRule(input);
   });

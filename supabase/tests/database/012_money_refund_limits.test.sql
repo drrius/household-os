@@ -1,8 +1,8 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 select no_plan();
-select ok(not has_function_privilege('anon', 'public.update_recurring_expense_rule(uuid,text,bigint,uuid,jsonb,text,date,text,integer,integer,uuid)', 'EXECUTE'), 'anonymous clients cannot edit recurring rules');
-select ok(has_function_privilege('authenticated', 'public.update_recurring_expense_rule(uuid,text,bigint,uuid,jsonb,text,date,text,integer,integer,uuid)', 'EXECUTE'), 'authenticated members can call the authorized edit command');
+select ok(not has_function_privilege('anon', 'public.update_recurring_expense_rule(uuid,timestamptz,text,bigint,uuid,jsonb,text,date,text,integer,integer,uuid)', 'EXECUTE'), 'anonymous clients cannot edit recurring rules');
+select ok(has_function_privilege('authenticated', 'public.update_recurring_expense_rule(uuid,timestamptz,text,bigint,uuid,jsonb,text,date,text,integer,integer,uuid)', 'EXECUTE'), 'authenticated members can call the authorized edit command');
 
 insert into auth.users (id, email) values
 ('00000000-0000-4000-8000-000000000121', 'refund-one@example.invalid'),
@@ -69,14 +69,15 @@ select ok(not exists(select financial_event_id from public.ledger_entries group 
 select set_config('test.rule', (public.create_recurring_expense_rule('10000000-0000-4000-8000-000000000121', 'Rent', 1000, '00000000-0000-4000-8000-000000000121', pg_temp.shares(500,500), 'monthly', '2030-01-01', 'recurring-create', null, 1)->>'recurring_expense_rule_id'), true);
 select public.generate_due_recurring_drafts('10000000-0000-4000-8000-000000000121', '2030-01-01', 'recurring-generate');
 select public.set_recurring_expense_rule_active(current_setting('test.rule')::uuid, false, 'recurring-pause');
-select lives_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, 'Updated rent', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-edit', null, 31)$$, 'a member can edit a monthly rule with month-end clamping');
-select lives_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, 'Updated rent', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-edit', null, 31)$$, 'recurring edit retry is idempotent');
+select set_config('test.rule_version', (select updated_at::text from public.recurring_expense_rules where id=current_setting('test.rule')::uuid), true);
+select lives_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, current_setting('test.rule_version')::timestamptz, 'Updated rent', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-edit', null, 31)$$, 'a member can edit a monthly rule with month-end clamping');
+select lives_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, current_setting('test.rule_version')::timestamptz, 'Updated rent', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-edit', null, 31)$$, 'recurring edit retry is idempotent');
 select is((select active from public.recurring_expense_rules where id=current_setting('test.rule')::uuid), false, 'editing retains the paused state');
 select is((select amount_cents from public.expense_drafts where recurring_expense_rule_id=current_setting('test.rule')::uuid), 1000::bigint, 'existing drafts keep their original amount');
 select is((select amount_cents from public.recurring_expense_rules where id=current_setting('test.rule')::uuid), 1200::bigint, 'future drafts use the edited amount');
-select throws_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, 'Different payload', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-edit', null, 31)$$, '22023', 'idempotency key was already used for a different command', 'cannot change an edit payload while reusing its key');
+select throws_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, current_setting('test.rule_version')::timestamptz, 'Different payload', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-edit', null, 31)$$, '22023', 'idempotency key was already used for a different command', 'cannot change an edit payload while reusing its key');
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000123', true);
-select throws_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, 'Denied', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-unauthorized', null, 31)$$, '42501', 'caller is not a member of household 10000000-0000-4000-8000-000000000121', 'outsiders cannot edit another household rule');
+select throws_ok($$select public.update_recurring_expense_rule(current_setting('test.rule')::uuid, current_setting('test.rule_version')::timestamptz, 'Denied', 1200, '00000000-0000-4000-8000-000000000122', pg_temp.shares(400,800), 'monthly', '2030-02-28', 'recurring-unauthorized', null, 31)$$, '42501', 'caller is not a member of household 10000000-0000-4000-8000-000000000121', 'outsiders cannot edit another household rule');
 select throws_ok($$select public.post_refund(current_setting('test.replacement')::uuid, 1, pg_temp.shares(1,0), '2030-01-04', 'refund-unauthorized', 'Denied')$$, '42501', 'caller is not a member of household 10000000-0000-4000-8000-000000000121', 'outsiders cannot refund another household event');
 select throws_ok($$select public.correct_financial_event(current_setting('test.opening_repair')::uuid, 'opening-outsider', pg_temp.opening_payload(500))$$, '42501', 'caller is not a member of household 10000000-0000-4000-8000-000000000121', 'outsiders cannot correct opening balances');
 select is((select count(*)::integer from public.financial_events), 0, 'RLS hides financial history from outsiders');
