@@ -14,6 +14,7 @@ import {
   type RefObject,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { useDiscardGuard } from "./use-discard-guard.client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
@@ -155,12 +156,14 @@ export function FormFields({
   action,
   children,
   submitLabel,
+  protectChanges = false,
   showRequiredNotice = true,
   submitVariant = "default",
 }: {
   action: FormAction;
   children: ReactNode;
   submitLabel: string;
+  protectChanges?: boolean;
   showRequiredNotice?: boolean;
   submitVariant?: "default" | "outline";
 }) {
@@ -169,8 +172,13 @@ export function FormFields({
     onInput,
     onInvalidCapture,
   } = useNativeValidation();
-  const [submission, submit] = useActionState(action, initialFormActionState);
+  const [submission, submit, pending] = useActionState(
+    action,
+    initialFormActionState,
+  );
   const alertRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  useDiscardGuard(formRef, protectChanges, submission, pending);
   const { error, field, submissionId, values } = submission;
 
   useEffect(() => {
@@ -191,6 +199,7 @@ export function FormFields({
 
   return (
     <form
+      ref={formRef}
       action={submit}
       className="grid gap-5"
       onInput={onInput}
@@ -202,10 +211,19 @@ export function FormFields({
         showRequiredNotice={showRequiredNotice}
       />
       <FormFieldsContext value={state}>
-        <div className="grid gap-5" key={submissionId}>
+        <fieldset
+          className="grid min-w-0 gap-5"
+          disabled={protectChanges && pending}
+          key={submissionId}
+        >
           {children}
-        </div>
+        </fieldset>
       </FormFieldsContext>
+      {protectChanges && pending ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Saving. Please wait before leaving; this save cannot be canceled.
+        </p>
+      ) : null}
       <SubmitButton label={submitLabel} variant={submitVariant} />
     </form>
   );

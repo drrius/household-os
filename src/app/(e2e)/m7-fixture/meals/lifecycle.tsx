@@ -54,6 +54,7 @@ export async function ArchivedMealFixture() {
           name: "Archived pasta",
           recipe_url: "https://example.com/recipe",
           notes: "The original recipe is still here.",
+          updated_at: "2026-09-05T00:00:00Z",
           archived_at: "2026-09-05T12:00:00Z",
           templates: [],
           archivedTemplates: [],
