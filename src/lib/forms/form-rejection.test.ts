@@ -1,3 +1,4 @@
+import { redirect, permanentRedirect, notFound } from "next/navigation";
 import { describe, expect, it } from "vitest";
 
 import { formRejection, settleFormAction } from "./action-state";
@@ -83,6 +84,49 @@ describe("settleFormAction", () => {
         weekdays: `1${echoListSeparator}5`,
       },
       submissionId: 4,
+    });
+  });
+});
+
+describe("framework navigation interrupts", () => {
+  function interrupt(operation: () => never): unknown {
+    try {
+      operation();
+    } catch (error) {
+      return error;
+    }
+  }
+  it.each([
+    ["auth redirect", () => redirect("/sign-in")],
+    ["permanent redirect", () => permanentRedirect("/home")],
+    ["missing resource", () => notFound()],
+  ] as const)(
+    "preserves %s from inside an authorized command",
+    async (_name, operation) => {
+      const signal = interrupt(operation);
+      await expect(
+        settleFormAction({ submissionId: 0 }, new FormData(), async () => {
+          throw signal;
+        }),
+      ).rejects.toBe(signal);
+    },
+  );
+  it("preserves framework interrupts wrapped as a cause", async () => {
+    const signal = interrupt(notFound);
+    await expect(
+      settleFormAction({ submissionId: 0 }, new FormData(), async () => {
+        throw new Error("Command failed", { cause: signal });
+      }),
+    ).rejects.toBe(signal);
+  });
+  it("does not treat application error text as a framework interrupt", async () => {
+    await expect(
+      settleFormAction({ submissionId: 0 }, new FormData(), async () => {
+        throw new Error("NEXT_REDIRECT is part of this ordinary message");
+      }),
+    ).resolves.toMatchObject({
+      error: "NEXT_REDIRECT is part of this ordinary message",
+      submissionId: 1,
     });
   });
 });
