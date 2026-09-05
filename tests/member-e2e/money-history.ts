@@ -69,7 +69,9 @@ export async function exerciseMoneyHistory(
   await expect(
     sam.getByRole("heading", { name: "CI paid flight", exact: true, level: 1 }),
   ).toBeVisible();
-  await expect(sam.getByText("Reversed", { exact: true })).toBeVisible();
+  await expect(
+    sam.getByRole("region", { name: "CI paid flight", exact: true }),
+  ).toContainText("Reversed");
   await sam.goto(replacementUrl);
   await expect(
     sam.getByRole("heading", {
