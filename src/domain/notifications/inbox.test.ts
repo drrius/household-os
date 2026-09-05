@@ -73,7 +73,7 @@ it("links only validated available entities and ignores payload URLs", () => {
   ).toBe(`/plan/meals/${id}`);
   expect(
     presentInboxRow({ ...row, entity_type: "financial_event" }, true).href,
-  ).toBe("/money");
+  ).toBe(`/money/events/${id}`);
   expect(
     presentInboxRow({ ...row, entity_type: "expense_draft" }, true).href,
   ).toBe(`/money/expenses/new?draft=${id}`);

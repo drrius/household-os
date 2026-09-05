@@ -139,3 +139,7 @@ A fresh source audit found that Today coalesced explicitly linked bookings and c
 At the preceding assembly head `4408a57`, hosted verification and database jobs passed; browser job `101301305870` was still running when checked. Planning job `101300601897` and search job `101299445391` were also live. These observations are not passing browser results. No unresolved review threads were present on #66, but final positive CodeRabbit review was still absent.
 
 Authenticated local member verification is unavailable: the Docker socket denies access and noninteractive sudo requires a password. No database was reset and no existing household was changed. Fixture proof remains explicitly separate from the outstanding real member journeys and credential/device-dependent checks.
+
+## Exact notification destinations
+
+The integrated audit found that financial-event and shopping-session partner notifications still opened only their broad sections despite existing detail routes. Inbox resolution now checks the referenced record within the authenticated household and opens its exact ledger event or shopping history. Missing records and optional lookup failures keep the section fallback. No ledger mutation, balance rule, notification payload or push content changed. Twelve affected notification tests pass, covering accessible, missing and failed lookups, household constraints, pagination and project assignment links; targeted lint, formatting and TypeScript also pass. Hosted browser verification remains required.
