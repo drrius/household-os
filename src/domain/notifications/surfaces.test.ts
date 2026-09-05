@@ -49,7 +49,7 @@ describe("SURFACE_INVALIDATION_MAP", () => {
     ["meal_plan_entries", ["plan", "today", "search"]],
     ["grocery_items", ["groceries", "today", "search"]],
     ["shopping_sessions", ["groceries", "today"]],
-    ["expense_drafts", ["money", "today"]],
+    ["expense_drafts", ["money", "today", "groceries"]],
     ["financial_events", ["money", "today", "plan", "home", "search"]],
     ["activity_events", ["home"]],
   ] as const)("maps %s changes to the expected surfaces", (table, surfaces) => {
@@ -93,4 +93,13 @@ it("refunds and corrections refresh every surface that displays inherited costs"
 });
 it("meal template changes refresh the planning library", () => {
   expect(surfacesForTableChange("meal_grocery_templates")).toContain("plan");
+});
+
+it.each([
+  "household_projects",
+  "household_assets",
+  "household_commitments",
+  "trip_bookings",
+] as const)("refreshes visible paid-cost context after %s changes", (table) => {
+  expect(surfacesForTableChange(table)).toContain("money");
 });
