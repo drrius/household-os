@@ -54,6 +54,8 @@ const FORM_SURFACE_PATTERNS = [
   /\/(?:new|edit)$/,
   /^\/plan\/meals\/[^/]+$/,
   /^\/money\/opening-balance$/,
+  /^\/money\/contexts\/(?:project|asset|commitment)\/[^/]+\/existing\/[^/]+$/,
+  /^\/money\/contexts\/associations\/[^/]+$/,
   /^\/home\/setup$/,
   /^\/home\/occurrences\/[^/]+$/,
   /^\/home\/notifications$/,

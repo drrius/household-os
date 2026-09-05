@@ -1,20 +1,41 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import type { AttachmentPurpose } from "@/domain/attachments/files";
 import { useAttachmentUpload } from "./use-attachment-upload.client";
+
+type AttachmentFieldProps = {
+  name: string;
+  label: string;
+  purpose: AttachmentPurpose;
+  initialPath?: string | null;
+  required?: boolean;
+  onStateChange?: () => void;
+};
+
+function attachmentStatus(
+  pending: boolean,
+  error: string | null,
+  path: string,
+  pendingLabel: string,
+) {
+  if (pending) return pendingLabel;
+  return (
+    error ??
+    (path
+      ? "Attachment ready."
+      : "Photos are resized. Maximum file size: 4 MB.")
+  );
+}
 
 export function AttachmentField({
   name,
   label,
   purpose,
   initialPath = "",
-}: {
-  name: string;
-  label: string;
-  purpose: AttachmentPurpose;
-  initialPath?: string | null;
-}) {
+  required = false,
+  onStateChange,
+}: AttachmentFieldProps) {
   const id = useId();
   const {
     input,
@@ -28,11 +49,19 @@ export function AttachmentField({
     retry,
   } = useAttachmentUpload(purpose, initialPath);
 
+  useEffect(() => {
+    onStateChange?.();
+  }, [path, pending, error, onStateChange]);
+
+  const accept =
+    purpose === "completions" ? "image/*" : "image/*,application/pdf";
   return (
     <div className="grid gap-2 text-base sm:text-sm">
       <label className="font-medium" htmlFor={id}>
         {label}{" "}
-        <span className="font-normal text-muted-foreground">(optional)</span>
+        {!required ? (
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        ) : null}
       </label>
       <input type="hidden" name={name} value={path} />
       <input
@@ -40,9 +69,7 @@ export function AttachmentField({
         id={id}
         name={`${name}Upload`}
         type="file"
-        accept={
-          purpose === "completions" ? "image/*" : "image/*,application/pdf"
-        }
+        accept={accept}
         aria-describedby={`${id}-status`}
         aria-invalid={error !== null}
         aria-disabled={pending}
@@ -60,12 +87,7 @@ export function AttachmentField({
         role="status"
         className={error ? "text-destructive-strong" : "text-muted-foreground"}
       >
-        {pending
-          ? pendingLabel
-          : (error ??
-            (path
-              ? "Attachment ready."
-              : "Photos are resized. Maximum file size: 4 MB."))}
+        {attachmentStatus(pending, error, path, pendingLabel)}
       </p>
       {(path || error) && !pending ? (
         <AttachmentActions

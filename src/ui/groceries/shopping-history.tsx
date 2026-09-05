@@ -60,7 +60,10 @@ export function ShoppingHistoryScreen({
             View receipt
           </a>
         ) : null}
-        <ShoppingExpense draft={draft} />
+        <ShoppingExpense
+          draft={draft}
+          financialEventId={history.financialEventId}
+        />
         {!session.cancelled_at ? <ShoppingItems items={items} /> : null}
       </div>
     </AppPage>
@@ -73,7 +76,13 @@ type Draft = {
   amount_cents: number | null;
   status: string;
 };
-function ShoppingExpense({ draft }: { draft: Draft | null }) {
+function ShoppingExpense({
+  draft,
+  financialEventId,
+}: {
+  draft: Draft | null;
+  financialEventId: string | null;
+}) {
   return (
     <>
       {" "}
@@ -103,12 +112,16 @@ function ShoppingExpense({ draft }: { draft: Draft | null }) {
             href={
               draft.status === "pending"
                 ? `/money/expenses/new?draft=${draft.id}`
-                : "/money"
+                : draft.status === "posted" && financialEventId
+                  ? `/money/events/${financialEventId}`
+                  : "/money"
             }
           >
             {draft.status === "pending"
               ? "Review shared expense"
-              : "Open Money"}
+              : draft.status === "posted" && financialEventId
+                ? "View posted expense"
+                : "Open Money"}
           </Link>
         </section>
       ) : (
