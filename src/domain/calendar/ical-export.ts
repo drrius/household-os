@@ -50,12 +50,16 @@ export function validateCalendarExport(ical: string, uid: string): void {
     )
       throw new Error("This calendar resource contains invalid event times.");
     const recurrence = component.getFirstPropertyValue("recurrence-id");
+    const identity =
+      recurrence instanceof ICAL.Time
+        ? recurrenceKey(recurrence, event.startDate)
+        : null;
     if (
       component.getAllProperties("recurrence-id").length > 1 ||
-      (recurrence && recurrenceIds.has(String(recurrence)))
+      (identity && recurrenceIds.has(identity))
     )
       throw new Error("This calendar resource repeats an occurrence identity.");
-    if (recurrence) recurrenceIds.add(String(recurrence));
+    if (identity) recurrenceIds.add(identity);
     for (const child of component.getAllSubcomponents()) {
       if (
         child.name !== "valarm" ||
@@ -91,4 +95,16 @@ function validateComponents(component: ICAL.Component): void {
       );
     validateComponents(child);
   }
+}
+
+function recurrenceKey(time: ICAL.Time, masterStart: ICAL.Time): string {
+  if (time.isDate) return time.toString();
+  const fallback =
+    masterStart.zone.tzid === "floating"
+      ? "Europe/Zurich"
+      : masterStart.zone.tzid;
+  return ICAL.Time.fromJSDate(
+    new Date(icalTimeToIso(time, fallback)),
+    true,
+  ).toString();
 }

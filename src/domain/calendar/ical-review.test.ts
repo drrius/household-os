@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import fc from "fast-check";
 import { writeCalendar, calendarEditingIssue } from "./ical-write";
 import { expandCalendar, masterFromIcal, readCalendar } from "./ical-read";
 import { validateCalendarExport } from "./ical-export";
@@ -192,4 +193,50 @@ it("preserves unsupported end-time zones by refusing local edits", () => {
   expect(() =>
     writeCalendar({ ...input, title: "Changed" }, { uid, existing: customEnd }),
   ).toThrow("custom time zone");
+});
+
+const zonedException = [
+  "BEGIN:VEVENT",
+  `UID:${uid}`,
+  "RECURRENCE-ID;TZID=Europe/Zurich:20260903T110000",
+  "DTSTART:20260903T093000Z",
+  "DTEND:20260903T103000Z",
+  "SUMMARY:Later appointment",
+  "END:VEVENT",
+].join("\r\n");
+it("validates exception identities by instant across time zones", () => {
+  fc.assert(
+    fc.property(
+      fc.integer({ min: 1, max: 5 }),
+      fc.constantFrom(
+        ["Europe/Zurich", "110000"],
+        ["Europe/London", "100000"],
+        ["America/New_York", "050000"],
+      ),
+      (day, [zone, time]) => {
+        const exception = zonedException.replace(
+          "Europe/Zurich:20260903T110000",
+          `${zone}:2026090${day}T${time}`,
+        );
+        const imported = base.replace(
+          "END:VCALENDAR",
+          `${exception}\r\nEND:VCALENDAR`,
+        );
+        expect(() => validateCalendarExport(imported, uid)).not.toThrow();
+      },
+    ),
+  );
+});
+it("rejects duplicate exception identities written in different zones", () => {
+  const utcException = zonedException.replace(
+    "RECURRENCE-ID;TZID=Europe/Zurich:20260903T110000",
+    "RECURRENCE-ID:20260903T090000Z",
+  );
+  const imported = base.replace(
+    "END:VCALENDAR",
+    `${zonedException}\r\n${utcException}\r\nEND:VCALENDAR`,
+  );
+  expect(() => validateCalendarExport(imported, uid)).toThrow(
+    "repeats an occurrence identity",
+  );
 });
