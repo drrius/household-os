@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { z } from "zod";
 import { calendarTimePresentation } from "@/domain/calendar/presentation";
 import { calendarEditingIssue } from "@/domain/calendar/ical-write";
 import { isTimeZone } from "@/domain/calendar/date-time";
@@ -13,6 +15,7 @@ export default async function CalendarEventPage({
   searchParams: Promise<{ occurrence?: string }>;
 }) {
   const [{ id }, { occurrence }] = await Promise.all([params, searchParams]);
+  if (!z.uuid().safeParse(id).success) notFound();
   const [row, options] = await Promise.all([
     getCalendarEvent(id),
     getCalendarOptions(),
