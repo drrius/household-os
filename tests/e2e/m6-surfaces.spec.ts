@@ -166,13 +166,20 @@ test("desktop shadcn sidebar keeps the global add action in view", async ({
   const navigationLinks = sidebar
     .getByRole("navigation", { name: "Primary navigation" })
     .getByRole("link");
+  await expect(navigationLinks).toHaveText([
+    "Today",
+    "Plan",
+    "Groceries",
+    "Money",
+    "Home",
+    "Search household",
+  ]);
   const navigationRects = await navigationLinks.evaluateAll((links) =>
     links.map((link) => {
       const rect = link.getBoundingClientRect();
       return { bottom: rect.bottom, height: rect.height, top: rect.top };
     }),
   );
-  expect(navigationRects).toHaveLength(5);
   expect(navigationRects.every(({ height }) => height <= 36)).toBe(true);
   expect(
     navigationRects.slice(1).every(({ top }, index) => {
