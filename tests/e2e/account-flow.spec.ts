@@ -190,7 +190,7 @@ for (const stage of ["registration", "subscription"]) {
         },
         { stage, failure },
       );
-      await page.goto("/m7-fixture/account/sign-out");
+      await page.goto("/m7-fixture/account/sign-out-fallback");
       await page
         .getByRole("button", { name: "Sign out of this device" })
         .click();
@@ -207,7 +207,13 @@ for (const stage of ["registration", "subscription"]) {
       await page
         .getByRole("button", { name: "Sign out of this device" })
         .click();
-      await expect(page).toHaveURL(/\/sign-in$/);
+      await expect(page).toHaveURL(/\/sign-in\?push=paused$/);
+      await expect(page.getByRole("status")).toContainText(
+        "Push notifications were paused on your devices",
+      );
+      await expect(page.getByRole("status")).toContainText(
+        "Your partner’s notifications are unchanged",
+      );
       expect(browserErrors).toEqual([]);
     });
   }

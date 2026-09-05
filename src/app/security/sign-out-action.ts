@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
-export type SignOutResult = { ok: true } | { ok: false; error: string };
+export type SignOutResult =
+  { ok: true; pushPaused?: boolean } | { ok: false; error: string };
 
 export async function signOutThisDevice(
   endpoint: string | null,
@@ -22,10 +23,18 @@ export async function signOutThisDevice(
     };
   }
   const client = await createClient();
-  if (endpoint !== null) {
-    const { error } = await client.rpc("unregister_push_subscription", {
-      p_endpoint: endpoint,
-    });
+  let pushPaused = false;
+  {
+    const { data, error } =
+      endpoint === null
+        ? await client.rpc("pause_my_push_for_signout")
+        : await client.rpc("unregister_push_subscription", {
+            p_endpoint: endpoint,
+          });
+    pushPaused =
+      endpoint === null &&
+      typeof data?.disabled === "number" &&
+      data.disabled > 0;
     if (error)
       return {
         ok: false,
@@ -40,5 +49,5 @@ export async function signOutThisDevice(
       error: "Could not sign out. Check your connection and try again.",
     };
   revalidatePath("/", "layout");
-  return { ok: true };
+  return pushPaused ? { ok: true, pushPaused: true } : { ok: true };
 }

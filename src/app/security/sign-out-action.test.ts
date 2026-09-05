@@ -43,7 +43,25 @@ describe("sign out this device", () => {
   });
   it("works without push support or enrollment", async () => {
     expect(await signOutThisDevice(null)).toEqual({ ok: true });
-    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.rpc).toHaveBeenCalledWith("pause_my_push_for_signout");
+  });
+  it("pauses the member's unidentified subscriptions before sign-out and reports the fallback", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: { disabled: 2 }, error: null });
+    expect(await signOutThisDevice(null)).toEqual({
+      ok: true,
+      pushPaused: true,
+    });
+    expect(mocks.rpc).toHaveBeenCalledWith("pause_my_push_for_signout");
+    expect(mocks.rpc.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.signOut.mock.invocationCallOrder[0]!,
+    );
+    mocks.rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "unavailable" },
+    });
+    mocks.signOut.mockClear();
+    expect((await signOutThisDevice(null)).ok).toBe(false);
+    expect(mocks.signOut).not.toHaveBeenCalled();
   });
   it("requires membership before any subscription or session mutation", async () => {
     mocks.member.mockRejectedValue(new Error("not a member"));

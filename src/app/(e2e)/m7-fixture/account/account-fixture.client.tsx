@@ -12,7 +12,7 @@ export function AccountFixture({
   returnTo: string;
 }) {
   const attempts = useRef(0);
-  if (screen === "sign-out")
+  if (screen === "sign-out" || screen === "sign-out-fallback")
     return (
       <SignOutControl
         action={async (endpoint) => {
@@ -26,7 +26,10 @@ export function AccountFixture({
                 ok: false,
                 error: "This fixture rejected the first sign-out. Try again.",
               }
-            : { ok: true };
+            : {
+                ok: true,
+                pushPaused: screen === "sign-out-fallback" && endpoint === null,
+              };
         }}
       />
     );

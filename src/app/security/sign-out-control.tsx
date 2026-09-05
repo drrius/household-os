@@ -45,13 +45,15 @@ export function SignOutControl({
       if (subscription) endpointRef.current = subscription.endpoint;
       const result = await action(endpointRef.current);
       if (!result.ok) throw new Error(result.error);
-      // The server has ended the session and disabled any identified subscription.
+      // The server has ended the session and paused this endpoint or the member’s push fallback.
       // Browser cleanup must not hold sign-out hostage to a push-service failure.
       void Promise.resolve()
         .then(() => subscription?.unsubscribe())
         .catch(() => undefined);
       // A full navigation discards this tab's authenticated router state.
-      window.location.replace("/sign-in");
+      window.location.replace(
+        result.pushPaused ? "/sign-in?push=paused" : "/sign-in",
+      );
     } catch (failure) {
       setError(
         failure instanceof Error
@@ -71,7 +73,9 @@ export function SignOutControl({
       </h2>
       <p className="text-base text-muted-foreground">
         End this browser’s session. Your passkeys and other signed-in devices
-        stay available.
+        stay available. If this browser cannot identify its notifications,
+        signing out pauses push on all of your devices. Reconnect them in
+        Notifications after signing in.
       </p>
       <Button
         type="button"

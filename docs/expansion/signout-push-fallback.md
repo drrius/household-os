@@ -1,0 +1,9 @@
+# Sign-out notification privacy
+
+Codex finding 3939651901 identified that failed or stalled browser discovery could leave an enabled push endpoint after local sign-out. Unknown endpoint discovery now invokes `pause_my_push_for_signout` before ending the authenticated session. The command pauses all active subscriptions belonging to the authenticated member, checks household membership, and does not modify a partner or foreign household. Already-disabled timestamps are preserved. Any cleanup error keeps sign-out incomplete and retryable.
+
+Known endpoints still use the existing device-only unregister command. The fallback can pause the member's other devices; the security screen explains this before signing out, and successful fallback redirects to a sign-in status explaining how to reconnect each device in Home → Notifications. Other auth sessions and passkeys stay available. Browser discovery remains bounded to 500ms; browser unsubscribe remains best effort after successful server cleanup and sign-out.
+
+Validation: `pnpm verify` passed 387 tests in 59 files and production build. A fixture-enabled production build passed all 63 account/foundation browser cases across Chromium, WebKit and mobile Safari. Rejected and stalled registration/subscription discovery now exercise the fallback result and visible reconnection explanation. Unit tests verify command ordering, local auth scope and cleanup failure behavior. Database test 031 checks permissions, member/tenant isolation, retry behavior, preserved identity/keys/timestamps and one-device reconnection. `pnpm db:test` was attempted but local PostgreSQL refused connection on port54322; these SQL assertions are not claimed as executed locally. Hosted database verification remains required.
+
+Evidence: `/tmp/signout-fallback-verify.log`, `/tmp/signout-fallback-fixture-build.log`, `/tmp/signout-fallback-e2e.log`, `/tmp/signout-fallback-db.log`.
