@@ -4,11 +4,13 @@ Status: active. User scope clarification supersedes the narrower wording of the 
 
 Latest user direction: “Nothing missed isn’t specific to those workflows. Anything at all app related.” This applies to both feature discovery and the completion criteria below. The starting scope is a minimum, not a closed feature list.
 
+Reviewer update (2026-09-05): the user replaced ChatGPT/Codex PR review with CodeRabbit. Stop requesting Codex reviews. Historical Codex approvals remain historical evidence; CodeRabbit is the reviewer for all outstanding delivery and completion checks. This supersedes the runtime goal’s old reviewer wording.
+
 ## Objective
 
 Turn Household OS into a complete, functional, polished operating system for this two-person household. Implement everything agreed in the conversation and actively discover and implement other worthwhile missing features or functionality anywhere in the app. The completeness audit is explicitly not limited to the previously discussed workflows.
 
-The user authorized autonomous product decisions, broad UI redesign, branches, commits, pushes, appropriately divided pull requests, replies to Codex comments, and repeated Codex review. The user is asleep; proceed without preflight questions. No time deadline or token budget was specified.
+The user authorized autonomous product decisions, broad UI redesign, branches, commits, pushes, appropriately divided pull requests, replies to reviewer comments, and repeated CodeRabbit review. Proceed without preflight questions. No time deadline or token budget was specified.
 
 ## Required starting scope
 
@@ -27,10 +29,10 @@ Preserve two equal members, one private household, CHF integer-centime accountin
 - Work in isolated branches/worktrees with explicit path ownership and dependency ordering.
 - Run focused checks during development and pnpm verify per integrated PR. Database changes require pnpm db:test and RLS/invariant coverage. Financial changes require example and property tests.
 - Settle affected designs, then exercise complete Playwright workflows and mobile/desktop browser checks. Validate empty/populated/error/pending/concurrent states where relevant.
-- Open a PR for every completed unit. Respond to Codex review comments. Fix and push substantiated bugs; explain disagreements with evidence. Request rereview until explicit positive Codex review is received. Never equate missing feedback, rate limits, or failed review jobs with approval.
+- Open a PR for every completed unit. Respond to CodeRabbit review comments. Fix and push substantiated bugs; explain disagreements with evidence. Request rereview until explicit positive CodeRabbit review is received. Never equate missing feedback, rate limits, or failed review jobs with approval.
 - Record scope, acceptance evidence, PR URLs, review status, decisions, and remaining gaps in docs/expansion. Keep implementation and completeness audits current through context compaction and goal continuations.
 - Implement and test external integrations against controlled fixtures when credentials are unavailable. Distinguish implemented capability from live-account verification. Do not invent credentials or claim unperformed checks.
 
 ## Completion
 
-Complete only when the agreed scope and all worthwhile gaps identified in a fresh app-wide completeness audit are implemented and verified, every change has appropriate open PR coverage, and Codex has positively reviewed all PRs. Continue useful work on other areas while external dependencies are blocked. Report unavoidable external setup or review blockers honestly. The standard is no remaining known worthwhile implementable gap across the whole app, not the impossible claim that no conceivable future feature exists.
+Complete only when the agreed scope and all worthwhile gaps identified in a fresh app-wide completeness audit are implemented and verified, every change has appropriate open PR coverage, and CodeRabbit has positively reviewed all PRs. Continue useful work on other areas while external dependencies are blocked. Report unavoidable external setup or review blockers honestly. The standard is no remaining known worthwhile implementable gap across the whole app, not the impossible claim that no conceivable future feature exists.

@@ -22,6 +22,15 @@ The initial baseline was `39f9363`. Existing PR40 (MCP bridge) is outside this e
 | Shared forms                                                           | `e2f19f3`: accessible labels, framework signals, calendar discard tracking and protected pending saves                                | [#57](https://github.com/drrius/household-os/pull/57): local 273 tests/build and 60 production browser cases pass; explicit positive Codex review of current head; three fixed threads resolved                                                                                                                                                        |
 | Contextual paid costs                                                  | `b65ecd4`: exact costs, atomic expenses and guarded association changes with payer details                                            | [#58](https://github.com/drrius/household-os/pull/58): local 395 tests/build and 24 production browser cases pass; positive Codex review of `b65ecd4`; database tests028/030 require dependency integration                                                                                                                                            |
 
+## Current checkpoint — 2026-09-05 reviewer transition
+
+The user replaced Codex review with CodeRabbit. Historical Codex results in the table remain historical; outstanding delivery now requires CodeRabbit review, evidence-based replies and rereview. CodeRabbit reviewed PR59 with default settings and skipped stacked PR52 because its target is not the default branch. The user was advised to add `^codex/.*$` to auto-review base branches. Manual full reviews were requested on PR51 and PR52.
+
+- PR44 was externally merged at `38e927d` on 2026-09-05 08:14 UTC. No merge was performed by this task.
+- PR59 is now `6c18e0a`: template edit versions and the two-session leftover race are implemented; hosted SQL032/033/035 passed at `d2fcfd1`. CodeRabbit corrections tighten the update-specific tenant assertion, correct stale evidence notes and avoid a volatile-default table rewrite. Full371 tests/build pass; the adjusted migration awaits hosted proof. SQL014 still requires routine019.
+- PR51 is now `cdd685c`: untouched new-record choices refresh while new IDs and dirty selections remain stable. Full398 tests/build and33 browser cases pass.
+- Trip booking and itinerary journeys are implemented on `codex/trip-bookings-itinerary`, independently atop PR52:398 tests/build and24 browser cases pass. See [booking evidence](trip-bookings.md). SQL036 and assembled calendar/documents/paid costs remain open.
+
 ## Remaining application-wide acceptance work
 
 - Assemble the dependent implementations, resolve base conflicts and run their migrations and workflows together. Isolated PRs are not evidence of working navigation or cross-feature transactions.
@@ -32,7 +41,7 @@ The initial baseline was `39f9363`. Existing PR40 (MCP bridge) is outside this e
 - Exercise both members' concurrent edits and sign-in/sign-out/device ownership together. Verify realtime invalidation, stale confirmations, no duplicate financial posting, private attachment lifecycle and zero-cost limits on the assembled schema.
 - Finish environment/setup/recovery documentation and live checks for private iCloud, Web Push and private uploads when the required credentials and deployment authorization are available. Do not manufacture those proofs from fixtures.
 - Repeat the full application audit after assembly: navigation, discovery, onboarding, household/account/settings, all record lifecycles, daily coordination, accessibility, motion, small screens, errors/loading/empty states, operational readiness and any other worthwhile missing feature. A checked starting-workflow list does not close the goal.
-- Resolve substantiated Codex findings, explain disagreements, obtain explicit positive review of every final code head and pass required verification before completion.
+- Resolve substantiated CodeRabbit findings, explain disagreements, obtain explicit positive review of every final code head and pass required verification before completion.
 
 ## External and integration gates
 

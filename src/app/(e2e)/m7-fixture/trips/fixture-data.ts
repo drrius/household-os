@@ -1,0 +1,21 @@
+import type { TripBooking } from "@/domain/projects/types";
+export const booking: TripBooking = {
+  id: "36000000-0000-4000-8000-000000000020",
+  project_id: "36000000-0000-4000-8000-000000000010",
+  kind: "flight",
+  title: "Zurich to New York",
+  status: "booked",
+  starts_at: "2026-10-07T08:00:00Z",
+  ends_at: "2026-10-07T17:00:00Z",
+  time_zone: "Europe/Zurich",
+  end_time_zone: "America/New_York",
+  origin: "ZRH · Zurich Airport",
+  destination: "JFK · New York",
+  confirmation: "LX14 · ABC123",
+  website: "https://example.com/booking",
+  estimated_amount_cents: 120005,
+  calendar_event_id: null,
+  notes: "Meet at the airport two hours before departure.",
+  archived_at: null,
+  updated_at: "2026-09-05T12:00:00Z",
+};
