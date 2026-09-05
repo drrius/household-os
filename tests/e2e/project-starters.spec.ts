@@ -65,3 +65,39 @@ test("home preparation is selectable and an empty selection cannot be submitted"
     ),
   ).toBe(true);
 });
+
+test("reloading after an uncertain batch preserves receipt identities", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/starters");
+  await page.getByLabel("Start with").selectOption("packing");
+  const identities = await page
+    .locator('input[name^="id:"]')
+    .evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).value),
+    );
+  await page.getByRole("button", { name: "Add 5 tasks" }).click();
+  await expect(
+    page.getByRole("button", { name: "Adding tasks…" }),
+  ).toBeDisabled();
+  // The fixture stores its committed receipt before delivering any response.
+  await page.reload();
+  await page.getByLabel("Start with").selectOption("packing");
+  expect(
+    await page
+      .locator('input[name^="id:"]')
+      .evaluateAll((inputs) =>
+        inputs.map((input) => (input as HTMLInputElement).value),
+      ),
+  ).toEqual(identities);
+  await page.getByRole("button", { name: "Add 5 tasks" }).click();
+  await expect(
+    page.getByRole("button", { name: "Adding tasks…" }),
+  ).toBeDisabled();
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("starter-response")),
+  );
+  await expect(page.getByRole("status")).toHaveText(
+    "4 tasks added. 1 already present.",
+  );
+});

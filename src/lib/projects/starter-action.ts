@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
+import { starterTaskIds } from "@/lib/projects/starter-identities";
 import { starterTasks } from "@/domain/projects/starters";
 import { loadProject } from "@/lib/projects/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -25,12 +26,7 @@ export async function addStarterTasksAction(
       .min(1)
       .max(20)
       .parse(form.getAll("item"));
-    const ids = Object.fromEntries(
-      selected.map((key) => [
-        `${preset}:${key}`,
-        z.uuid().parse(form.get(`id:${key}`)),
-      ]),
-    );
+    const ids = starterTaskIds(projectId, project.kind);
     const tasks = starterTasks(project.kind, preset, selected, ids);
     const client = await createClient();
     const { data, error } = await client.rpc("add_project_task_batch", {

@@ -1,5 +1,6 @@
 "use server";
 
+import { requireMemberContext } from "@/lib/auth/member-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -30,6 +31,7 @@ export async function saveProjectAction(
   previous: FormActionState,
   form: FormData,
 ): Promise<FormActionState> {
+  await requireMemberContext();
   let id = "";
   const rejected = await settleFormAction(previous, form, async () => {
     const parsed = parseProjectForm(form);
@@ -50,6 +52,7 @@ export async function archiveProjectAction(
   previous: FormActionState,
   form: FormData,
 ): Promise<FormActionState> {
+  await requireMemberContext();
   let id = "";
   const rejected = await settleFormAction(previous, form, async () => {
     id = recordId(form.get("id"));
@@ -72,6 +75,7 @@ export async function saveProjectTaskAction(
   previous: FormActionState,
   form: FormData,
 ): Promise<FormActionState> {
+  await requireMemberContext();
   let projectId = "";
   const rejected = await settleFormAction(previous, form, async () => {
     const parsed = parseTaskForm(form);
@@ -100,6 +104,7 @@ export async function setProjectTaskStateAction(
   previous: FormActionState,
   form: FormData,
 ): Promise<FormActionState> {
+  await requireMemberContext();
   let projectId = "";
   const rejected = await settleFormAction(previous, form, async () => {
     const id = recordId(form.get("id"));

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { startersFor } from "@/domain/projects/starters";
+import { starterTaskIds } from "@/lib/projects/starter-identities";
 import { loadProject } from "@/lib/projects/queries";
 import { FormPage } from "@/ui/forms/form-page";
 import { StarterChecklists } from "@/ui/projects/starter-checklists.client";
@@ -29,14 +29,7 @@ export default async function StarterPage({
           key={projectId}
           projectId={projectId}
           kind={project.kind}
-          taskIds={Object.fromEntries(
-            startersFor(project.kind).flatMap((starter) =>
-              starter.tasks.map(([key]) => [
-                `${starter.key}:${key}`,
-                crypto.randomUUID(),
-              ]),
-            ),
-          )}
+          taskIds={starterTaskIds(projectId, project.kind)}
         />
       )}
     </FormPage>
