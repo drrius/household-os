@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { writeCalendar } from "./ical-write";
+import { writeCalendar, calendarEditingIssue } from "./ical-write";
 import { expandCalendar, masterFromIcal, readCalendar } from "./ical-read";
 import { validateCalendarExport } from "./ical-export";
 import type { CalendarEventInput } from "./types";
@@ -181,4 +181,15 @@ it("does not add a status to an existing event that had none", () => {
   expect(
     writeCalendar({ ...input, title: "Renamed" }, { uid, existing }),
   ).not.toContain("STATUS:");
+});
+
+it("preserves unsupported end-time zones by refusing local edits", () => {
+  const customEnd = base.replace(
+    "DTEND:20260901T100000Z",
+    "DTEND;TZID=Custom/Office:20260901T100000",
+  );
+  expect(calendarEditingIssue(customEnd)).toContain("custom time zone");
+  expect(() =>
+    writeCalendar({ ...input, title: "Changed" }, { uid, existing: customEnd }),
+  ).toThrow("custom time zone");
 });

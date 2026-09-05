@@ -85,3 +85,34 @@ describe("private iCloud protocol boundaries", () => {
     });
   });
 });
+
+it.each([
+  new DOMException("Timed out", "AbortError"),
+  new Error("connection reset"),
+])(
+  "maps interrupted response bodies to a retryable calendar error",
+  async (failure) => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.error(failure);
+          },
+        }),
+      ),
+    );
+    await expect(
+      createCaldavTransport(
+        { username: "test", password: "test" },
+        request,
+      )({
+        url: "https://caldav.icloud.com/",
+        method: "GET",
+      }),
+    ).rejects.toMatchObject({
+      name: "CalendarError",
+      code: "network",
+      message: "Could not reach iCloud. Check your connection and try again.",
+    });
+  },
+);
