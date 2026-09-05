@@ -1,36 +1,25 @@
-import Link from "next/link";
-
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { loadInboxFeed } from "@/lib/read-models/notifications";
-import { AppPage } from "@/ui/layout/app-page";
-import { PageHeader } from "@/ui/layout/page-header";
-import { InboxList } from "@/ui/notifications/inbox-list";
-
-export default async function InboxPage() {
-  const feed = await loadInboxFeed();
-
+import { parseInboxContext } from "@/domain/notifications/inbox";
+import { loadInboxPage } from "@/lib/read-models/notifications";
+import {
+  InboxScreen,
+  InvalidInboxPosition,
+} from "@/ui/notifications/inbox-screen";
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string; cursor?: string; saved?: string }>;
+}) {
+  const query = await searchParams;
+  let context;
+  try {
+    context = parseInboxContext(query);
+  } catch {
+    return <InvalidInboxPosition />;
+  }
   return (
-    <AppPage labelledBy="inbox-title">
-      <PageHeader
-        title="Inbox"
-        titleId="inbox-title"
-        trailing={
-          <Link
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "no-underline",
-            )}
-            href="/home/notifications"
-          >
-            Settings
-          </Link>
-        }
-      />
-      <p className="text-sm text-muted-foreground">
-        Partner notices, routine reminders, and digests. Push is optional.
-      </p>
-      <InboxList feed={feed} />
-    </AppPage>
+    <InboxScreen
+      feed={await loadInboxPage(context)}
+      saved={query.saved === "read"}
+    />
   );
 }
