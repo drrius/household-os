@@ -45,22 +45,24 @@ export function SignOutControl({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pushPausedRef = useRef(false);
-  const endpointRef = useRef<string | null>(null);
+  const subscriptionRef = useRef<PushSubscription | null>(null);
+  const cleanupRef = useRef<PushSubscription | null>(null);
   async function signOut() {
     if (pending) return;
     setPending(true);
     setError(null);
     try {
       const subscription = await discoverSignOutSubscription();
-      if (subscription) endpointRef.current = subscription.endpoint;
-      const result = await action(endpointRef.current);
+      if (subscription) subscriptionRef.current = subscription;
+      const result = await action(subscriptionRef.current?.endpoint ?? null);
+      if (result.unsubscribe) cleanupRef.current = subscriptionRef.current;
       pushPausedRef.current ||= result.pushPaused === true;
       if (!result.ok) throw new Error(result.error);
       // The server has ended the session and paused this endpoint or the member’s push fallback.
       // Browser cleanup must not hold sign-out hostage to a push-service failure.
-      if (result.unsubscribe)
+      if (cleanupRef.current)
         void Promise.resolve()
-          .then(() => subscription?.unsubscribe())
+          .then(() => cleanupRef.current?.unsubscribe())
           .catch(() => undefined);
       // A full navigation discards this tab's authenticated router state.
       window.location.replace(

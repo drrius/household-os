@@ -130,3 +130,16 @@ describe("sign out this device", () => {
     ).toEqual({ ok: true });
   });
 });
+
+it("retains cleanup authorization when auth fails after unregister, then returns no new authorization on retry", async () => {
+  mocks.member.mockResolvedValue({ userId: "member" });
+  mocks.rpc.mockResolvedValueOnce({ data: { disabled: 1 }, error: null });
+  mocks.signOut.mockResolvedValueOnce({ error: { message: "temporary" } });
+  expect(await signOutThisDevice("device")).toMatchObject({
+    ok: false,
+    unsubscribe: true,
+  });
+  mocks.rpc.mockResolvedValueOnce({ data: { disabled: 0 }, error: null });
+  mocks.signOut.mockResolvedValueOnce({ error: null });
+  expect(await signOutThisDevice("device")).toEqual({ ok: true });
+});

@@ -31,10 +31,12 @@ export function AccountFixture({
                 ok: false,
                 error: "This fixture rejected the first sign-out. Try again.",
                 pushPaused: screen === "sign-out-fallback" && endpoint === null,
+                unsubscribe: screen === "sign-out" && endpoint !== null,
               }
             : {
                 ok: true,
-                unsubscribe: screen !== "sign-out-partner" && endpoint !== null,
+                unsubscribe:
+                  screen === "sign-out-fallback" && endpoint !== null,
               };
         }}
       />
