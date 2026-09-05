@@ -59,3 +59,9 @@ Record sanitized actions and resulting UI states, not only final screenshots. Ke
 - Search index and lowercase-zone changes, and the latest assembled head, still require current database/browser CI and positive review. Vercel preview rate limits are distinct from GitHub CI; an ignored/canceled preview is not a working deployment.
 
 No PR was merged into main and no production migration or deployment was performed by this task.
+
+## Authenticated CI journey added after the snapshot
+
+`playwright.members.config.ts` and `tests/member-e2e/trip-money.spec.ts` add a separate `member-e2e` CI job with fixture routes disabled. It bootstraps exactly two fictional members through the existing administrator command, signs them in through the product consume-link flow, creates a trip and booking using forms, posts a paid expense, and checks the partner's trip costs and Money obligation through the UI. It refuses non-GitHub execution, nonlocal service URLs and a populated household database. Privileged keys remain in memory/stdin; neither keys nor enrollment links are written to reports. There is no production access or database reset.
+
+Targeted lint and TypeScript passed before the first push. Runtime execution is pending hosted CI. This journey does not prove real passkey authentication, realtime delivery, attachments or live iCloud; those retain their separate acceptance gates.
