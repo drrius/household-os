@@ -80,7 +80,6 @@ Home and search still require their assembled dependencies and route-level verif
 
 The user explicitly approved feature-branch integration on September 5. The previous automatic-approval blocker is cleared. The connected foundation now incorporates main through 700cf39, including the merged routine/Money work, attachment security and recovery, push setup, release guide and updated CI policy. Attachment conflicts retain main’s reviewed implementation; calendar parser dependencies remain pinned alongside jpeg-js. Nineteen directly affected attachment/invalidation tests and TypeScript checking passed locally. Hosted integration checks remain required.
 
-
 ## Combined integration checkpoint — September 5, 2026
 
 The explicit branch-integration authorization has been carried out: all eleven feature PR branches now include current main or their updated parent dependency. Draft [PR #66](https://github.com/drrius/household-os/pull/66) assembles them on `codex/household-integration`; it does not authorize or perform a merge into main. Main remains at the externally merged `700cf39` snapshot used for integration.
@@ -91,4 +90,10 @@ The explicit branch-integration authorization has been carried out: all eleven f
 - The first assembled run exposed incomplete `next/navigation` mocks and two database fixtures incompatible with archive guards. `8fe3375` preserves the real navigation exports and follows the valid restore/archive order in fixtures. All 17 affected unit tests and targeted lint pass. Database execution remains a hosted CI gate. These fixes are included in the pushed assembled head `2152c85`.
 - Requested CodeRabbit rereview on #51, #53 and draft #66 after pushing. Fixed threads are resolved; a request or green skipped check is not approval.
 
-Still required: combined CI and final CodeRabbit review, Today integration for dated tasks/bookings/calendar/renewals (A1), the full linked trip/cost/document journey, search return context, substantial-form discard coverage, and the final two-member browser audit. Live iCloud/push configuration and the four-week household trial remain separately unverified. No production migration, deployment, paid service or PR merge was performed.
+Still required: combined CI and final CodeRabbit review, the full linked trip/cost/document journey, search return context, substantial-form discard coverage, and the final two-member browser audit. Live iCloud/push configuration and the four-week household trial remain separately unverified. No production migration, deployment, paid service or PR merge was performed.
+
+## Today and reviewable integration stages
+
+Today agenda implementation is now in #66 (`00883fd`): open tasks, project targets, bookings, shared calendar occurrences and renewal/notice deadlines, with exact links and explicit-link deduplication. Ten affected tests, targeted lint/typechecking and four Chromium/mobile Safari flows pass. See [Today agenda evidence](today-household-agenda.md); live realtime and iCloud remain separately unverified.
+
+CodeRabbit skipped the original 469-file integration diff. The stack is now #51 → [#67](https://github.com/drrius/household-os/pull/67) (103 files: household records with trips/calendar) → [#66](https://github.com/drrius/household-os/pull/66) (219 files: remaining integrations and Today). Both stages have the e2e label and explicit CodeRabbit review requests. This is a reviewable dependency split, not a main merge. The preceding combined head `d28b187` passed database CI; its verification job stopped on status-document formatting, corrected in this checkpoint. Current-head CI remains required.
