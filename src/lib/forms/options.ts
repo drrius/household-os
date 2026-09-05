@@ -60,11 +60,13 @@ export async function loadGroceryFormOptions() {
   const supabase = await createClient();
   const result = await supabase
     .from("grocery_categories")
-    .select("id, name")
+    .select("id, name, is_fallback")
     .eq("household_id", member.householdId)
     .is("archived_at", null)
     .order("sort_order");
-  return z.array(optionSchema).parse(requireData("grocery categories", result));
+  return z
+    .array(optionSchema.extend({ is_fallback: z.boolean() }))
+    .parse(requireData("grocery categories", result));
 }
 
 export async function loadMoneyFormOptions() {

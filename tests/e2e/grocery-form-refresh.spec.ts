@@ -64,3 +64,18 @@ test("a fresh categories navigation starts a new baseline after editing", async 
     "Produce 1",
   );
 });
+
+test("renamed fallback is a single category choice", async ({ page }) => {
+  await page.goto("/m7-fixture/grocery-form-refresh");
+  const editor = page.getByRole("region", { name: "Item editor" });
+  await expect(editor.getByRole("combobox")).toContainText("Unsorted");
+  await editor.getByRole("combobox").click();
+  await expect(
+    page.getByRole("option", { name: "Unsorted", exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("option", { name: "Other", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("option", { name: "Produce", exact: true }).click();
+  await expect(editor.locator('[name="categoryId"]')).toHaveValue("produce");
+});

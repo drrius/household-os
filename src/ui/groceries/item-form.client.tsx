@@ -1,4 +1,9 @@
 "use client";
+import {
+  groceryCategoryOptions,
+  groceryCategorySelection,
+  type GroceryCategoryOption,
+} from "@/domain/groceries/category-options";
 import { useState } from "react";
 import type { FormAction } from "@/lib/forms/action-state";
 import { updateGroceryItemAction } from "@/lib/groceries/list-actions";
@@ -17,7 +22,7 @@ type EditableItem = {
 };
 type GroceryEditProps = {
   item: EditableItem;
-  categories: { id: string; name: string }[];
+  categories: GroceryCategoryOption[];
   action?: FormAction;
 };
 export function GroceryEditForm(props: GroceryEditProps) {
@@ -60,14 +65,8 @@ function GroceryEditSession({
       </div>
       <FormField label="Category" optional>
         <EchoedSelect
-          initialValue={item.category_id ?? ""}
-          items={[
-            { label: "Other", value: "" },
-            ...categories.map((category) => ({
-              label: category.name,
-              value: category.id,
-            })),
-          ]}
+          initialValue={groceryCategorySelection(categories, item.category_id)}
+          items={groceryCategoryOptions(categories)}
           name="categoryId"
         />
       </FormField>

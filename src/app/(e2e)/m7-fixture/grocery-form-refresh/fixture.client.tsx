@@ -33,7 +33,10 @@ export function GroceryRefreshFixture() {
       <section aria-label="Item editor">
         <GroceryEditForm
           action={save}
-          categories={[]}
+          categories={[
+            { id: "fallback", name: "Unsorted", is_fallback: true },
+            { id: "produce", name: "Produce", is_fallback: false },
+          ]}
           item={{
             id: entity,
             name: `Apples ${revision}`,
