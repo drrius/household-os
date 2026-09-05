@@ -65,3 +65,12 @@ No PR was merged into main and no production migration or deployment was perform
 `playwright.members.config.ts` and `tests/member-e2e/trip-money.spec.ts` add a separate `member-e2e` CI job with fixture routes disabled. It bootstraps exactly two fictional members through the existing administrator command, signs them in through the product consume-link flow, creates a trip and booking using forms, posts a paid expense, and checks the partner's trip costs and Money obligation through the UI. It refuses non-GitHub execution, nonlocal service URLs and a populated household database. Privileged keys remain in memory/stdin; neither keys nor enrollment links are written to reports. There is no production access or database reset.
 
 Targeted lint and TypeScript passed before the first push. Runtime execution is pending hosted CI. This journey does not prove real passkey authentication, realtime delivery, attachments or live iCloud; those retain their separate acceptance gates.
+
+## Follow-up at assembly `15ac974`
+
+- Calendar fixes `39718bd` now flow through planning `5e359ac`, search `7df66b3`, and assembly `15ac974`. CodeRabbit [accepted the two latest corrections](https://github.com/drrius/household-os/pull/50#issuecomment-5552003624); the addressed alarm review thread is resolved.
+- Groceries `7d7e335` passed verify, database and browser CI; [CodeRabbit found no remaining actionable issue](https://github.com/drrius/household-os/pull/47#issuecomment-5551943206). Its Vercel preview is rate-limited.
+- The authenticated CI journey enrolled both fictional members, dismissed welcome setup, created a trip and opened its booking form. The development-server attempt timed out awaiting navigation. The production-build attempt [101311523229](https://github.com/drrius/household-os/actions/runs/33968020235/job/101311523229) reached booking submission, but the test immediately navigated away before waiting for the save result. The next attempt waits for the booking detail heading; no successful paid-expense acceptance is claimed yet.
+- Search `23f9b80` repairs partial/invalid concurrent index builds before retry. Its new disposable-CI regression creates an invalid index, executes the actual index phase twice, and verifies all 14 resulting indexes. This commit awaits hosted proof and is included in the next assembly push.
+
+These are incremental facts, not completion of the full acceptance checklist above.

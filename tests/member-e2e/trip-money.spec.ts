@@ -40,8 +40,6 @@ async function createTripAndBooking(page: Page) {
     .getByLabel("Booking name", { exact: true })
     .fill("CI outbound flight");
   await page.getByRole("button", { name: "Add booking", exact: true }).click();
-  await page.goto(tripUrl);
-  await page.getByRole("link", { name: /CI outbound flight/ }).click();
   await expect(
     page.getByRole("heading", { name: "CI outbound flight", exact: true }),
   ).toBeVisible();
