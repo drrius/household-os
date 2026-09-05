@@ -37,6 +37,10 @@ const TOOL_LABELS: Record<string, readonly [string, string]> = {
     "Switching a recurring expense",
     "Switched a recurring expense",
   ],
+  record_contextual_expense: [
+    "Recording a linked expense",
+    "Recorded a linked expense",
+  ],
   record_expense: ["Recording an expense", "Recorded an expense"],
   record_refund: ["Recording a refund", "Recorded a refund"],
   record_settlement: ["Recording a settlement", "Recorded a settlement"],
@@ -54,6 +58,7 @@ const TOOL_LABELS: Record<string, readonly [string, string]> = {
  */
 const APPROVAL_TITLES: Record<string, string> = {
   record_expense: "Record this expense?",
+  record_contextual_expense: "Record this linked expense?",
   record_refund: "Record this refund?",
   record_settlement: "Record this settlement?",
   establish_opening_balance: "Set the opening balance?",

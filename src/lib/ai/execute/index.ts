@@ -1,4 +1,10 @@
 import "server-only";
+import { PROJECT_STARTER_HANDLERS } from "./project-starters";
+import { COST_HANDLERS } from "./costs";
+import { CALENDAR_HANDLERS } from "./calendar";
+import { HOME_HANDLERS } from "./home";
+import { BOOKING_HANDLERS } from "./bookings";
+import { PROJECT_HANDLERS } from "./projects";
 
 import { getAiToolDefinition } from "@/lib/ai/definitions";
 import { FINANCIAL_HANDLERS } from "@/lib/ai/execute/money";
@@ -13,6 +19,12 @@ import type { AiWriteResult } from "@/lib/ai/execute/types";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 
 const WRITE_HANDLERS = {
+  ...COST_HANDLERS,
+  ...PROJECT_HANDLERS,
+  ...PROJECT_STARTER_HANDLERS,
+  ...BOOKING_HANDLERS,
+  ...HOME_HANDLERS,
+  ...CALENDAR_HANDLERS,
   ...ROUTINE_HANDLERS,
   ...GROCERY_HANDLERS,
   ...MEAL_HANDLERS,

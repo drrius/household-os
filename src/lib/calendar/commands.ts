@@ -1,4 +1,5 @@
 import "server-only";
+import { insertCalendarEvent } from "./create-event";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { parseCalendarForm } from "@/domain/calendar/forms";
@@ -37,8 +38,12 @@ async function saveVersion(
       "This event changed while you were editing. Reload it before saving again.",
     );
 }
-export async function saveCalendarEvent(form: FormData): Promise<string> {
-  const { db, member } = await calendarContext();
+export async function saveCalendarEvent(
+  form: FormData,
+  creationId?: string,
+): Promise<string> {
+  if (creationId) z.uuid().parse(creationId);
+  await calendarContext();
   const id = String(form.get("id") || "");
   const row = id ? await getCalendarEvent(z.uuid().parse(id)) : null;
   if (row?.sync_state === "conflict")
@@ -62,7 +67,7 @@ export async function saveCalendarEvent(form: FormData): Promise<string> {
       "permission",
       "Connect an editable iCloud calendar before publishing.",
     );
-  const uid = row?.ical_uid ?? `${randomUUID()}@household-os`;
+  const uid = row?.ical_uid ?? `${creationId ?? randomUUID()}@household-os`;
   const recurrenceId = String(form.get("recurrenceId") || "") || null;
   if (
     recurrenceId &&
@@ -100,20 +105,7 @@ export async function saveCalendarEvent(form: FormData): Promise<string> {
     last_sync_error: null,
   };
   if (row) await saveVersion(row, values, String(form.get("version") || ""));
-  else {
-    const { data, error } = await db
-      .from("calendar_events")
-      .insert({
-        ...values,
-        household_id: member.householdId,
-        created_by: member.userId,
-      })
-      .select("id")
-      .single();
-    if (error)
-      throw new CalendarError("network", "Could not add the event. Try again.");
-    return data.id as string;
-  }
+  else return insertCalendarEvent(values, creationId);
   return row!.id;
 }
 export async function cancelCalendarEvent(form: FormData) {

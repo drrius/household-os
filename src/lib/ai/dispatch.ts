@@ -1,4 +1,11 @@
 import "server-only";
+import { projectDetailSchemas } from "./definitions/project-detail-tools";
+import { readProjectDetail } from "./reads-project-details";
+import { costReadSchemas } from "./definitions/cost-tools";
+import { readCostTool } from "./reads-costs";
+import { listConnectedCalendars } from "@/lib/calendar/connection";
+import { connectedReadSchemas } from "./definitions/connected-read-tools";
+import { readConnectedTool } from "./reads-connected";
 
 import { getAiToolDefinition } from "@/lib/ai/definitions";
 import { executeAiWrite } from "@/lib/ai/execute";
@@ -28,7 +35,14 @@ export async function executeAiTool(
     return executeAiWrite(name, rawInput, invocationId);
   }
   const input = definition.inputSchema.parse(rawInput ?? {});
+  if (Object.hasOwn(projectDetailSchemas, name))
+    return readProjectDetail(name, input);
+  if (Object.hasOwn(costReadSchemas, name)) return readCostTool(name, input);
+  if (Object.hasOwn(connectedReadSchemas, name))
+    return readConnectedTool(name, input);
   switch (name) {
+    case "list_icloud_calendars":
+      return { calendars: await listConnectedCalendars() };
     case "get_today_overview":
       return readTodayOverview();
     case "get_routines":

@@ -134,5 +134,20 @@ export function approvalRows(
   input: unknown,
   nameOf: MemberNamer,
 ): readonly SummaryRow[] {
-  return [...eventRows(input, nameOf), ...correctionRows(input, nameOf)];
+  return [
+    ...eventRows(input, nameOf),
+    ...contextRows(input),
+    ...correctionRows(input, nameOf),
+  ];
+}
+
+function contextRows(input: unknown): SummaryRow[] {
+  if (!input || typeof input !== "object") return [];
+  const value = input as Record<string, unknown>;
+  const rows: SummaryRow[] = [];
+  if (typeof value.contextTitle === "string")
+    rows.push({ label: "For", value: value.contextTitle });
+  if (typeof value.bookingTitle === "string")
+    rows.push({ label: "Booking", value: value.bookingTitle });
+  return rows;
 }
