@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { PageSection } from "@/ui/layout/page-section";
 
 type HomeScreenProps = {
   model: HomeViewModel;
+  storageUsage?: ReactNode;
 };
 
 function HouseholdCard({
@@ -154,7 +156,12 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
         }
         title="No routines yet"
       >
-        <p>Create the first one-off or recurring household routine.</p>
+        <p>
+          <Link href="/home/routines/starters">
+            Pick a few starter routines
+          </Link>{" "}
+          or create your own.
+        </p>
       </EmptyState>
     );
   }
@@ -171,6 +178,7 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
                 <strong>{routine.title}</strong>
                 <span className="text-sm text-muted-foreground">
                   {routine.areaName}
+                  {routine.paused ? " · Paused" : ""}
                 </span>
               </span>
               <Link
@@ -191,7 +199,37 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
   );
 }
 
-export function HomeScreen({ model }: HomeScreenProps) {
+function ArchivedRoutines({
+  routines,
+}: {
+  routines: HomeViewModel["archivedRoutines"];
+}) {
+  return (
+    <>
+      {routines?.length ? (
+        <details className="border-t pt-3">
+          <summary className="min-h-11 cursor-pointer text-muted-foreground">
+            Archived routines · {routines.length}
+          </summary>
+          <ul role="list" className="grid gap-2">
+            {routines.map((routine) => (
+              <li key={routine.id}>
+                <Link
+                  className="flex min-h-11 items-center"
+                  href={`/home/routines/${routine.id}/history`}
+                >
+                  {routine.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </>
+  );
+}
+
+export function HomeScreen({ model, storageUsage }: HomeScreenProps) {
   return (
     <AppPage labelledBy="home-title">
       <PageHeader
@@ -205,7 +243,7 @@ export function HomeScreen({ model }: HomeScreenProps) {
             })}
             href="/home/setup"
           >
-            Set up
+            Home settings
           </Link>
         }
       />
@@ -221,7 +259,7 @@ export function HomeScreen({ model }: HomeScreenProps) {
               className: "no-underline",
               variant: "ghost",
             })}
-            href="/home/setup"
+            href="/home/setup#areas"
           >
             Edit areas
           </Link>
@@ -248,11 +286,15 @@ export function HomeScreen({ model }: HomeScreenProps) {
       >
         <RoutineList routines={model.routines} />
       </PageSection>
+      <ArchivedRoutines routines={model.archivedRoutines} />
       <PageSection title="Lately" titleId="lately-title">
         <ActivityList activity={model.activity} />
       </PageSection>
       <PageSection title="Settings" titleId="settings-title">
-        <SettingsList storageUsedLabel={model.storageUsedLabel} />
+        <SettingsList
+          storageUsedLabel={model.storageUsedLabel}
+          storageUsage={storageUsage}
+        />
       </PageSection>
     </AppPage>
   );

@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
 import { cn } from "@/lib/utils";
-import { MealBoardSlotPresence } from "@/ui/plan/meal-board-presence.client";
 import { PlanWeekPager } from "@/ui/plan/plan-week-pager.client";
 
 type PlanDay = PlanViewModel["days"][number];
@@ -42,7 +41,7 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
     <Link
       aria-label={`${slot} on ${dateLabel}: ${entry.title}`}
       className="block h-full no-underline"
-      href={`/plan/meals/${entry.id}`}
+      href={`/plan/meals/${entry.id}?day=${date}`}
     >
       <Card
         className={cn(
@@ -75,7 +74,7 @@ function MealSlot({ date, dateLabel, mealSlot }: MealSlotProps) {
   );
 }
 
-function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
+function DayColumn({ day }: { day: PlanDay }) {
   const dateLabel = formatZurichDayLabel(day.date);
 
   return (
@@ -112,25 +111,31 @@ function DayColumn({ day, dayIndex }: { day: PlanDay; dayIndex: number }) {
         ) : null}
       </header>
       {/* Shorter rows below lg keep one whole day plus the pager inside 844px. */}
-      <ul className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2 max-lg:grid-rows-[repeat(3,minmax(6rem,1fr))]">
-        {day.slots.map((mealSlot, slotIndex) => (
-          <MealBoardSlotPresence
-            index={dayIndex * day.slots.length + slotIndex}
-            key={mealSlot.slot}
-          >
+      <ul
+        role="list"
+        className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2 max-lg:grid-rows-[repeat(3,minmax(6rem,1fr))]"
+      >
+        {day.slots.map((mealSlot) => (
+          <li className="min-w-0" key={mealSlot.slot}>
             <MealSlot
               date={day.date}
               dateLabel={dateLabel}
               mealSlot={mealSlot}
             />
-          </MealBoardSlotPresence>
+          </li>
         ))}
       </ul>
     </article>
   );
 }
 
-export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
+export function MealBoard({
+  days,
+  selectedDay,
+}: {
+  days: PlanViewModel["days"];
+  selectedDay?: string;
+}) {
   return (
     <section aria-labelledby="meal-board-title">
       <h2 id="meal-board-title" className="sr-only">
@@ -142,14 +147,15 @@ export function MealBoard({ days }: { days: PlanViewModel["days"] }) {
               scroller instead of the viewport, which a scrollbar corrupts. */}
           <div className="@container snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-px-3 max-lg:px-3 lg:snap-none lg:overflow-x-visible">
             <div className="grid min-w-max auto-cols-[minmax(14rem,calc(100cqw-3.5rem))] grid-flow-col lg:min-w-0 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-7">
-              {days.map((day, dayIndex) => (
-                <DayColumn day={day} dayIndex={dayIndex} key={day.date} />
+              {days.map((day) => (
+                <DayColumn day={day} key={day.date} />
               ))}
             </div>
           </div>
         </CardContent>
       </Card>
       <PlanWeekPager
+        selectedDay={selectedDay}
         days={days.map((day) => ({
           columnId: dayColumnId(day.date),
           isToday: day.isToday,

@@ -1,11 +1,7 @@
 import { buildPushHTTPRequest } from "npm:@pushforge/builder@2.0.5";
 import type { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
-import {
-  buildPushPayload,
-  type PushInboxNotification,
-  type PushPayload,
-} from "./push-payload.ts";
+import { buildPushPayload, type PushPayload } from "./push-payload.ts";
 import {
   classifyPushResponse,
   evaluatePushDelivery,
@@ -14,27 +10,15 @@ import {
   type PushDeliveryDecision,
   type SubscriptionDeliveryOutcome,
 } from "./push-delivery-policy.ts";
+import type {
+  OutboxRow,
+  PushSubscriptionRow,
+  PushDeliveryDatabase,
+} from "./push-dispatch-schema.ts";
+export type { OutboxRow } from "./push-dispatch-schema.ts";
 import { vapidKeysToPrivateJwk, type VapidPrivateJwk } from "./vapid-jwk.ts";
 
 export type PushDeliveryResult = PushDeliveryDecision;
-
-export type OutboxRow = {
-  id: string;
-  recipient_member_id: string;
-  inbox_notification_id: string;
-  household_id: string;
-  attempt_count: number;
-  claim_token: string;
-  delivered_subscription_ids: string[];
-  inbox: PushInboxNotification;
-};
-
-type PushSubscriptionRow = {
-  id: string;
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-};
 
 type PushConfig =
   | {
@@ -52,7 +36,7 @@ export type DrainCounts = {
   deferred: number;
   failed: number;
 };
-type ServiceClient = ReturnType<typeof createClient>;
+type ServiceClient = ReturnType<typeof createClient<PushDeliveryDatabase>>;
 
 const MAX_DELIVERY_ATTEMPTS = 5;
 const DEFAULT_VAPID_SUBJECT = "mailto:household-os@localhost";
@@ -212,13 +196,23 @@ export async function drainRow(
   row: OutboxRow,
   config: PushConfig,
 ): Promise<PushDeliveryDecision> {
-  const { data: subscriptions, error } = await supabase
+  let query = supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
     .eq("household_id", row.household_id)
     .eq("member_id", row.recipient_member_id)
-    .is("disabled_at", null)
-    .overrideTypes<PushSubscriptionRow[], { merge: false }>();
+    .is("disabled_at", null);
+  if (row.inbox.kind === "device_test") {
+    // Missing target must fail closed, never fan out to the member's devices.
+    query = query.eq(
+      "id",
+      row.inbox.test_subscription_id ?? "00000000-0000-0000-0000-000000000000",
+    );
+  }
+  const { data: subscriptions, error } = await query.overrideTypes<
+    PushSubscriptionRow[],
+    { merge: false }
+  >();
 
   if (error) {
     return finishRow(

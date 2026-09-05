@@ -5,6 +5,8 @@ import {
   isHouseholdAttachment,
   MAX_ATTACHMENT_BYTES,
 } from "@/domain/attachments/files";
+import { uploadAttachment } from "@/lib/attachments/upload";
+import { cleanupAttachments } from "@/lib/attachments/cleanup";
 import { getMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -78,17 +80,25 @@ export async function POST(request: Request) {
         { status: 400, headers },
       );
     }
-    const path = `${member.householdId}/${purpose}/${crypto.randomUUID()}.${type.extension}`;
-    const supabase = await createClient();
-    const { error } = await supabase.storage
-      .from(ATTACHMENT_BUCKET)
-      .upload(path, bytes, { contentType: type.mime, upsert: false });
-    if (error)
+    const uploadId = form.get("uploadId");
+    if (
+      typeof uploadId !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+        uploadId,
+      )
+    )
       return Response.json(
-        { error: "Couldn't upload the file. Please try again." },
-        { status: 502, headers },
+        { error: "Choose the file again." },
+        { status: 400, headers },
       );
-    return Response.json({ path }, { status: 201, headers });
+    const path = `${member.householdId}/${purpose}/${uploadId}.${type.extension}`;
+    const result = await uploadAttachment(
+      await createClient(),
+      path,
+      bytes,
+      type.mime,
+    );
+    return Response.json(result, { status: result.status, headers });
   } catch {
     return Response.json(
       { error: "Couldn't read this file. Please try again." },
@@ -117,4 +127,20 @@ export async function GET(request: Request) {
     status: 303,
     headers: { ...headers, Location: data.signedUrl },
   });
+}
+
+export async function DELETE(request: Request) {
+  if (request.headers.get("origin") !== new URL(request.url).origin)
+    return new Response(null, { status: 403, headers });
+  const member = await getMemberContext();
+  if (!member) return new Response(null, { status: 401, headers });
+  const path = new URL(request.url).searchParams.get("path") ?? "";
+  if (!isHouseholdAttachment(path, member.householdId))
+    return new Response(null, { status: 404, headers });
+  try {
+    const cleaned = await cleanupAttachments(await createClient(), path);
+    return new Response(null, { status: cleaned ? 204 : 502, headers });
+  } catch {
+    return new Response(null, { status: 502, headers });
+  }
 }
