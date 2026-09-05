@@ -30,4 +30,4 @@ Preserve two equal members, one private household, CHF integer-centime accountin
 
 ## Completion
 
-Complete only when the agreed scope and all worthwhile gaps identified in a fresh app-wide completeness audit are implemented and verified, every change has appropriate open PR coverage, and Codex has positively reviewed all PRs. Continue useful work on other areas while external dependencies are blocked. Report unavoidable external setup or review blockers honestly. The standard is no remaining known worthwhile implementable gap across the whole app, not the impossible claim that no conceivable future feature exists.
+Complete only when the agreed scope and all worthwhile gaps identified in a fresh app-wide completeness audit are implemented and verified, every change has appropriate open PR coverage, and CodeRabbit has positively reviewed all PRs. Continue useful work on other areas while external dependencies are blocked. Report unavoidable external setup or review blockers honestly. The standard is no remaining known worthwhile implementable gap across the whole app, not the impossible claim that no conceivable future feature exists.
