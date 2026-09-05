@@ -37,10 +37,15 @@ export function useDiscardGuard(
         !(anchor instanceof HTMLAnchorElement) ||
         anchor.hasAttribute("download") ||
         (anchor.target && anchor.target !== "_self") ||
-        !leavesCurrentDocument(anchor.href, location.href) ||
-        !dirty()
+        !leavesCurrentDocument(anchor.href, location.href)
       )
         return;
+      if (pending) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (!dirty()) return;
       if (!window.confirm("Discard your unsaved changes?")) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -51,7 +56,7 @@ export function useDiscardGuard(
       }
     }
     function unload(event: BeforeUnloadEvent) {
-      if (!dirty()) return;
+      if (!pending && !dirty()) return;
       event.preventDefault();
       event.returnValue = "";
     }
@@ -65,7 +70,7 @@ export function useDiscardGuard(
       document.removeEventListener("click", click, true);
       window.removeEventListener("beforeunload", unload);
     };
-  }, [enabled, formRef]);
+  }, [enabled, formRef, pending]);
 
   useEffect(() => {
     if (

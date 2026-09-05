@@ -229,7 +229,7 @@ test("pristine refreshed text defaults leave without a false discard prompt", as
   expect(dialogs).toEqual([]);
 });
 
-test("pending disabled controls do not manufacture unsaved edits", async ({
+test("pending protected saves block navigation until the result is known", async ({
   page,
 }) => {
   await openFixture(page);
@@ -250,7 +250,21 @@ test("pending disabled controls do not manufacture unsaved edits", async ({
       () =>
         !window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
     ),
-  ).toBe(false);
+  ).toBe(true);
+  const dialogs: string[] = [];
+  page.on("dialog", async (dialog) => {
+    dialogs.push(dialog.message());
+    await dialog.accept();
+  });
+  await page.getByRole("link", { name: "Cancel", exact: true }).click();
+  await page.getByRole("link", { name: "Another page", exact: true }).click();
+  expect(new URL(page.url()).pathname).toBe("/m7-fixture/discard");
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "this save cannot be canceled" }),
+  ).toBeVisible();
+  expect(dialogs).toEqual([]);
   releaseRequest();
   await expect(
     page.getByRole("button", { name: "Save fixture", exact: true }),

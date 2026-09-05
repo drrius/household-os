@@ -201,6 +201,11 @@ export function FormFields({
           {children}
         </fieldset>
       </FormFieldsContext>
+      {protectChanges && pending ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Saving. Please wait before leaving; this save cannot be canceled.
+        </p>
+      ) : null}
       <SubmitButton label={submitLabel} />
     </form>
   );
