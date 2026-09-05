@@ -80,12 +80,17 @@ export function fixtureSearch(request: SearchRequest): SearchPage {
           .includes(request.q.toLowerCase()),
     )
     .sort((a, b) => a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id));
-  const offset = request.cursor
+  const cursor = request.cursor;
+  const after = cursor
     ? matches.findIndex(
         (item) =>
-          item.kind === request.cursor!.kind && item.id === request.cursor!.id,
-      ) + 1
+          item.score < cursor.score ||
+          (item.score === cursor.score &&
+            (item.kind > cursor.kind ||
+              (item.kind === cursor.kind && item.id > cursor.id))),
+      )
     : 0;
+  const offset = after < 0 ? matches.length : after;
   const results = matches.slice(offset, offset + 25),
     last = results.at(-1);
   return parseSearchPage({
