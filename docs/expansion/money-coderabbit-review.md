@@ -9,3 +9,9 @@ The negative-share finding was not reproduced. The existing CHF parser accepts o
 Verification: `pnpm verify` passed (366 tests, formatting, lint, types and production build). All 30 Money Playwright cases passed across desktop Chromium, desktop Safari and mobile Safari. Tests cover actual server refresh, rejected submission retry, new operation identity, and recovery from HTML 413/503 upload responses. Logs: `/tmp/money-coderabbit-verify.log` and `/tmp/money-coderabbit-e2e.log`.
 
 This follow-up changes no database schema or financial posting command. Existing ledger property tests passed as part of verification. Hosted CI remains required on the pushed head; no unavailable local database run is claimed as passing. The integration branch tracks outstanding dependency assembly and app-wide acceptance work.
+
+## Main integration follow-up
+
+Integrated main through `fa09be9` to resolve the attachment foundation conflicts. The merged attachment migration and security implementation remain identical to main; its retry and cleanup behavior retains the non-JSON response fallback from this branch. All four CodeRabbit threads are resolved, including the withdrawn negative-share finding.
+
+The combined branch passes `pnpm verify` (496 unit/property tests, formatting, lint, types, and production build). The targeted Money, attachment, and recurring-session browser suite passed 60 cases initially; three mobile Safari attachment cases timed out during navigation and all three passed on a reduced-concurrency rerun. Local database verification remains unavailable: PostgreSQL refuses connections on port 54322, and the Cloud VM startup script requires `/workspace`, which is absent on this machine. Hosted database CI is required on the integrated head.

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { PageSection } from "@/ui/layout/page-section";
 
 type HomeScreenProps = {
   model: HomeViewModel;
+  storageUsage?: ReactNode;
 };
 
 function HouseholdCard({
@@ -191,7 +193,7 @@ function RoutineList({ routines }: Pick<HomeViewModel, "routines">) {
   );
 }
 
-export function HomeScreen({ model }: HomeScreenProps) {
+export function HomeScreen({ model, storageUsage }: HomeScreenProps) {
   return (
     <AppPage labelledBy="home-title">
       <PageHeader
@@ -252,7 +254,10 @@ export function HomeScreen({ model }: HomeScreenProps) {
         <ActivityList activity={model.activity} />
       </PageSection>
       <PageSection title="Settings" titleId="settings-title">
-        <SettingsList storageUsedLabel={model.storageUsedLabel} />
+        <SettingsList
+          storageUsedLabel={model.storageUsedLabel}
+          storageUsage={storageUsage}
+        />
       </PageSection>
     </AppPage>
   );

@@ -2,22 +2,15 @@ import { updateMealEntryAction } from "@/app/(product)/_actions/m7-plan-grocerie
 import { Badge } from "@/components/ui/badge";
 import type { ManageMealEntry } from "@/lib/read-models/meal-entry-manage";
 import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
-import { DateField } from "@/ui/forms/date-field.client";
+import { MealPositionFields } from "@/ui/plan/meal-position-fields";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { FormField, FormFields } from "@/ui/forms/form-page";
-import { EchoedSelect } from "@/ui/forms/form-select.client";
+
 import { RemoveMealButton } from "@/ui/plan/remove-meal-button.client";
 
 const RECIPE_URL_HINT = "Must start with http:// or https://";
 
-const slotItems = [
-  { label: "Breakfast", value: "breakfast" },
-  { label: "Lunch", value: "lunch" },
-  { label: "Dinner", value: "dinner" },
-] as const;
-
 function MealEditFields({ entry }: { entry: ManageMealEntry }) {
-  const slot = entry.slot ?? "dinner";
   return (
     <>
       <FormField label="Meal">
@@ -28,21 +21,11 @@ function MealEditFields({ entry }: { entry: ManageMealEntry }) {
           required
         />
       </FormField>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <DateField
-          defaultValue={entry.date}
-          label="Date"
-          name="date"
-          required
-        />
-        <FormField label="Slot">
-          <EchoedSelect
-            initialValue={slot}
-            items={[...slotItems]}
-            name="slot"
-          />
-        </FormField>
-      </div>
+      <MealPositionFields
+        date={entry.date}
+        slot={entry.slot}
+        allowIdea={!entry.isLeftover}
+      />
       <FormField description={RECIPE_URL_HINT} label="Recipe link" optional>
         <EchoedInput
           initialValue={entry.recipeUrl ?? ""}
@@ -81,6 +64,7 @@ export function ManageMealForms({ entry }: { entry: ManageMealEntry }) {
       </FormFields>
       <RemoveMealButton
         dateLabel={formatZurichDayLabel(entry.date)}
+        date={entry.date}
         entryId={entry.id}
         idempotencyKey={crypto.randomUUID()}
         title={entry.title}

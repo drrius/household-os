@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+import { AttachmentUsageDisplay } from "@/ui/attachments/usage";
+import { AttachmentUsageContent } from "@/ui/attachments/usage.server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
@@ -80,9 +83,19 @@ export default async function HomePage() {
   const rows = await queryHomeRows(client, member.householdId);
   const model = buildHomeViewModel({
     viewerId: member.userId,
-    storageUsedLabel: null,
     ...rows,
   });
 
-  return <HomeScreen model={model} />;
+  return (
+    <HomeScreen
+      model={model}
+      storageUsage={
+        <Suspense
+          fallback={<AttachmentUsageDisplay usage={{ status: "loading" }} />}
+        >
+          <AttachmentUsageContent client={client} />
+        </Suspense>
+      }
+    />
+  );
 }

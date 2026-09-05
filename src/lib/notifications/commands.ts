@@ -2,6 +2,7 @@ import "server-only";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
+import { pushRegistrationError } from "./push-registration-error";
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (value !== null && typeof value === "object" && !Array.isArray(value)) {
@@ -55,7 +56,7 @@ export async function registerPushSubscription(input: {
     p_user_agent: input.userAgent ?? null,
   });
   if (error) {
-    throw new Error(`register_push_subscription failed: ${error.message}`);
+    throw pushRegistrationError(error);
   }
   return asRecord(data);
 }

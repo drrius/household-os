@@ -11,12 +11,12 @@ The app-wide effective goal and current PR matrix live on the integration branch
 - Recovery after rejected submissions and stable refund operation identity through background server refreshes.
 - Recoverable attachment upload errors when an upstream service returns HTML.
 
-CodeRabbit is the current reviewer. Three findings are addressed in the current follow-up (stale documentation, upload errors, refund operation identity). The negative-share report is disputed with example and property tests: the existing `parseChfToCentimes` grammar accepts only unsigned amounts and already produces a field-specific rejection.
+CodeRabbit is the current reviewer. Three findings are addressed in the current follow-up (stale documentation, upload errors, refund operation identity). CodeRabbit withdrew the negative-share report after reviewing the example and property tests: the existing `parseChfToCentimes` grammar accepts only unsigned amounts and already produces a field-specific rejection.
 
 ## Verification and dependencies
 
 The earlier 339-test main baseline was historical, not verification of this Money branch. Current follow-up verification is recorded in `money-coderabbit-review.md` when completed.
 
-The private attachment foundation now exists and PR #44 was externally merged. This branch still requires dependency integration before the combined app is release-ready; that merge was not performed by this task. Repository visibility is now public and hosted CI is available. Local Postgres is unavailable on port 54322. No production database changes have been made.
+The private attachment foundation now exists and PR #44 was externally merged. This branch incorporates main through `fa09be9`, retaining the merged attachment security and retry implementation alongside the Money fixes. Combined verification remains required before merge. Repository visibility is now public and hosted CI is available. Local Postgres is unavailable on port 54322. No production database changes have been made.
 
 Live iCloud credentials remain a separate setup requirement for the calendar branch. No live-account sync claim is made by this Money checkpoint.
