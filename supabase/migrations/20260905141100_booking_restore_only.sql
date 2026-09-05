@@ -14,10 +14,11 @@ begin
   if v_project.archived_at is not null then raise exception 'Restore this trip before changing bookings' using errcode='55000'; end if;
   if tg_op='UPDATE' then
     if new.project_id<>old.project_id then raise exception 'A booking cannot change trips' using errcode='23514'; end if;
+    -- Stored generated columns are not populated in NEW before this trigger.
     if old.archived_at is not null and (
       new.archived_at is not null or
-      (to_jsonb(new) - 'archived_at' - 'updated_at') is distinct from
-      (to_jsonb(old) - 'archived_at' - 'updated_at')
+      (to_jsonb(new) - 'archived_at' - 'updated_at' - 'project_kind') is distinct from
+      (to_jsonb(old) - 'archived_at' - 'updated_at' - 'project_kind')
     ) then
       raise exception 'Restore this booking before changing it' using errcode='55000';
     end if;
