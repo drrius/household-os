@@ -34,7 +34,7 @@ export function AssociationConfirmation({
   return (
     <FormFields
       action={opened.action}
-      showRequiredHint={false}
+      showRequiredNotice={false}
       submitLabel={
         opened.destinationTitle ? "Save association" : "Remove association"
       }

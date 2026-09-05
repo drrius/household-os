@@ -45,6 +45,7 @@ const FORM_SURFACE_PATTERNS = [
   /^\/money\/contexts\/(?:project|asset|commitment)\/[^/]+\/existing\/[^/]+$/,
   /^\/money\/contexts\/associations\/[^/]+$/,
   /^\/home\/setup$/,
+  /^\/home\/occurrences\/[^/]+$/,
   /^\/home\/notifications$/,
 ] as const;
 

@@ -16,10 +16,17 @@ export function AttachmentField({
   initialPath?: string | null;
 }) {
   const id = useId();
-  const { input, path, pending, error, upload, remove } = useAttachmentUpload(
-    purpose,
-    initialPath,
-  );
+  const {
+    input,
+    path,
+    pending,
+    pendingLabel,
+    error,
+    upload,
+    remove,
+    canRetry,
+    retry,
+  } = useAttachmentUpload(purpose, initialPath);
 
   return (
     <div className="grid gap-2 text-base sm:text-sm">
@@ -54,33 +61,63 @@ export function AttachmentField({
         className={error ? "text-destructive-strong" : "text-muted-foreground"}
       >
         {pending
-          ? "Uploading…"
+          ? pendingLabel
           : (error ??
             (path
               ? "Attachment ready."
               : "Photos are resized. Maximum file size: 4 MB."))}
       </p>
       {(path || error) && !pending ? (
-        <div className="flex items-center gap-4">
-          {path ? (
-            <a
-              className="min-h-11 content-center underline"
-              href={`/api/attachments?path=${encodeURIComponent(path)}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View attachment
-            </a>
-          ) : null}
-          <button
-            type="button"
-            className="min-h-11 cursor-pointer text-muted-foreground underline"
-            onClick={remove}
-          >
-            Remove attachment
-          </button>
-        </div>
+        <AttachmentActions
+          path={path}
+          canRetry={canRetry}
+          retry={retry}
+          remove={remove}
+        />
       ) : null}
+    </div>
+  );
+}
+
+function AttachmentActions({
+  path,
+  canRetry,
+  retry,
+  remove,
+}: {
+  path: string;
+  canRetry: boolean;
+  retry: () => void;
+  remove: () => Promise<void>;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      {path ? (
+        <a
+          className="min-h-11 content-center underline"
+          href={`/api/attachments?path=${encodeURIComponent(path)}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View attachment
+        </a>
+      ) : null}
+      {canRetry ? (
+        <button
+          type="button"
+          className="min-h-11 cursor-pointer underline"
+          onClick={retry}
+        >
+          Retry upload
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className="min-h-11 cursor-pointer text-muted-foreground underline"
+        onClick={remove}
+      >
+        Remove attachment
+      </button>
     </div>
   );
 }

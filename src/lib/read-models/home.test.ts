@@ -121,6 +121,7 @@ describe("buildHomeViewModel", () => {
           areaName: "Kitchen",
         },
       ],
+      archivedRoutines: [{ id: "routine-archived", title: "Old flea check" }],
       activity: [
         {
           id: "activity-today",
@@ -142,6 +143,53 @@ describe("buildHomeViewModel", () => {
     });
   });
 
+  it("keeps archived routines in stable title and identity order across refreshes", () => {
+    const rows = [
+      {
+        id: "z",
+        title: "Window care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "b",
+        title: "Annual care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "a",
+        title: "Annual care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "active",
+        title: "Active care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: null,
+      },
+    ];
+    const original = [...rows];
+    const expected = [
+      { id: "a", title: "Annual care" },
+      { id: "b", title: "Annual care" },
+      { id: "z", title: "Window care" },
+    ];
+    expect(
+      buildHomeViewModel(homeInput({ routines: rows })).archivedRoutines,
+    ).toEqual(expected);
+    expect(
+      buildHomeViewModel(homeInput({ routines: [...rows].reverse() }))
+        .archivedRoutines,
+    ).toEqual(expected);
+    expect(rows).toEqual(original);
+  });
+
   it("keeps optional home sections empty when no rows exist", () => {
     expect(buildHomeViewModel(homeInput())).toEqual({
       householdLabel: "Sam & Leah",
@@ -152,6 +200,7 @@ describe("buildHomeViewModel", () => {
       pets: [],
       areas: [],
       routines: [],
+      archivedRoutines: [],
       activity: [],
       storageUsedLabel: null,
     });

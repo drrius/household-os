@@ -674,6 +674,13 @@ select set_config(
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
+select public.reserve_household_attachment(
+  '10000000-0000-4000-8000-000000000021/receipts/20000000-0000-4000-8000-000000000021.jpg', 'image/jpeg');
+reset role;
+insert into storage.objects(bucket_id, name, metadata) values (
+  'household-files', '10000000-0000-4000-8000-000000000021/receipts/20000000-0000-4000-8000-000000000021.jpg', '{"mimetype":"image/jpeg"}'::jsonb);
+set local role authenticated;
+
 select lives_ok(
   $$
     select public.finish_shopping_session(
@@ -686,7 +693,7 @@ select lives_ok(
       p_idempotency_key => 'finish-shopping-1',
       p_occurred_on => '2030-08-09'::date,
       p_receipt_total_cents => 5000,
-      p_receipt_path => 'receipts/meal-household-one/receipt.jpg',
+      p_receipt_path => '10000000-0000-4000-8000-000000000021/receipts/20000000-0000-4000-8000-000000000021.jpg',
       p_create_expense_draft => true,
       p_expense_description => 'Weekly groceries',
       p_shared_amount_cents => 3200,
@@ -741,7 +748,7 @@ select lives_ok(
       p_idempotency_key => 'finish-shopping-1',
       p_occurred_on => '2030-08-09'::date,
       p_receipt_total_cents => 5000,
-      p_receipt_path => 'receipts/meal-household-one/receipt.jpg',
+      p_receipt_path => '10000000-0000-4000-8000-000000000021/receipts/20000000-0000-4000-8000-000000000021.jpg',
       p_create_expense_draft => true,
       p_expense_description => 'Weekly groceries',
       p_shared_amount_cents => 3200,
