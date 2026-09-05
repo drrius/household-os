@@ -63,18 +63,14 @@ export function GroceryMutationButton({
           {pending ? "Saving…" : label}
         </Button>
       </form>
-      {message ? (
-        <p
-          aria-live="polite"
-          className={
-            failed
-              ? "text-sm text-destructive"
-              : "text-sm text-muted-foreground"
-          }
-        >
-          {message}
-        </p>
-      ) : null}
+      <p
+        aria-live="polite"
+        className={
+          failed ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+        }
+      >
+        {message}
+      </p>
     </div>
   );
 }
