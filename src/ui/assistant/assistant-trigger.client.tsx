@@ -19,7 +19,7 @@ export function AssistantTrigger({ placement }: AssistantTriggerProps) {
       className={cn(
         placement === "mobile" &&
           // Sits one slot above the add button's floating position.
-          "fixed right-5 bottom-[calc(9.5rem+max(0.75rem,env(safe-area-inset-bottom)))] z-20 size-12 rounded-full border border-border bg-card text-primary shadow-[0_6px_20px_rgba(31,26,23,0.16)] hover:bg-secondary md:size-12 lg:hidden",
+          "pointer-events-auto absolute right-5 bottom-[calc(9.5rem+max(0.75rem,env(safe-area-inset-bottom)))] z-20 size-12 rounded-full border border-border bg-card text-primary shadow-[0_6px_20px_rgba(31,26,23,0.16)] hover:bg-secondary md:size-12 lg:hidden",
         placement === "sidebar" &&
           "w-full justify-center rounded-xl shadow-none group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:px-0!",
       )}

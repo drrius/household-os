@@ -24,7 +24,7 @@ export function PrimaryNav() {
 
   return (
     <nav
-      className="fixed right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-10 grid grid-cols-5 rounded-2xl bg-card/95 p-1.5 shadow-[0_8px_32px_rgba(90,70,50,0.14)] ring-1 ring-foreground/8 supports-backdrop-filter:backdrop-blur-xl lg:hidden"
+      className="pointer-events-auto absolute right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 z-10 grid grid-cols-5 rounded-2xl bg-card/95 p-1.5 shadow-[0_8px_32px_rgba(90,70,50,0.14)] ring-1 ring-foreground/8 supports-backdrop-filter:backdrop-blur-xl lg:hidden"
       aria-label="Primary navigation"
     >
       {PRODUCT_DESTINATIONS.map((destination) => {

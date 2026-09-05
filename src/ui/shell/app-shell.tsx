@@ -65,9 +65,14 @@ export function AppShell({
               {children}
             </main>
 
-            <PrimaryNav />
-            <GlobalAddSheet />
-            <AssistantTrigger placement="mobile" />
+            {/* Anchor mobile controls to the top plus the dynamic viewport
+                height. iOS can retain a stale bottom-fixed position after the
+                keyboard closes or browser chrome changes during scrolling. */}
+            <div className="pointer-events-none fixed inset-x-0 top-0 z-20 h-dvh lg:hidden">
+              <PrimaryNav />
+              <GlobalAddSheet />
+              <AssistantTrigger placement="mobile" />
+            </div>
             <AssistantPanelLazy />
           </AssistantProvider>
         </SidebarProvider>
