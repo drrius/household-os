@@ -111,3 +111,13 @@ The first extended attempt `7483ae3` stopped before correction because its captu
 Member job 101316726962 again confirmed persisted task completion but failed the partner refresh assertion. Browser websocket creation was observed; the first metadata parser expected object frames, whereas the installed realtime SDK uses Phoenix array frames. The next revision handles both shapes, distinguishes socket creation from successful connection, and records socket errors plus fixed error-category labels without printing error payloads. The stale-partner assertion remains a CI failure but becomes a soft assertion so independent search/shopping/Home journeys can continue. Warranty-date persistence is added to the Home path.
 
 All 15 expansion PRs had zero unresolved review threads in a fresh paginated-boundary audit. CodeRabbit explicitly approved search head 8317481 in comment 5552253899; its browser job remains running. PR69 browser job 101315258645 passed. CodeRabbit's requested c03c072 review returned a service error (5552254633), which is not approval. Main remains 700cf39d13318a14973e536a28300425bacb384a.
+
+### Realtime authentication race and current acceptance
+
+Run 33970334168 / member job 101317624497 confirmed 29-filter socket joins followed by database-subscription system errors categorized as table/column. Some later subscriptions recovered and delivered changes. The task partner view stayed stale; the independent search edit/reload/save/return journey completed. Shopping then stopped because Sam did not see Alex's added item without reloading. Home steps did not execute.
+
+PR70 (`15dfb0b`, based on PR69) waits for realtime.setAuth() before subscribing. The installed SDK starts asynchronous authentication while opening the socket but channel.subscribe reads its current token synchronously. Two delayed-auth/navigation regressions failed before the change; all five lifecycle/auth tests now pass, with affected notification mapping tests, lint and TypeScript passing. This is consistent with the observed failure; combined runtime proof remains required. It is integrated as `8e8af56`.
+
+CodeRabbit positively reviewed assembly 1514451 (5552296356); its verify and database jobs passed. Search's final browser job 101315479898 failed one calendar test: save-heading timeout initially, then connection termination and fixture-load timeout on retries. The other 321 cases passed and 14 flaky cases eventually passed. Only the terminal failed job was requested for rerun; no application behavior was changed based on inconclusive infrastructure errors.
+
+The new review-order guide records ready main-based PRs, dependent changes, and outstanding gates. PR55/66 descriptions were rewritten to remove stale dependency and verification claims.
