@@ -52,13 +52,24 @@ test("commitments show notice deadline, responsibility and a separate expected c
     .getByRole("button", { name: "Add commitment", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Decide before 2026-12-01" }),
+    page.getByRole("heading", { name: "Decide before 1 Dec 2026" }),
   ).toBeVisible({ timeout: 15000 });
   await expect(page.getByText("CHF 1234.50", { exact: true })).toBeVisible();
   await expect(page.getByText("Partner", { exact: true })).toBeVisible();
   await expect(
     page.getByText(/Expected costs are planning information/),
   ).toBeVisible();
+  await page.getByRole("link", { name: "Edit details" }).click();
+  await page
+    .getByLabel("Status", { exact: true })
+    .selectOption("cancel_requested");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Check cancellation before renewal" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Decide before/ }),
+  ).toHaveCount(0);
 });
 test("documents use a required private upload and retain its attachment", async ({
   page,

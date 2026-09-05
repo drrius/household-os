@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { moneyEventLabels } from "@/lib/ui/money-event-labels";
+import { formatCivilDateShort } from "@/lib/ui/zurich-date";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MoneyEventDetail } from "@/lib/read-models/money-event";
@@ -124,7 +126,10 @@ function EventHistory({ detail }: { detail: MoneyEventDetail }) {
                   {event.description}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {event.type} · {event.occurred_on}
+                  {moneyEventLabels[event.type]} ·{" "}
+                  <time dateTime={event.occurred_on}>
+                    {formatCivilDateShort(event.occurred_on)}
+                  </time>
                 </span>
               </span>
               <span className="shrink-0 tabular-nums">
@@ -164,7 +169,7 @@ export function EventDetail({ detail }: { detail: MoneyEventDetail }) {
       <Card>
         <CardContent className="grid gap-4">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{event.type.replaceAll("_", " ")}</Badge>
+            <Badge variant="secondary">{moneyEventLabels[event.type]}</Badge>
             {detail.isReversed ? (
               <Badge variant="warning">Reversed</Badge>
             ) : null}
@@ -173,7 +178,9 @@ export function EventDetail({ detail }: { detail: MoneyEventDetail }) {
             {formatCentimesAsFrancs(event.amount_cents)}
           </p>
           <p className="text-sm text-muted-foreground">
-            {event.occurred_on}
+            <time dateTime={event.occurred_on}>
+              {formatCivilDateShort(event.occurred_on)}
+            </time>
             {payer
               ? ` · ${event.type === "opening_balance" ? "Owed to" : event.type === "refund" ? "Refund received by" : "Paid by"} ${payer.display_name}`
               : ""}
