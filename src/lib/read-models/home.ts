@@ -1,3 +1,4 @@
+import type { HomeViewModel } from "./home-view-model";
 import { mapArchivedRoutines } from "./home-archived-routines";
 import { z } from "zod";
 
@@ -76,21 +77,7 @@ type RoutineRow = z.infer<typeof routineRowSchema>;
 type ActivityRow = z.infer<typeof activityRowSchema>;
 type ActivityKind = z.infer<typeof activityKindSchema>;
 
-export type HomeViewModel = {
-  householdLabel: string;
-  members: Array<{ userId: string; displayName: string; isSelf: boolean }>;
-  pets: Array<{ id: string; name: string; meta: string }>;
-  areas: Array<{ id: string; name: string; routineCount: number }>;
-  routines: Array<{
-    id: string;
-    title: string;
-    areaName: string;
-    paused?: boolean;
-  }>;
-  archivedRoutines?: Array<{ id: string; title: string }>;
-  activity: Array<{ id: string; title: string; whenLabel: string }>;
-  storageUsedLabel: string | null;
-};
+export type { HomeViewModel } from "./home-view-model";
 
 export type HomeReadRows = {
   households: readonly HouseholdRow[];
