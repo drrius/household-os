@@ -2,6 +2,10 @@ import "server-only";
 import { z } from "zod";
 import { isHouseholdAttachment } from "@/domain/attachments/files";
 import { parseRecord, type RecordKind } from "@/domain/home-records/schema";
+import {
+  matchesRecordCreation,
+  recordCreationConflict,
+} from "@/domain/home-records/create-retry";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 import { FormFieldError } from "@/lib/forms/field-error";
@@ -67,11 +71,24 @@ export async function saveRecord(
     if (result.error?.code === "23505") {
       const existing = await db
         .from(recordTables[kind])
-        .select("id")
+        .select(
+          [
+            ...new Set([
+              "id",
+              "archived_at",
+              ...Object.keys(values),
+              ...(kind === "decisions" ? ["status"] : []),
+            ]),
+          ].join(","),
+        )
         .eq("household_id", member.householdId)
         .eq("id", id)
         .maybeSingle();
-      if (existing.data) return id;
+      if (!existing.error && existing.data) {
+        if (!matchesRecordCreation(kind, values, existing.data))
+          throw new Error(recordCreationConflict);
+        return id;
+      }
     }
     if (result.error)
       throw new Error("Couldn't save. Check linked records and try again.");

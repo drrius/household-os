@@ -22,7 +22,7 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ kind: string }>;
-  searchParams: Promise<{ edit?: string; saved?: string }>;
+  searchParams: Promise<{ edit?: string; saved?: string; uncertain?: string }>;
 }) {
   if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") notFound();
   const [{ kind }, query, jar] = await Promise.all([
@@ -40,7 +40,9 @@ export default async function Page({
       : kind === "options"
         ? { column: "decision_id", id: parentId }
         : undefined;
-  const editing = !record.updated_at || query.edit === "1";
+  const uncertain = query.uncertain === "1";
+  const action = fixtureRecordAction.bind(null, uncertain);
+  const editing = uncertain || !record.updated_at || query.edit === "1";
   return (
     <AppShell>
       <section className="mx-auto grid w-full max-w-3xl gap-6 p-5">
@@ -50,14 +52,19 @@ export default async function Page({
             : String(record.title ?? record.name ?? "Linked routine")}
         </h1>
         {query.saved ? <p role="status">Saved record</p> : null}
+        {uncertain ? (
+          <Link href={`/m7-fixture/home-records/${kind}`}>
+            Cancel and open existing records
+          </Link>
+        ) : null}
         {editing ? (
           <RecordForm
             kind={kind}
-            record={record}
+            record={uncertain ? { id: record.id } : record}
             options={options}
             returnTo={`/home/${kind}`}
             parent={parent}
-            action={fixtureRecordAction}
+            action={action}
           />
         ) : (
           <>
@@ -71,7 +78,7 @@ export default async function Page({
                 id: record.id,
                 intent: record.archived_at ? "restore" : "archive",
               }}
-              action={fixtureRecordAction}
+              action={action}
             />
           </>
         )}

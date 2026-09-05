@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import { parseRecord } from "@/domain/home-records/schema";
 vi.mock("server-only", () => ({}));
 const mock = vi.hoisted(() => ({
   member: vi.fn(),
@@ -69,6 +70,14 @@ it("does not erase concurrent edits and preserves creation retries", async () =>
   expect(mock.eq).toHaveBeenCalledWith("updated_at", "2026-09-05T12:00:00Z");
   input.delete("version");
   mock.insert.mockResolvedValueOnce({ error: { code: "23505" } });
+  mock.result.mockResolvedValueOnce({
+    data: {
+      id,
+      archived_at: null,
+      ...parseRecord("inventory", Object.fromEntries(input)),
+    },
+    error: null,
+  });
   await expect(saveRecord("inventory", input)).resolves.toBe(id);
   expect(mock.update).toHaveBeenCalledTimes(1);
 });
@@ -109,4 +118,58 @@ it("authenticates even apparently harmless lifecycle actions", async () => {
     "Sign in",
   );
   expect(mock.from).not.toHaveBeenCalled();
+});
+
+it.each([
+  { title: "Partner changed the title" },
+  { notes: "Partner added care instructions" },
+  { contact_id: household },
+  { archived_at: "2026-09-05T12:00:00Z" },
+])(
+  "rejects creation collisions with changed existing details %j without updating",
+  async (changes) => {
+    const input = form();
+    const existing = {
+      id,
+      archived_at: null,
+      ...parseRecord("inventory", Object.fromEntries(input)),
+      ...changes,
+    };
+    mock.insert.mockResolvedValueOnce({ error: { code: "23505" } });
+    mock.result.mockResolvedValueOnce({ data: existing, error: null });
+    await expect(saveRecord("inventory", input)).rejects.toThrow(
+      "Your changes were not saved",
+    );
+    expect(mock.eq).toHaveBeenCalledWith("household_id", household);
+    expect(mock.eq).toHaveBeenCalledWith("id", id);
+    expect(mock.update).not.toHaveBeenCalled();
+    expect(existing).toMatchObject(changes);
+    expect(input.get("title")).toBe("Dishwasher");
+  },
+);
+it.each([
+  { data: null, error: null },
+  { data: null, error: { code: "08006" } },
+  { data: { id }, error: { code: "42501" } },
+])(
+  "does not claim success for missing, foreign or failed collision lookup %j",
+  async (lookup) => {
+    mock.insert.mockResolvedValueOnce({ error: { code: "23505" } });
+    mock.result.mockResolvedValueOnce(lookup);
+    await expect(saveRecord("inventory", form())).rejects.toThrow(
+      "Couldn't save",
+    );
+    expect(mock.update).not.toHaveBeenCalled();
+  },
+);
+it("does not acknowledge a different routine-link unique constraint as the submitted ID", async () => {
+  const input = form();
+  input.set("asset_id", household);
+  input.set("routine_id", id);
+  mock.insert.mockResolvedValueOnce({
+    error: { code: "23505", details: "household_id,asset_id,routine_id" },
+  });
+  mock.result.mockResolvedValueOnce({ data: null, error: null });
+  await expect(saveRecord("routines", input)).rejects.toThrow("Couldn't save");
+  expect(mock.update).not.toHaveBeenCalled();
 });
