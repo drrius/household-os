@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { CalendarEventInput } from "@/domain/calendar/types";
 import {
   isoToLocalDateTime,
@@ -14,15 +15,7 @@ export type EventFormOptions = {
   projects: { id: string; title: string }[];
   canPublish: boolean;
 };
-export function EventForm({
-  action,
-  input,
-  options,
-  id,
-  version,
-  recurrenceId,
-  recurring,
-}: {
+type EventFormProps = {
   action: FormAction;
   input: CalendarEventInput;
   options: EventFormOptions;
@@ -30,7 +23,30 @@ export function EventForm({
   version?: string;
   recurrenceId?: string;
   recurring?: boolean;
-}) {
+};
+export function EventForm(props: EventFormProps) {
+  return (
+    <EventFormSession
+      key={`${props.id ?? "new"}:${props.recurrenceId ?? ""}`}
+      {...props}
+    />
+  );
+}
+function EventFormSession({
+  action,
+  input: initialInput,
+  options,
+  id,
+  version: initialVersion,
+  recurrenceId,
+  recurring: initialRecurring,
+}: EventFormProps) {
+  // A refreshed version must never authorize values from an earlier edit snapshot.
+  const [{ input, version, recurring }] = useState({
+    input: initialInput,
+    version: initialVersion,
+    recurring: initialRecurring,
+  });
   return (
     <FormFields action={action} submitLabel={id ? "Save event" : "Add event"}>
       <input type="hidden" name="id" value={id ?? ""} />
