@@ -3,6 +3,8 @@ import {
   type RawRecordQuery,
 } from "@/lib/home-records/query";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { documentDefaults } from "@/lib/home-records/document-defaults";
 import type { RecordKind } from "@/domain/home-records/schema";
 import { safeRecordReturn } from "@/lib/home-records/config";
 import { readRecord } from "@/lib/home-records/read";
@@ -23,6 +25,14 @@ export async function RecordEditPage({
     id ? readRecord(kind, id) : Promise.resolve({ id: crypto.randomUUID() }),
     recordOptions(),
   ]);
+  let defaults = {};
+  if (kind === "documents" && !id) {
+    try {
+      defaults = documentDefaults(query, options);
+    } catch {
+      notFound();
+    }
+  }
   const back = safeRecordReturn(query.back, `/home/${kind}`);
   return (
     <section
@@ -45,7 +55,7 @@ export async function RecordEditPage({
       </h1>
       <RecordForm
         kind={kind}
-        record={record}
+        record={{ ...record, ...defaults }}
         options={options}
         returnTo={back}
       />

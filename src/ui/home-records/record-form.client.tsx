@@ -1,4 +1,5 @@
 "use client";
+import { DocumentLinks } from "./document-links.client";
 import { useId, type ComponentProps } from "react";
 import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
 import {
@@ -157,9 +158,10 @@ function visibleFields(kind: RecordKind, parent?: RecordFormProps["parent"]) {
     (field) =>
       field.name !== parent?.column &&
       !(
-        parent &&
         kind === "documents" &&
-        ["asset_id", "commitment_id", "project_id"].includes(field.name)
+        ["asset_id", "commitment_id", "project_id", "booking_id"].includes(
+          field.name,
+        )
       ),
   );
 }
@@ -172,7 +174,7 @@ function RecordFormSession({
   action = recordAction,
 }: RecordFormProps) {
   const { holder, current, snapshotKey, capture, freeze } = useRecordSnapshot(
-    visibleFields(kind, parent),
+    fields[kind].filter((field) => field.name !== parent?.column),
     incomingRecord,
     incomingOptions,
   );
@@ -187,6 +189,7 @@ function RecordFormSession({
       <FormFields
         key={snapshotKey}
         action={action}
+        protectChanges
         submitLabel={
           record.updated_at ? "Save changes" : `Add ${labels[kind].singular}`
         }
@@ -218,6 +221,9 @@ function RecordFormSession({
             ))}
           </div>
         </div>
+        {kind === "documents" ? (
+          <DocumentLinks record={record} options={options} parent={parent} />
+        ) : null}
         {kind === "commitments" || kind === "options" ? (
           <p className="text-muted-foreground">
             Expected costs help you plan. They do not change your balance.

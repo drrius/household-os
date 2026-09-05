@@ -277,5 +277,15 @@ select throws_ok($$select * from public.asset_maintenance$$,'42501',null,'asset_
 select throws_ok($$select * from public.asset_routines$$,'42501',null,'asset_routines: anonymous denied');
 select throws_ok($$select * from public.household_documents$$,'42501',null,'household_documents: anonymous denied');
 reset role;
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000101',true);
+set local role authenticated;
+select lives_ok($$update public.household_documents set asset_id=null,project_id='00000200-0000-4000-8000-000000000001',booking_id='00000200-0000-4000-8000-000000000001' where id='00000200-0000-4000-8000-000000000001'$$,'confirmation can attach to its own trip booking');
+select throws_ok($$update public.household_documents set booking_id='00000200-0000-4000-8000-000000000002' where id='00000200-0000-4000-8000-000000000001'$$,'23503',null,'confirmation cannot attach to a foreign household booking');
+select throws_ok($$update public.household_documents set project_id='00000200-0000-4000-8000-000000000003' where id='00000200-0000-4000-8000-000000000001'$$,'23503',null,'confirmation cannot claim a booking belongs to another project');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000102',true);
+select is((select count(*) from public.household_documents where project_id='00000200-0000-4000-8000-000000000001' and booking_id='00000200-0000-4000-8000-000000000001'),1::bigint,'partner sees the booking confirmation after attachment');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000103',true);
+select is((select count(*) from public.household_documents where project_id='00000200-0000-4000-8000-000000000001' and booking_id='00000200-0000-4000-8000-000000000001'),0::bigint,'booking-filtered document lookup remains tenant isolated');
+reset role;
 select * from finish();
 rollback;

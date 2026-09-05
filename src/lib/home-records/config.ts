@@ -21,9 +21,12 @@ export function safeRecordReturn(
   try {
     const url = new URL(path, "https://household.local");
     return url.origin === "https://household.local" &&
-      /^\/home\/(inventory|contacts|commitments|decisions|documents)(\/[0-9a-f-]{36})?$/.test(
+      (/^\/home\/(inventory|contacts|commitments|decisions|documents)(\/[0-9a-f-]{36})?$/.test(
         url.pathname,
-      )
+      ) ||
+        /^\/plan\/projects\/[0-9a-f-]{36}(\/bookings\/[0-9a-f-]{36})?$/.test(
+          url.pathname,
+        ))
       ? `${url.pathname}${url.search}`
       : fallback;
   } catch {

@@ -1,36 +1,33 @@
 import Link from "next/link";
+import { loadCostContext } from "@/lib/connected/cost-context";
+import { LinkedCosts } from "@/ui/money/linked-costs";
 import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
 import type { RecordOptions } from "@/lib/home-records/options";
-import {
-  paidReferences,
-  relatedRecords,
-  type RecordQuery,
-} from "@/lib/home-records/read";
+import { relatedRecords, type RecordQuery } from "@/lib/home-records/read";
 import { RelatedSection } from "./related-section";
 import { DecisionControls } from "./decision-controls";
 
-async function PaidLinks({ kind, id }: { kind: RecordKind; id: string }) {
+async function PaidLinks({
+  kind,
+  id,
+  archived,
+}: {
+  kind: RecordKind;
+  id: string;
+  archived: boolean;
+}) {
   if (kind !== "inventory" && kind !== "commitments") return null;
-  const active = await paidReferences(kind, id);
+  const target = {
+    kind: kind === "inventory" ? ("asset" as const) : ("commitment" as const),
+    id,
+  };
+  const costs = await loadCostContext(target.kind, id, { pageSize: 1 });
   return (
-    <section className="grid gap-3">
-      <h2 className="font-heading text-xl font-semibold">Paid expenses</h2>
-      {active.length ? (
-        <ul role="list" className="grid gap-2">
-          {active.map((row) => (
-            <li key={row.id}>
-              <Link href={`/money/events/${row.event.id}`}>
-                {row.event.description} · {row.event.occurred_on} →
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground">
-          No paid expense linked yet. Record payments in Money.
-        </p>
-      )}
-    </section>
+    <LinkedCosts
+      target={target}
+      paidCents={costs.paid_cents}
+      archived={archived}
+    />
   );
 }
 export async function RecordRelations({
@@ -72,7 +69,11 @@ export async function RecordRelations({
           )}
           parent={{ column: "commitment_id", id: record.id }}
         />
-        <PaidLinks kind={kind} id={record.id} />
+        <PaidLinks
+          kind={kind}
+          id={record.id}
+          archived={Boolean(record.archived_at)}
+        />
       </>
     );
   if (kind === "decisions")
@@ -133,7 +134,11 @@ async function AssetRelations({
         rows={documents}
         parent={parent}
       />
-      <PaidLinks kind="inventory" id={record.id} />
+      <PaidLinks
+        kind="inventory"
+        id={record.id}
+        archived={Boolean(record.archived_at)}
+      />
     </>
   );
 }

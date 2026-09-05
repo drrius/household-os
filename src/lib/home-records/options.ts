@@ -1,7 +1,7 @@
 import "server-only";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
-export type RecordOption = { value: string; label: string };
+export type RecordOption = { value: string; label: string; projectId?: string };
 export type RecordOptions = Record<string, RecordOption[]>;
 const sources = {
   contact_id: ["household_contacts", "name", "id"],
@@ -9,6 +9,7 @@ const sources = {
   recurring_expense_rule_id: ["recurring_expense_rules", "description", "id"],
   routine_id: ["routines", "title", "id"],
   project_id: ["household_projects", "title", "id"],
+  booking_id: ["trip_bookings", "title", "id"],
   asset_id: ["household_assets", "title", "id"],
   commitment_id: ["household_commitments", "title", "id"],
 } as const;
@@ -22,7 +23,9 @@ export async function recordOptions(): Promise<RecordOptions> {
         for (let start = 0; ; start += 500) {
           const { data, error } = await db
             .from(table)
-            .select(`${id},${label}`)
+            .select(
+              `${id},${label}${field === "booking_id" ? ",project_id" : ""}`,
+            )
             .eq("household_id", member.householdId)
             .order(label)
             .order(id)
@@ -34,7 +37,13 @@ export async function recordOptions(): Promise<RecordOptions> {
               const value = row[id],
                 text = row[label];
               if (!value || !text) throw new Error("Invalid record choice.");
-              return { value, label: text };
+              return {
+                value,
+                label: text,
+                ...(field === "booking_id"
+                  ? { projectId: row.project_id }
+                  : {}),
+              };
             }),
           );
           if (rows.length < 500) return [field, choices] as const;

@@ -115,6 +115,7 @@ export const fields: Record<RecordKind, RecordField[]> = {
     { name: "asset_id", label: "Inventory item", type: "select" },
     { name: "commitment_id", label: "Commitment", type: "select" },
     { name: "project_id", label: "Trip or project", type: "select" },
+    { name: "booking_id", label: "Booking", type: "select" },
   ],
   maintenance: [
     { name: "title", label: "Work carried out", required: true, max: 200 },

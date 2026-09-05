@@ -33,6 +33,21 @@ export function CostHeader({
           {target.bookingId ? "All plan costs" : "Paid costs"}
         </Link>
       </div>
+      <Link
+        className="inline-flex min-h-11 w-fit items-center text-sm"
+        href={
+          target.kind === "project"
+            ? `/plan/projects/${target.id}${target.bookingId ? `/bookings/${target.bookingId}` : ""}`
+            : `/home/${target.kind === "asset" ? "inventory" : "commitments"}/${target.id}`
+        }
+      >
+        Open{" "}
+        {target.bookingId
+          ? "booking"
+          : target.kind === "project"
+            ? "trip or project"
+            : "household record"}
+      </Link>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid min-w-0 gap-2">
           <p className="text-base text-muted-foreground sm:text-sm">

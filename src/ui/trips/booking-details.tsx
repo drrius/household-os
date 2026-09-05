@@ -49,6 +49,14 @@ export function BookingDetails({
         ) : null}
       </div>
       <BookingSummary booking={booking} />
+      {booking.calendar_event_id ? (
+        <Link
+          href={`/plan/calendar/${booking.calendar_event_id}`}
+          className="inline-flex min-h-11 w-fit items-center"
+        >
+          Open linked calendar event
+        </Link>
+      ) : null}
       {booking.confirmation ? (
         <div className="rounded-xl bg-muted p-4">
           <h2 className="text-sm text-muted-foreground">
