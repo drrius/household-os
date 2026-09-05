@@ -63,7 +63,7 @@ select is_empty($$select * from public.begin_household_attachment_cleanup('23000
 reset role;
 update public.household_attachment_uploads set created_at=now()-interval '25 hours' where path='23000100-0000-4000-8000-000000000001/documents/23000700-0000-4000-8000-000000000001.jpg';
 set local role authenticated;
-select results_eq($$select path from public.begin_household_attachment_cleanup() where path='23000100-0000-4000-8000-000000000001/documents/23000700-0000-4000-8000-000000000001.jpg'$$,$$values('23000100-0000-4000-8000-000000000001/documents/23000700-0000-4000-8000-000000000001.jpg'::text)$$,'either member may reclaim an aged unreferenced file');
+select results_eq($$select path from public.begin_household_attachment_cleanup() where path='23000100-0000-4000-8000-000000000001/documents/23000700-0000-4000-8000-000000000001.jpg'$$,$$select '23000100-0000-4000-8000-000000000001/documents/23000700-0000-4000-8000-000000000001.jpg'::text$$,'either member may reclaim an aged unreferenced file');
 select throws_ok($$insert into public.household_documents(household_id,title,file_path) values('23000100-0000-4000-8000-000000000001','Too late','23000100-0000-4000-8000-000000000001/documents/23000700-0000-4000-8000-000000000001.jpg')$$,'22023',null,'cleanup-owned file rejects new references');
 reset role;
 update public.household_attachment_uploads set state='pending' where household_id='23000100-0000-4000-8000-000000000001' and state='deleting' and path<>'23000100-0000-4000-8000-000000000001/documents/23000700-0000-4000-8000-000000000001.jpg';
