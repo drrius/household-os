@@ -1,9 +1,8 @@
-"use client";
+import { calendarTimePresentation } from "@/domain/calendar/presentation";
+import type { CalendarEventInput } from "@/domain/calendar/types";
 import { masterFromIcal } from "@/domain/calendar/ical-read";
-import { resolveConflictAction } from "@/lib/calendar/actions";
 import type { CalendarRow } from "@/lib/calendar/rows";
-import { FormFields, FormField } from "@/ui/forms/form-page";
-import { EchoedSelect } from "@/ui/forms/form-select.client";
+import { ConflictResolutionForm } from "./conflict-resolution-form.client";
 export function CalendarConflictCard({ row }: { row: CalendarRow }) {
   let remote;
   try {
@@ -24,9 +23,15 @@ export function CalendarConflictCard({ row }: { row: CalendarRow }) {
         <div>
           <h3 className="text-sm font-medium">Household OS</h3>
           <p>{row.cancelled_at ? "Cancelled" : row.title}</p>
-          <p className="text-sm text-muted-foreground">
-            {row.starts_at} · {row.location}
-          </p>
+          <ConflictTime
+            event={{
+              startsAt: row.starts_at,
+              endsAt: row.ends_at,
+              timeZone: row.time_zone,
+              allDay: row.all_day,
+              location: row.location,
+            }}
+          />
           <p className="whitespace-pre-wrap text-sm">{row.notes}</p>
         </div>
         <div>
@@ -36,38 +41,36 @@ export function CalendarConflictCard({ row }: { row: CalendarRow }) {
               ? remote.cancelled
                 ? "Cancelled"
                 : remote.title
-              : "Deleted in Apple Calendar"}
+              : row.remote_conflict_ical
+                ? "This Apple Calendar version could not be read. Open Apple Calendar to inspect it."
+                : "Deleted in Apple Calendar"}
           </p>
           {remote ? (
             <>
-              <p className="text-sm text-muted-foreground">
-                {remote.startsAt} · {remote.location}
-              </p>
+              <ConflictTime event={remote} />
               <p className="whitespace-pre-wrap text-sm">{remote.notes}</p>
             </>
           ) : null}
         </div>
       </div>
-      <FormFields
-        action={resolveConflictAction}
-        submitLabel="Keep selected version"
-      >
-        <input name="id" type="hidden" value={row.id} />
-        <input name="version" type="hidden" value={row.updated_at} />
-        <FormField label="Version to keep">
-          <EchoedSelect
-            name="choice"
-            initialValue="remote"
-            items={[
-              { value: "remote", label: "Keep Apple Calendar version" },
-              {
-                value: "local",
-                label: "Keep Household OS version; send on next sync",
-              },
-            ]}
-          />
-        </FormField>
-      </FormFields>
+      <ConflictResolutionForm id={row.id} version={row.updated_at} />
     </section>
+  );
+}
+
+function ConflictTime({
+  event,
+}: {
+  event: Pick<
+    CalendarEventInput,
+    "startsAt" | "endsAt" | "timeZone" | "allDay" | "location"
+  >;
+}) {
+  const time = calendarTimePresentation(event);
+  return (
+    <p className="text-sm text-muted-foreground">
+      {time.formatted} · {time.displayTimeZone}
+      {event.location ? ` · ${event.location}` : ""}
+    </p>
   );
 }
