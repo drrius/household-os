@@ -1,6 +1,9 @@
 import {
+  quickAddGroceryAction,
+  buyGroceryAgainAction,
+} from "@/lib/groceries/list-actions";
+import {
   claimGroceryItemAction,
-  finishShoppingSessionAction,
   joinShoppingSessionAction,
   mergeDuplicateGroceryItemsAction,
 } from "@/app/(product)/_actions/groceries";
@@ -13,7 +16,8 @@ export default async function GroceriesPage() {
   return (
     <GroceriesScreen
       claimAction={claimGroceryItemAction}
-      finishAction={finishShoppingSessionAction}
+      addAction={quickAddGroceryAction}
+      buyAgainAction={buyGroceryAgainAction}
       joinAction={joinShoppingSessionAction}
       mergeAction={mergeDuplicateGroceryItemsAction}
       model={model}
