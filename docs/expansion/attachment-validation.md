@@ -6,6 +6,8 @@ JPEG inspection happens before upload reservation and privileged Storage writes.
 
 The decoder's allocation cap is not a process-wide heap limit. The 96 MiB cap accommodates a valid 2,000 × 2,000 4:4:4 JPEG plus RGB output; a 64 MiB cap rejects that ordinary maximum-size case. Tests exercise the 4-megapixel case in both Node and Deno. The decoder never enters the client bundle: only the Edge entry point and test modules import it. Household identity, file path, extension, and content type are derived on the server; client MIME types and filenames cannot select the stored format or destination.
 
+The upload protocol expects browser-normalized JPEGs, rather than every possible JPEG encoding. Independent review found that the strict decoder rejects a valid grayscale image with a partial final restart interval. The normal picker decodes and re-encodes that image before upload, avoiding this decoder limitation. Direct callers must normalize unsupported encodings; validation remains strict.
+
 A reservation rejection with SQLSTATE `22023` means that upload identity expired or is otherwise permanently invalid, so the browser asks for a new file selection. Infrastructure failures return a retryable 503 and retain the original upload identity. Authentication failures retain their 401/403 meaning. Local preparation failures (unsupported files, undecodable photos, and oversized PDFs) clear the pending attempt and file input, block saving, and require another selection. Re-selecting the same filename still triggers preparation. A successful retry after a transient failure uses the same identity and cannot create a duplicate file.
 
 ## Verification
