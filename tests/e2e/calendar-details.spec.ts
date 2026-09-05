@@ -30,3 +30,38 @@ test("all-day details include the last occupied day without exposing the exclusi
     caret: "initial",
   });
 });
+
+test("conflict comparison uses readable local intervals and distinguishes unreadable data", async ({
+  page,
+}) => {
+  const hydrationErrors: string[] = [];
+  page.on("console", (message) => {
+    if (/hydration|hydrated|server rendered HTML/i.test(message.text()))
+      hydrationErrors.push(message.text());
+  });
+  await page.goto("/m7-fixture/calendar-details?surface=conflict");
+  const card = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "Two versions need a decision" }),
+  });
+  await expect(
+    card.getByText(/10:00 – 12:30 · Europe\/Zurich · By the lake/),
+  ).toBeVisible();
+  await expect(card.getByText(/11:00 – 13:30 · Europe\/Zurich$/)).toBeVisible();
+  await page.goto("/m7-fixture/calendar-details?surface=unreadable-conflict");
+  await expect(
+    page.getByText(
+      "This Apple Calendar version could not be read. Open Apple Calendar to inspect it.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Deleted in Apple Calendar", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Version to keep" }).click();
+  await expect(
+    page.getByRole("option", {
+      name: "Keep Apple Calendar version",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(hydrationErrors).toEqual([]);
+});
