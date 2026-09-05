@@ -131,6 +131,7 @@ function RoutineFormSession({
   });
   return (
     <FormFields
+      protectChanges
       action={action}
       submitLabel={submitLabel}
       showRequiredNotice={false}
