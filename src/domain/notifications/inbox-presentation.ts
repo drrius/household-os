@@ -13,6 +13,8 @@ export const inboxRowSchema = z.object({
 export type InboxRow = z.infer<typeof inboxRowSchema>;
 function partnerTitle(activityKind: string | null): string {
   switch (activityKind) {
+    case "project_task_assigned":
+      return "Task assigned to you";
     case "expense_posted":
       return "Expense posted";
     case "expense_draft_confirmed":
@@ -49,6 +51,14 @@ function hrefForInbox(row: InboxRow, targetAvailable: boolean): string {
     case "household_digest":
       return "/";
     case "partner_notice": {
+      const projectId = z.uuid().safeParse(row.payload.project_id);
+      const taskId = z.uuid().safeParse(row.entity_id);
+      if (
+        row.entity_type === "project_task" &&
+        projectId.success &&
+        taskId.success
+      )
+        return `/plan/projects/${projectId.data}/tasks/${taskId.data}`;
       if (
         targetAvailable &&
         row.entity_id &&
@@ -91,6 +101,11 @@ function bodyForInbox(row: InboxRow): string {
     case "household_digest":
       return "Your household digest is ready.";
     case "partner_notice":
+      if (
+        row.activity_kind === "project_task_assigned" &&
+        typeof row.payload.title === "string"
+      )
+        return row.payload.title;
       return "Your partner made a change that affects you.";
     default: {
       const _exhaustive: never = row.kind;

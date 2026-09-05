@@ -92,7 +92,9 @@ export async function loadInboxPage(
   const supabase = await createClient();
   let query = supabase
     .from("inbox_notifications")
-    .select("id,kind,activity_kind,entity_type,entity_id,read_at,created_at")
+    .select(
+      "id,kind,activity_kind,entity_type,entity_id,payload,read_at,created_at",
+    )
     .eq("household_id", member.householdId)
     .eq("recipient_member_id", member.userId);
   if (checked.filter === "unread") query = query.is("read_at", null);
