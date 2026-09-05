@@ -51,6 +51,8 @@ function normalizeLocalTime(value: string): string {
 
 function partnerTitle(activityKind: string | null): string {
   switch (activityKind) {
+    case "project_task_assigned":
+      return "Task assigned to you";
     case "expense_posted":
       return "Expense posted";
     case "expense_draft_confirmed":
@@ -87,6 +89,9 @@ function hrefForInbox(row: z.infer<typeof inboxRowSchema>): string {
     case "household_digest":
       return "/";
     case "partner_notice": {
+      const projectId = z.uuid().safeParse(row.payload.project_id);
+      if (row.entity_type === "project_task" && projectId.success)
+        return `/plan/projects/${projectId.data}#tasks`;
       if (row.entity_type === "shopping_session") {
         return "/groceries";
       }
@@ -119,6 +124,11 @@ function bodyForInbox(row: z.infer<typeof inboxRowSchema>): string {
     case "household_digest":
       return "Your household digest is ready.";
     case "partner_notice":
+      if (
+        row.activity_kind === "project_task_assigned" &&
+        typeof row.payload.title === "string"
+      )
+        return row.payload.title;
       return "Your partner made a change that affects you.";
     default: {
       const _exhaustive: never = row.kind;

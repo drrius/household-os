@@ -7,6 +7,14 @@ import type {
 } from "./types";
 
 export const PARTNER_NOTIFY_CATALOG = {
+  project_record_changed: {
+    outcome: "activity_only",
+    reason: "non_partner_noise",
+  },
+  project_task_assigned: {
+    outcome: "notify_affected_members",
+    requiresAffectMemberIds: true,
+  },
   routine_created: {
     outcome: "activity_only",
     reason: "non_partner_noise",

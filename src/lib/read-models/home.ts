@@ -3,6 +3,8 @@ import { z } from "zod";
 import { ZURICH_TIME_ZONE } from "@/lib/ui/zurich-date";
 
 const activityKindSchema = z.enum([
+  "project_record_changed",
+  "project_task_assigned",
   "routine_created",
   "routine_updated",
   "occurrence_completed",
@@ -95,6 +97,8 @@ export type BuildHomeViewModelInput = HomeReadRows & {
 };
 
 const ACTIVITY_COPY = {
+  project_record_changed: ["updated a plan", null],
+  project_task_assigned: ["assigned a project task", null],
   routine_created: ["created a routine", "created"],
   routine_updated: ["updated a routine", "updated"],
   occurrence_completed: ["completed a routine", "completed"],

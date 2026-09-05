@@ -33,12 +33,14 @@ export function ProjectOverview({ project }: { project: HouseholdProject }) {
             {project.title}
           </h1>
         </div>
-        <Link
-          className={buttonVariants({ variant: "outline" })}
-          href={`/plan/projects/${project.id}/edit`}
-        >
-          Edit details
-        </Link>
+        {!project.archived_at && (
+          <Link
+            className={buttonVariants({ variant: "outline" })}
+            href={`/plan/projects/${project.id}/edit`}
+          >
+            Edit details
+          </Link>
+        )}
       </div>
       {project.destination && (
         <p className="flex items-center gap-2">

@@ -10,6 +10,8 @@ import {
 } from "./types";
 
 const ACTIVITY_KINDS = [
+  "project_record_changed",
+  "project_task_assigned",
   "routine_created",
   "routine_updated",
   "occurrence_completed",
