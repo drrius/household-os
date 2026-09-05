@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type SignOutResult =
   | { ok: true; pushPaused?: boolean; unsubscribe?: boolean }
-  | { ok: false; error: string; pushPaused?: boolean };
+  | { ok: false; error: string; pushPaused?: boolean; unsubscribe?: boolean };
 
 export async function signOutThisDevice(
   endpoint: string | null,
@@ -54,6 +54,7 @@ export async function signOutThisDevice(
       ok: false,
       error: "Could not sign out. Check your connection and try again.",
       ...(pushPaused ? { pushPaused: true } : {}),
+      ...(unsubscribe ? { unsubscribe: true } : {}),
     };
   revalidatePath("/", "layout");
   return {
