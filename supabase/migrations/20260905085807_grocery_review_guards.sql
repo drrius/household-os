@@ -4,6 +4,8 @@ alter table public.shopping_sessions
 
 -- A renamed pre-release default has no reliable identity to promote. Create a
 -- persistent fallback without changing any existing category or item assignment.
+create function private.repair_missing_grocery_fallbacks()
+returns void language sql security invoker set search_path = '' as $$
 insert into public.grocery_categories (household_id, name, sort_order, is_fallback)
 select h.id, 'Other', 2147483647, true
 from public.households h
@@ -11,3 +13,6 @@ where not exists (
   select 1 from public.grocery_categories c
   where c.household_id = h.id and c.is_fallback
 );
+$$;
+revoke all on function private.repair_missing_grocery_fallbacks() from public, anon, authenticated;
+select private.repair_missing_grocery_fallbacks();
