@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { FormAction } from "@/lib/forms/action-state";
 import { EchoedInput } from "@/ui/forms/echoed-control.client";
 import {
@@ -68,7 +69,7 @@ export function GroceryCategoryManager({
 }
 
 function CategoryEditor({
-  category,
+  category: initialCategory,
   action,
 }: {
   action: FormAction;
@@ -79,6 +80,7 @@ function CategoryEditor({
     archived_at: string | null;
   };
 }) {
+  const [category] = useState(initialCategory);
   return (
     <details className="rounded-xl border p-4">
       <summary className="min-h-11 cursor-pointer content-center font-semibold">

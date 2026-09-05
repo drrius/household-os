@@ -1,4 +1,6 @@
 "use client";
+import { useState } from "react";
+import type { FormAction } from "@/lib/forms/action-state";
 import { updateGroceryItemAction } from "@/lib/groceries/list-actions";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { FormField, FormFields } from "@/ui/forms/form-page";
@@ -13,15 +15,23 @@ type EditableItem = {
   updated_at: string;
   sort_order: number;
 };
-export function GroceryEditForm({
-  item,
-  categories,
-}: {
+type GroceryEditProps = {
   item: EditableItem;
   categories: { id: string; name: string }[];
-}) {
+  action?: FormAction;
+};
+export function GroceryEditForm(props: GroceryEditProps) {
+  return <GroceryEditSession key={props.item.id} {...props} />;
+}
+function GroceryEditSession({
+  item: initialItem,
+  categories,
+  action = updateGroceryItemAction,
+}: GroceryEditProps) {
+  // Keep the concurrency token attached to the values this edit began with.
+  const [item] = useState(initialItem);
   return (
-    <FormFields action={updateGroceryItemAction} submitLabel="Save item">
+    <FormFields action={action} submitLabel="Save item">
       <input name="itemId" type="hidden" value={item.id} />
       <input name="updatedAt" type="hidden" value={item.updated_at} />
       <FormField label="Item">
