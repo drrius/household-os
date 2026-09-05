@@ -1,30 +1,26 @@
-# Implementation status
+# Money implementation status
 
-Effective goal: [goal.md](goal.md). Scope includes the whole app and additional worthwhile functionality discovered during implementation.
+The app-wide effective goal and current PR matrix live on the integration branch in `docs/expansion/goal.md` and `docs/expansion/status.md`. This is the Money branch checkpoint, replacing the original pre-implementation plan.
 
-Base: latest main `39f9363`, including the assistant and recurrence fixes. Existing PR #40 (MCP bridge) is not owned by this effort.
+## Delivered in PR #49
 
-| Slice                                                        | Owner / branch                          | State                                              | PR / review |
-| ------------------------------------------------------------ | --------------------------------------- | -------------------------------------------------- | ----------- |
-| Product decision, private attachments                        | integration / codex/household-expansion | Implementing; unit/API coverage; RLS tests written | Pending     |
-| Meals: details, week context, move, library, leftovers, prep | meals / codex/meals-complete            | Implementing                                       | Pending     |
-| Groceries: quick entry, editing, checkout, history           | groceries / codex/groceries-complete    | Implementing                                       | Pending     |
-| Routines, Today, onboarding, home maintenance controls       | routines / codex/routines-complete      | Implementing                                       | Pending     |
-| Money detail/correction/refund and recurring rules           | integration next lane                   | Planned                                            | Pending     |
-| Trips and projects with linked work and paid expenses        | integration                             | Schema/design next                                 | Pending     |
-| Shared calendar and private iCloud sync                      | integration                             | Planned                                            | Pending     |
-| Inventory, commitments, decisions/wishlists                  | integration                             | Planned                                            | Pending     |
-| App-wide completeness and UX/accessibility audit             | integration                             | Continuous; final independent pass required        | Pending     |
+- Inspectable financial events, original shares, receipts, and effects on both members.
+- Partial refunds with exact/proportional previews and remaining-share limits.
+- Corrections and opening-balance repair while retaining append-only history.
+- Recurring expense setup and readable draft schedules.
+- Recovery after rejected submissions and stable refund operation identity through background server refreshes.
+- Recoverable attachment upload errors when an upstream service returns HTML.
 
-## Verification
+CodeRabbit is the current reviewer. Three findings are addressed in the current follow-up (stale documentation, upload errors, refund operation identity). CodeRabbit withdrew the negative-share report after reviewing the example and property tests: the existing `parseChfToCentimes` grammar accepts only unsigned amounts and already produces a field-specific rejection.
 
-- Latest-main baseline: `pnpm --config.verify-deps-before-run=false verify` passed (55 test files, 339 tests plus format/lint/type/build).
-- Local pnpm requires `--config.verify-deps-before-run=false` to avoid its implicit install path in this environment. Dependencies installed from frozen lockfile.
-- Local Docker socket is inaccessible even outside the sandbox; passwordless sudo is unavailable, and localhost PostgreSQL port 54322 has no listener. Database verification alternative is being investigated. No production database commands have been run.
-- Live iCloud account credentials have not been supplied. Sync implementation can be verified against controlled CalDAV fixtures; live-account setup remains separate.
+## Stack and merge order
 
-## Additional gaps discovered
+`main → #46 (routines) → #49 (Money)`. PR #49 targets `codex/routines-household` and includes its parent commits through `c9eb7be`. The parent supplies `edit_routine_definition`, required by the meal lifecycle database tests already on main. Merge #46 first; then retarget #49 to main, update its branch, and require fresh CI before merging #49.
 
-- No private attachment upload foundation despite receipt/photo fields in existing domain commands. Implementing before dependent UI.
-- Empty active shopping sessions cannot be ended. Add explicit cancel-session command with safe claim release.
-- Latest main contains approved assistant scope exceptions (ADR 0027); preserve those, introduce no new paid infrastructure.
+## Verification and dependencies
+
+The earlier 339-test main baseline was historical, not verification of this Money branch. Current follow-up verification is recorded in `money-coderabbit-review.md` when completed.
+
+The private attachment foundation now exists and PR #44 was externally merged. This branch incorporates main through `fa09be9`, retaining the merged attachment security and retry implementation alongside the Money fixes. Combined verification remains required before merge. Repository visibility is now public and hosted CI is available. Local Postgres is unavailable on port 54322. No production database changes have been made.
+
+Live iCloud credentials remain a separate setup requirement for the calendar branch. No live-account sync claim is made by this Money checkpoint.

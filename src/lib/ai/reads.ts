@@ -101,7 +101,7 @@ export async function readRoutines(input: {
   let routineQuery = supabase
     .from("routines")
     .select(
-      "id, title, instructions, area_id, pet_id, assignment_policy, assigned_member_id, rotation_anchor_member_id, schedule_kind, schedule_rule, priority, active_from, active_until, paused_at, archived_at",
+      "id, title, instructions, area_id, pet_id, assignment_policy, assigned_member_id, rotation_anchor_member_id, schedule_kind, schedule_rule, priority, active_from, active_until, paused_at, archived_at, updated_at",
     )
     .eq("household_id", member.householdId)
     .order("title");

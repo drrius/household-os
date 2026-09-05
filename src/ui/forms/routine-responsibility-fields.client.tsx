@@ -9,9 +9,9 @@ import { FormSelect } from "@/ui/forms/form-select.client";
 type Member = { user_id: string; display_name: string };
 
 const policies = [
-  { label: "Shared", value: "shared" },
-  { label: "Assigned", value: "assigned" },
-  { label: "Alternating", value: "alternating" },
+  { label: "Either of us", value: "shared" },
+  { label: "One of us", value: "assigned" },
+  { label: "Take turns", value: "alternating" },
 ] as const;
 
 export type AssignmentPolicy = (typeof policies)[number]["value"];
@@ -19,8 +19,8 @@ export type AssignmentPolicy = (typeof policies)[number]["value"];
 const memberCopy = {
   alternating: {
     description:
-      "The rotation starts here and then alternates after each completion.",
-    label: "Rotation starter",
+      "Turns follow the schedule, even when the other person helps or a turn is skipped.",
+    label: "Who goes first?",
   },
   assigned: {
     description: "This member is responsible every time.",
@@ -50,7 +50,7 @@ export function RoutineResponsibilityFields({
   );
 
   return (
-    <FormSection legend="Responsibility">
+    <FormSection legend="Who takes care of it?">
       <FormField label="Assignment">
         <FormSelect
           items={[...policies]}

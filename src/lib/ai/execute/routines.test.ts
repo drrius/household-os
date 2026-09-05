@@ -6,38 +6,13 @@ import { getAiToolDefinition } from "@/lib/ai/definitions";
 import { ROUTINE_HANDLERS } from "@/lib/ai/execute/routines";
 
 const ROUTINE = "11111111-1111-4111-8111-111111111111";
-const AREA = "22222222-2222-4222-8222-222222222222";
-const PET = "33333333-3333-4333-8333-333333333333";
 
-const ROUTINE_ROW = {
-  active_from: "2026-08-01",
-  active_until: "2026-12-31",
-  area_id: AREA,
-  pet_id: PET,
-};
-
-vi.mock("@/lib/auth/member-context", () => ({
-  requireMemberContext: vi.fn(async () => ({
-    userId: "member-1",
-    householdId: "household-1",
-    displayName: "Darius",
-  })),
-}));
-
+const VERSION = "2026-09-05T12:00:00.123456+00:00";
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: ROUTINE_ROW, error: null }),
-          }),
-        }),
-      }),
-    }),
-  })),
+  createClient: vi.fn(() => {
+    throw new Error("Edit adapters must not substitute a freshly read version");
+  }),
 }));
-
 vi.mock("@/lib/routines/commands", () => ({
   archiveRoutine: vi.fn(),
   completeOccurrence: vi.fn(),
@@ -62,7 +37,10 @@ function updateRoutine(raw: Record<string, unknown>) {
   if (handler === undefined) {
     throw new Error("missing update_routine handler");
   }
-  return handler(definition.inputSchema.parse(raw), context);
+  return handler(
+    definition.inputSchema.parse({ expectedUpdatedAt: VERSION, ...raw }),
+    context,
+  );
 }
 
 beforeEach(() => {
@@ -70,11 +48,16 @@ beforeEach(() => {
 });
 
 describe("update_routine coupled parameters", () => {
-  it("keeps the stored pet when only the area changes", async () => {
+  it("leaves the pet omitted for the locked command to preserve when area changes", async () => {
     const OTHER_AREA = "44444444-4444-4444-8444-444444444444";
     await updateRoutine({ routineId: ROUTINE, areaId: OTHER_AREA });
     expect(updateRoutineDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ areaId: OTHER_AREA, petId: PET }),
+      expect.objectContaining({
+        areaId: OTHER_AREA,
+        petId: undefined,
+        expectedUpdatedAt: VERSION,
+        idempotencyKey: context.idempotencyKey,
+      }),
     );
   });
 
@@ -82,27 +65,41 @@ describe("update_routine coupled parameters", () => {
     await updateRoutine({ routineId: ROUTINE, activeUntil: null });
     expect(updateRoutineDefinition).toHaveBeenCalledWith(
       expect.objectContaining({
-        activeFrom: ROUTINE_ROW.active_from,
+        activeFrom: undefined,
         activeUntil: null,
       }),
     );
   });
 
-  it("supplies the stored area when only the pet is cleared", async () => {
+  it("leaves area omitted when only the pet is explicitly cleared", async () => {
     await updateRoutine({ routineId: ROUTINE, petId: null });
     expect(updateRoutineDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ areaId: AREA, petId: null }),
+      expect.objectContaining({ areaId: undefined, petId: null }),
     );
   });
 
-  it("refuses a clear that the RPC would silently ignore", async () => {
-    await expect(
-      updateRoutine({
-        routineId: ROUTINE,
+  it("forwards a full window clear to the atomic command", async () => {
+    await updateRoutine({
+      routineId: ROUTINE,
+      activeFrom: null,
+      activeUntil: null,
+    });
+    expect(updateRoutineDefinition).toHaveBeenCalledWith(
+      expect.objectContaining({
         activeFrom: null,
         activeUntil: null,
+        expectedUpdatedAt: VERSION,
       }),
-    ).rejects.toThrow(/not supported in one step/);
+    );
+  });
+  it("requires the exact version from the earlier read", () => {
+    expect(() =>
+      updateRoutine({
+        routineId: ROUTINE,
+        expectedUpdatedAt: undefined,
+        title: "Rename",
+      }),
+    ).toThrow();
     expect(updateRoutineDefinition).not.toHaveBeenCalled();
   });
 
@@ -112,8 +109,8 @@ describe("update_routine coupled parameters", () => {
       expect.objectContaining({
         title: "New title",
         petId: undefined,
-        activeFrom: null,
-        activeUntil: null,
+        activeFrom: undefined,
+        activeUntil: undefined,
       }),
     );
   });

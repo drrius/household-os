@@ -48,7 +48,9 @@ async function sendUpload(
     method: "POST",
     body: form,
   });
-  const result: { path?: string; error?: string } = await response.json();
+  const result: { path?: string; error?: string } = await response
+    .json()
+    .catch(() => ({}));
   if (!response.ok || !result.path)
     throw new UploadRejection(
       result.error ?? "Couldn't upload the attachment.",

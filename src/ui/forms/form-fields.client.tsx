@@ -104,9 +104,11 @@ function useNativeValidation() {
 function FormRejectionLiveRegion({
   error,
   liveRegionRef,
+  showRequiredNotice,
 }: {
   error: string | undefined;
   liveRegionRef: RefObject<HTMLDivElement | null>;
+  showRequiredNotice: boolean;
 }) {
   return (
     <div
@@ -121,18 +123,26 @@ function FormRejectionLiveRegion({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <p className="text-sm text-muted-foreground">
-        Everything is required unless marked optional.
-      </p>
+      {showRequiredNotice ? (
+        <p className="text-sm text-muted-foreground">
+          Everything is required unless marked optional.
+        </p>
+      ) : null}
     </div>
   );
 }
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({
+  label,
+  variant,
+}: {
+  label: string;
+  variant: "default" | "outline";
+}) {
   const { pending } = useFormStatus();
   return (
     <button
-      className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-fit")}
+      className={cn(buttonVariants({ size: "lg", variant }), "w-full sm:w-fit")}
       disabled={pending}
       type="submit"
     >
@@ -145,10 +155,14 @@ export function FormFields({
   action,
   children,
   submitLabel,
+  showRequiredNotice = true,
+  submitVariant = "default",
 }: {
   action: FormAction;
   children: ReactNode;
   submitLabel: string;
+  showRequiredNotice?: boolean;
+  submitVariant?: "default" | "outline";
 }) {
   const {
     errors: nativeErrors,
@@ -182,13 +196,17 @@ export function FormFields({
       onInput={onInput}
       onInvalidCapture={onInvalidCapture}
     >
-      <FormRejectionLiveRegion error={error} liveRegionRef={alertRef} />
+      <FormRejectionLiveRegion
+        error={error}
+        liveRegionRef={alertRef}
+        showRequiredNotice={showRequiredNotice}
+      />
       <FormFieldsContext value={state}>
         <div className="grid gap-5" key={submissionId}>
           {children}
         </div>
       </FormFieldsContext>
-      <SubmitButton label={submitLabel} />
+      <SubmitButton label={submitLabel} variant={submitVariant} />
     </form>
   );
 }
