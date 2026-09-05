@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { Page, TestInfo } from "@playwright/test";
+import { expect, type Page, type TestInfo } from "@playwright/test";
 
 export async function captureMemberView(
   page: Page,
@@ -14,6 +14,14 @@ export async function captureMemberView(
     !/^\/(?:$|(?:plan|money|groceries|home|search)(?:\/|$))/.test(url.pathname)
   )
     throw new Error("Visual evidence requires a disposable CI member page.");
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth + 1,
+    ),
+    `${name} must not overflow horizontally`,
+  ).toBe(true);
   const file = testInfo.outputPath(`member-evidence-${name}`);
   await mkdir(dirname(file), { recursive: true });
   await writeFile(

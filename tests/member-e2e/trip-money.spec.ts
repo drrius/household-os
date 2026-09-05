@@ -149,6 +149,12 @@ test("two members share travel, paid history, assigned work and search context",
     await expect(
       alex.getByRole("heading", { name: "CI holiday", exact: true, level: 1 }),
     ).toBeVisible();
+    await alex.keyboard.press("Tab");
+    const skip = alex.getByRole("link", { name: "Skip to content" });
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeInViewport();
+    await alex.keyboard.press("Enter");
+    await expect(alex.getByRole("main")).toBeFocused();
     await captureMemberView(alex, testInfo, "desktop-trip");
     await exerciseBookingLifecycle(alex, sam, tripUrl);
     await exerciseDeviceSignOut(alex, sam, tripUrl);
