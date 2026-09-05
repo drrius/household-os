@@ -1,19 +1,19 @@
 -- Household text search stays inside Postgres and the caller's household.
 -- Expression GIN indexes cover meaningful text; private paths, ICS and credentials are excluded.
-create index routines_search_idx on public.routines using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(instructions,'')));
-create index meal_plan_entries_search_idx on public.meal_plan_entries using gin (to_tsvector('simple'::regconfig,coalesce(title_snapshot,'') || ' ' || coalesce(notes,'')));
-create index meal_definitions_search_idx on public.meal_definitions using gin (to_tsvector('simple'::regconfig,coalesce(name,'') || ' ' || coalesce(notes,'')));
-create index grocery_items_search_idx on public.grocery_items using gin (to_tsvector('simple'::regconfig,coalesce(name,'') || ' ' || coalesce(note,'') || ' ' || coalesce(quantity,'') || ' ' || coalesce(unit,'')));
-create index financial_events_search_idx on public.financial_events using gin (to_tsvector('simple'::regconfig,coalesce(description,'') || ' ' || coalesce(note,'')));
-create index household_projects_search_idx on public.household_projects using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(description,'') || ' ' || coalesce(destination,'')));
-create index project_tasks_search_idx on public.project_tasks using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(section,'')));
-create index trip_bookings_search_idx on public.trip_bookings using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(origin,'') || ' ' || coalesce(destination,'') || ' ' || coalesce(confirmation,'')));
-create index calendar_events_search_idx on public.calendar_events using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(location,'')));
-create index household_assets_search_idx on public.household_assets using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(category,'') || ' ' || coalesce(model,'') || ' ' || coalesce(serial_number,'')));
-create index household_contacts_search_idx on public.household_contacts using gin (to_tsvector('simple'::regconfig,coalesce(name,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(company,'') || ' ' || coalesce(email,'') || ' ' || coalesce(phone,'')));
-create index household_commitments_search_idx on public.household_commitments using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(provider,'')));
-create index household_decisions_search_idx on public.household_decisions using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'')));
-create index household_documents_search_idx on public.household_documents using gin (to_tsvector('simple'::regconfig,coalesce(title,'')));
+create index concurrently routines_search_idx on public.routines using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(instructions,'')));
+create index concurrently meal_plan_entries_search_idx on public.meal_plan_entries using gin (to_tsvector('simple'::regconfig,coalesce(title_snapshot,'') || ' ' || coalesce(notes,'')));
+create index concurrently meal_definitions_search_idx on public.meal_definitions using gin (to_tsvector('simple'::regconfig,coalesce(name,'') || ' ' || coalesce(notes,'')));
+create index concurrently grocery_items_search_idx on public.grocery_items using gin (to_tsvector('simple'::regconfig,coalesce(name,'') || ' ' || coalesce(note,'') || ' ' || coalesce(quantity,'') || ' ' || coalesce(unit,'')));
+create index concurrently financial_events_search_idx on public.financial_events using gin (to_tsvector('simple'::regconfig,coalesce(description,'') || ' ' || coalesce(note,'')));
+create index concurrently household_projects_search_idx on public.household_projects using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(description,'') || ' ' || coalesce(destination,'')));
+create index concurrently project_tasks_search_idx on public.project_tasks using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(section,'')));
+create index concurrently trip_bookings_search_idx on public.trip_bookings using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(origin,'') || ' ' || coalesce(destination,'') || ' ' || coalesce(confirmation,'')));
+create index concurrently calendar_events_search_idx on public.calendar_events using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(location,'')));
+create index concurrently household_assets_search_idx on public.household_assets using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(category,'') || ' ' || coalesce(model,'') || ' ' || coalesce(serial_number,'')));
+create index concurrently household_contacts_search_idx on public.household_contacts using gin (to_tsvector('simple'::regconfig,coalesce(name,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(company,'') || ' ' || coalesce(email,'') || ' ' || coalesce(phone,'')));
+create index concurrently household_commitments_search_idx on public.household_commitments using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'') || ' ' || coalesce(provider,'')));
+create index concurrently household_decisions_search_idx on public.household_decisions using gin (to_tsvector('simple'::regconfig,coalesce(title,'') || ' ' || coalesce(notes,'')));
+create index concurrently household_documents_search_idx on public.household_documents using gin (to_tsvector('simple'::regconfig,coalesce(title,'')));
 create function public.search_household(
  p_query text,p_types text[] default null,p_include_archived boolean default false,
  p_page_size integer default 25,p_after_score integer default null,p_after_kind text default null,p_after_id uuid default null
