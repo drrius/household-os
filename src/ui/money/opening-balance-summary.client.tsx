@@ -33,14 +33,21 @@ function summary(
 export function OpeningBalanceSummary({
   defaultDate,
   members,
+  defaultCreditorId,
+  defaultAmount = "",
 }: {
   defaultDate: string;
+  defaultCreditorId?: string;
+  defaultAmount?: string;
   members: readonly Member[];
 }) {
   const [creditorId, setCreditorId] = useState(
-    useFormFieldValue("creditorMemberId", members[0]?.id ?? ""),
+    useFormFieldValue(
+      "creditorMemberId",
+      defaultCreditorId ?? members[0]?.id ?? "",
+    ),
   );
-  const [amount, setAmount] = useAmountValue("amount");
+  const [amount, setAmount] = useAmountValue("amount", defaultAmount);
   const creditor = members.find((member) => member.id === creditorId);
   const debtor = members.find((member) => member.id !== creditorId);
 

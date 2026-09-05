@@ -193,6 +193,8 @@ export type AppSurface =
   "today" | "plan" | "groceries" | "money" | "home" | "inbox";
 
 export type WatchedTable =
+  | "areas"
+  | "pets"
   | "inbox_notifications"
   | "routine_occurrences"
   | "routines"

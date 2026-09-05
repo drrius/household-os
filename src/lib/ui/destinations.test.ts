@@ -18,6 +18,7 @@ describe("isFormSurface", () => {
 
   it("covers the form surfaces that do not end in new or edit", () => {
     expect(isFormSurface("/home/setup")).toBe(true);
+    expect(isFormSurface("/home/occurrences/occurrence-id")).toBe(true);
     expect(isFormSurface("/money/opening-balance")).toBe(true);
     expect(
       isFormSurface("/plan/meals/6b1f0d5c-6f1c-4a2f-9a2c-9d1f0c5b7e33"),

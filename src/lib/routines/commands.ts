@@ -170,6 +170,8 @@ export async function archiveRoutine(
 
 export async function updateRoutineDefinition(input: {
   routineId: string;
+  expectedUpdatedAt: string;
+  idempotencyKey: string;
   title?: string | null;
   instructions?: string | null;
   areaId?: string | null;
@@ -184,54 +186,38 @@ export async function updateRoutineDefinition(input: {
   activeUntil?: string | null;
   rebuildWindow?: boolean;
 }): Promise<Record<string, unknown>> {
-  const member = await requireMemberContext();
+  await requireMemberContext();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("update_routine_definition", {
+  const patch = Object.fromEntries(
+    Object.entries({
+      title: input.title,
+      instructions: input.instructions,
+      area_id: input.areaId,
+      pet_id: input.petId,
+      assignment_policy: input.assignmentPolicy,
+      assigned_member_id: input.assignedMemberId,
+      rotation_anchor_member_id: input.rotationAnchorMemberId,
+      schedule_kind: input.scheduleKind,
+      schedule_rule: input.scheduleRule,
+      priority: input.priority,
+      active_from: input.activeFrom,
+      active_until: input.activeUntil,
+      rebuild_window: input.rebuildWindow,
+    }).filter(([, value]) => value !== undefined),
+  );
+  const { data, error } = await supabase.rpc("edit_routine_definition", {
     p_routine_id: input.routineId,
-    p_title: input.title ?? null,
-    p_instructions: input.instructions ?? null,
-    p_area_id: input.areaId ?? null,
-    p_pet_id: input.petId ?? null,
-    p_assignment_policy: input.assignmentPolicy ?? null,
-    p_assigned_member_id: input.assignedMemberId ?? null,
-    p_rotation_anchor_member_id: input.rotationAnchorMemberId ?? null,
-    p_schedule_kind: input.scheduleKind ?? null,
-    p_schedule_rule: input.scheduleRule ?? null,
-    p_priority: input.priority ?? null,
-    p_active_from: input.activeFrom ?? null,
-    p_active_until: input.activeUntil ?? null,
-    p_rebuild_window: input.rebuildWindow ?? true,
+    p_expected_updated_at: input.expectedUpdatedAt,
+    p_idempotency_key: input.idempotencyKey,
+    p_patch: patch,
   });
-
-  if (error) {
-    throw new Error(`update_routine_definition failed: ${error.message}`);
-  }
-
-  // Unlike the RPC's coalescing parameters, this table update writes what it
-  // is given: undefined keeps the stored value, an explicit null clears it.
-  const optionalPatch: {
-    instructions?: string | null;
-    pet_id?: string | null;
-  } = {};
-  if (input.instructions !== undefined) {
-    optionalPatch.instructions = input.instructions;
-  }
-  if (input.petId !== undefined) {
-    optionalPatch.pet_id = input.petId;
-  }
-  if (Object.keys(optionalPatch).length > 0) {
-    const { error: optionalFieldsError } = await supabase
-      .from("routines")
-      .update(optionalPatch)
-      .eq("household_id", member.householdId)
-      .eq("id", input.routineId);
-
-    if (optionalFieldsError) {
-      throw new Error(
-        `update_routine_optional_fields failed: ${optionalFieldsError.message}`,
-      );
-    }
-  }
-
+  if (error?.code === "55P03")
+    throw new Error(
+      "This routine is being updated. Wait a moment and try saving again.",
+    );
+  if (error?.code === "40001")
+    throw new Error("This routine changed. Reopen it before saving.");
+  if (error)
+    throw new Error(`edit_routine_definition failed: ${error.message}`);
   return asRecord(data);
 }

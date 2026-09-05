@@ -30,7 +30,7 @@ test("routine form exposes the complete M7 scheduling contract", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "New routine" }),
   ).toBeVisible();
-  await chooseOption(page, "Assignment", "Alternating");
+  await chooseOption(page, "Assignment", "Take turns");
 
   await expect(page.locator('input[name="oneOffDate"]')).toHaveCount(1);
   await expect(page.getByRole("checkbox", { name: "Monday" })).toHaveCount(0);

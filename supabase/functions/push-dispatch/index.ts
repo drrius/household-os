@@ -9,6 +9,8 @@ import {
 } from "../_shared/push-dispatch-delivery.ts";
 import { authenticatePushDispatch } from "../_shared/push-dispatch-auth.ts";
 
+import type { PushDeliveryDatabase } from "../_shared/push-dispatch-schema.ts";
+
 export type { PushDeliveryResult } from "../_shared/push-dispatch-delivery.ts";
 
 Deno.serve(async (request) => {
@@ -28,9 +30,13 @@ Deno.serve(async (request) => {
     return Response.json({ error: "missing supabase url" }, { status: 500 });
   }
 
-  const supabase = createClient(supabaseUrl, authentication.credential, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const supabase = createClient<PushDeliveryDatabase>(
+    supabaseUrl,
+    authentication.credential,
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+    },
+  );
 
   const counts: DrainCounts = {
     sent: 0,
