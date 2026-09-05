@@ -17,4 +17,3 @@ end;
 $$;
 revoke all on function public.choose_household_decision_option(uuid, uuid) from public, anon;
 grant execute on function public.choose_household_decision_option(uuid, uuid) to authenticated;
-

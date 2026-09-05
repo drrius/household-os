@@ -51,7 +51,7 @@ describe("SURFACE_INVALIDATION_MAP", () => {
     ["meal_grocery_templates", ["plan"]],
     ["grocery_items", ["groceries", "today"]],
     ["shopping_sessions", ["groceries", "today"]],
-    ["expense_drafts", ["money", "today"]],
+    ["expense_drafts", ["money", "today", "groceries"]],
     ["financial_events", ["money", "today", "plan", "home"]],
     ["activity_events", ["home"]],
   ] as const)("maps %s changes to the expected surfaces", (table, surfaces) => {

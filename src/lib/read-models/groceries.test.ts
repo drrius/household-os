@@ -32,11 +32,13 @@ describe("mapGroceriesViewModel", () => {
           {
             id: "dairy",
             name: "Dairy & Eggs",
+            is_fallback: false,
             sort_order: 3,
           },
           {
             id: "produce",
             name: "Produce",
+            is_fallback: false,
             sort_order: 1,
           },
         ],
@@ -93,7 +95,14 @@ describe("mapGroceriesViewModel", () => {
             started_at: "2026-08-12T08:00:00Z",
           },
         ],
-        history: [{ id: "bread" }, { id: "eggs" }],
+        history: ["bread", "eggs"].map((id) => ({
+          id,
+          name: id,
+          quantity: null,
+          unit: null,
+          purchased_at: "2026-08-11T12:00:00Z",
+          originating_meal_plan_entry_id: null,
+        })),
       }),
     );
 
@@ -145,6 +154,7 @@ describe("mapGroceriesViewModel", () => {
           {
             id: "produce",
             name: "Produce",
+            is_fallback: false,
             sort_order: 1,
           },
         ],
@@ -237,4 +247,32 @@ describe("mapGroceriesViewModel", () => {
     expect(model.duplicates).toEqual([]);
     expect(model.recentHistoryLabel).toBeNull();
   });
+});
+
+it("retains grocery history without dead links to removed meals", () => {
+  const base = {
+    name: "Rice",
+    quantity: null,
+    unit: null,
+    purchased_at: "2026-09-01T00:00:00Z",
+    originating_meal_plan_entry_id: "meal",
+  };
+  const model = mapGroceriesViewModel(
+    groceriesInput({
+      history: [
+        { ...base, id: "live", meal: { removed_at: null } },
+        {
+          ...base,
+          id: "removed",
+          meal: { removed_at: "2026-09-02T00:00:00Z" },
+        },
+        { ...base, id: "missing", meal: null },
+      ],
+    }),
+  );
+  expect(model.history?.map((item) => item.mealId)).toEqual([
+    "meal",
+    null,
+    null,
+  ]);
 });

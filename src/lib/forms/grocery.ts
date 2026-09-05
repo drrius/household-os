@@ -29,9 +29,21 @@ export function parseGroceryForm(formData: FormData): GroceryFormValue {
   const categoryId = optionalText(formData.get("categoryId"));
   return {
     name: shortTextSchema.parse(requiredString(formData, "name")),
-    quantity: optionalText(formData.get("quantity")),
-    unit: optionalText(formData.get("unit")),
+    quantity: z
+      .string()
+      .max(80, "Keep the quantity under 80 characters.")
+      .nullable()
+      .parse(optionalText(formData.get("quantity"))),
+    unit: z
+      .string()
+      .max(80, "Keep the unit under 80 characters.")
+      .nullable()
+      .parse(optionalText(formData.get("unit"))),
     categoryId: categoryId === null ? null : uuidSchema.parse(categoryId),
-    note: optionalText(formData.get("note")),
+    note: z
+      .string()
+      .max(1000, "Keep the note under 1000 characters.")
+      .nullable()
+      .parse(optionalText(formData.get("note"))),
   };
 }
