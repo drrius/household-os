@@ -40,6 +40,7 @@ export function LibraryRefreshFixture() {
           }}
         />
       </section>
+      <ExistingTemplate revision={revision} action={action} />
       <section aria-label="New meal">
         <LibraryMealEditor
           id={`${id}-${revision}`}
@@ -57,5 +58,39 @@ export function LibraryRefreshFixture() {
         />
       </section>
     </main>
+  );
+}
+
+function ExistingTemplate({
+  revision,
+  action,
+}: {
+  revision: number;
+  action: FormAction;
+}) {
+  return (
+    <section aria-label="Existing default grocery">
+      <MealTemplateEditor
+        id={id}
+        libraryId={id}
+        date="2026-09-05"
+        action={action}
+        categories={[
+          { id: "produce", name: `Produce ${revision}` },
+          { id: "dairy", name: "Dairy" },
+        ]}
+        template={{
+          id,
+          name: `Tomatoes ${revision}`,
+          quantity: "2",
+          unit: null,
+          grocery_category_id: "produce",
+          note: null,
+          sort_order: 0,
+          archived_at: null,
+          updated_at: `2026-09-05T00:00:0${revision}Z`,
+        }}
+      />
+    </section>
   );
 }

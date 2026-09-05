@@ -23,7 +23,7 @@ export async function loadLibraryMeal(id: string) {
     supabase
       .from("meal_grocery_templates")
       .select(
-        "id, name, quantity, unit, grocery_category_id, note, sort_order, archived_at",
+        "id, name, quantity, unit, grocery_category_id, note, sort_order, archived_at, updated_at",
       )
       .eq("household_id", member.householdId)
       .eq("meal_definition_id", id)
@@ -171,6 +171,7 @@ export async function saveMealTemplate(
         .eq("household_id", member.householdId)
         .eq("meal_definition_id", input.libraryId)
         .eq("id", input.id)
+        .is("archived_at", null)
         .maybeSingle();
       if (
         !readError &&
@@ -195,6 +196,7 @@ export async function saveMealTemplate(
     .eq("household_id", member.householdId)
     .eq("meal_definition_id", input.libraryId)
     .eq("id", input.id)
+    .eq("updated_at", input.version)
     .is("archived_at", null)
     .select("id")
     .maybeSingle();

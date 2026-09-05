@@ -34,6 +34,7 @@ export function EchoedSelect({
   initialValue = "",
   items,
   name,
+  onValueChange,
   required,
 }: {
   "aria-describedby"?: string;
@@ -42,6 +43,7 @@ export function EchoedSelect({
   initialValue?: string;
   items: readonly FormSelectOption[];
   name: string;
+  onValueChange?: (value: string) => void;
   required?: boolean;
 }) {
   return (
@@ -52,6 +54,7 @@ export function EchoedSelect({
       id={id}
       items={items}
       name={name}
+      onValueChange={onValueChange}
       required={required}
     />
   );

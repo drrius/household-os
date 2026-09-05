@@ -147,3 +147,21 @@ it("keeps a saved-meal edit bound to the household and version the editor opened
     saveLibraryMeal({ ...input, isNew: false, version }),
   ).rejects.toThrow("Reload it before saving");
 });
+
+it("rejects a stale default-grocery edit without replacing the partner's data", async () => {
+  const edit = {
+    ...input,
+    isNew: false,
+    version: "2026-09-05T12:00:00.123456+00:00",
+    libraryId: input.id,
+    quantity: null,
+    unit: null,
+    categoryId: null,
+    note: null,
+  };
+  const calls = database([{ data: { id: input.id } }, { data: null }]);
+  await expect(saveMealTemplate(edit)).rejects.toThrow("Reload the saved meal");
+  expect(calls).toContainEqual(["eq", "updated_at", edit.version]);
+  expect(calls).toContainEqual(["eq", "household_id", "our-household"]);
+  expect(calls).toContainEqual(["eq", "meal_definition_id", input.id]);
+});

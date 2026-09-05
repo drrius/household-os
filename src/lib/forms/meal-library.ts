@@ -35,10 +35,14 @@ export function parseLibraryMealForm(form: FormData) {
 
 export function parseMealTemplateForm(form: FormData) {
   const category = optional(form.get("categoryId"), 36);
+  const isNew = form.get("isNew") === "yes";
   return {
     id: id.parse(form.get("templateId")),
     libraryId: id.parse(form.get("libraryId")),
-    isNew: form.get("isNew") === "yes",
+    isNew,
+    version: isNew
+      ? null
+      : z.iso.datetime({ offset: true }).parse(form.get("version")),
     name: z
       .string()
       .trim()

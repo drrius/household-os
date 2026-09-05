@@ -31,6 +31,7 @@ describe("saved meal forms", () => {
       templateId: id,
       libraryId: id,
       name: " Tomatoes ",
+      isNew: "yes",
       quantity: "2–3",
       unit: " tins ",
       categoryId: "",
@@ -47,7 +48,12 @@ describe("saved meal forms", () => {
       fc.property(fc.integer({ min: 121, max: 1000 }), (length) => {
         expect(() =>
           parseMealTemplateForm(
-            form({ templateId: id, libraryId: id, name: "x".repeat(length) }),
+            form({
+              templateId: id,
+              libraryId: id,
+              name: "x".repeat(length),
+              isNew: "yes",
+            }),
           ),
         ).toThrow();
       }),
@@ -76,4 +82,21 @@ it("requires the opened version for edits and preserves exact version tokens", (
       },
     ),
   );
+});
+
+it("requires exact default-grocery edit versions while new items have no version", () => {
+  const input = form({
+    templateId: id,
+    libraryId: id,
+    name: "Pasta",
+    isNew: "no",
+    version: "2026-09-05T12:00:00.123456+00:00",
+  });
+  expect(parseMealTemplateForm(input).version).toBe(
+    "2026-09-05T12:00:00.123456+00:00",
+  );
+  input.delete("version");
+  expect(() => parseMealTemplateForm(input)).toThrow();
+  input.set("isNew", "yes");
+  expect(parseMealTemplateForm(input).version).toBeNull();
 });
