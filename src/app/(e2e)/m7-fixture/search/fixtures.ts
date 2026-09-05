@@ -1,5 +1,9 @@
 import type { SearchRequest } from "@/domain/search/query";
-import type { SearchPage, SearchResult } from "@/domain/search/results";
+import {
+  parseSearchPage,
+  type SearchPage,
+  type SearchResult,
+} from "@/domain/search/results";
 const uuid = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const row = (
@@ -20,6 +24,7 @@ const row = (
   score: 100,
 });
 const records: SearchResult[] = [
+  row(7, "document", "Emoji " + "😀".repeat(194), "Pack " + "🧳".repeat(235)),
   row(
     1,
     "trip",
@@ -83,12 +88,12 @@ export function fixtureSearch(request: SearchRequest): SearchPage {
     : 0;
   const results = matches.slice(offset, offset + 25),
     last = results.at(-1);
-  return {
+  return parseSearchPage({
     total_count: String(matches.length),
     results,
     next_cursor:
       last && offset + 25 < matches.length
         ? { score: last.score, kind: last.kind, id: last.id }
         : null,
-  };
+  });
 }

@@ -87,3 +87,26 @@ test("empty and invalid queries have clear recovery and notes render as text", a
     page.getByRole("list", { name: "Search results" }).locator("img"),
   ).toHaveCount(0);
 });
+
+test("valid Unicode titles and excerpts render without breaking the result page", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/m7-fixture/search?q=Emoji&type=document");
+  await expect(page.getByRole("status")).toHaveText("1 match");
+  await expect(page.getByRole("heading", { name: /^Emoji /u })).toHaveText(
+    "Emoji " + "😀".repeat(194),
+  );
+  await expect(
+    page.getByText("Pack " + "🧳".repeat(235), { exact: true }),
+  ).toHaveCount(1);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath("search-unicode.png"),
+    fullPage: true,
+    caret: "initial",
+  });
+});

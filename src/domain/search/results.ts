@@ -1,12 +1,18 @@
 import { z } from "zod";
 import { resultKinds, searchCursorSchema, searchResultHref } from "./query";
+// PostgreSQL text length/left count Unicode code points, not UTF-16 code units.
+function postgresText(maximum: number) {
+  return z.string().refine((value) => [...value].length <= maximum, {
+    message: `Must contain at most ${maximum} characters`,
+  });
+}
 const resultSchema = z.object({
   kind: z.enum(resultKinds),
   id: z.uuid(),
   parent_id: z.uuid().nullable(),
-  title: z.string().min(1).max(200),
-  excerpt: z.string().max(240),
-  status: z.string().max(40),
+  title: postgresText(200).refine((value) => value.length > 0),
+  excerpt: postgresText(240),
+  status: postgresText(40),
   archived: z.boolean(),
   date: z.iso.date().nullable(),
   score: z.number().int().nonnegative(),

@@ -153,9 +153,13 @@ select 'decision'::text kind,e.id,null::uuid parent_id,e.title title,
  and (p_types is null or 'decision'=any(p_types))
  union all
 select 'document'::text kind,e.id,null::uuid parent_id,e.title title,
- '' body,'' labels,'active' status,(e.archived_at is not null) archived,null::date date,
- to_tsvector('simple'::regconfig,coalesce(e.title,'')) document,to_tsvector('simple'::regconfig,'') label_document
+ '' body,coalesce(p.title,'') || ' ' || coalesce(b.title,'') || ' ' || coalesce(a.title,'') || ' ' || coalesce(c.title,'') labels,'active' status,(e.archived_at is not null) archived,null::date date,
+ to_tsvector('simple'::regconfig,coalesce(e.title,'')) document,to_tsvector('simple'::regconfig,coalesce(p.title,'') || ' ' || coalesce(b.title,'') || ' ' || coalesce(a.title,'') || ' ' || coalesce(c.title,'')) label_document
  from public.household_documents e
+ left join public.household_projects p on p.household_id=e.household_id and p.id=e.project_id
+ left join public.trip_bookings b on b.household_id=e.household_id and b.id=e.booking_id and b.project_id=e.project_id
+ left join public.household_assets a on a.household_id=e.household_id and a.id=e.asset_id
+ left join public.household_commitments c on c.household_id=e.household_id and c.id=e.commitment_id
  where e.household_id=tenant and true
  and (p_include_archived or not (e.archived_at is not null))
  and (p_types is null or 'document'=any(p_types))

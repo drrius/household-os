@@ -74,6 +74,28 @@ select is(public.search_household('Flightconfirmation',array['trip'])->>'total_c
 select is(public.search_household('Modelnumber',array['asset'])->>'total_count','1','appliance model is searchable');
 select is(public.search_household('Repaircompany',array['contact'])->>'total_count','1','contact company is searchable');
 select is(public.search_household('Insuranceprovider',array['commitment'])->>'total_count','1','commitment provider is searchable');
+-- Generic document titles remain findable through every supported household parent.
+update public.household_documents set project_id='00000000-0000-4000-8000-000000010010' where id='00000000-0000-4000-8000-000000010019';
+select is(public.search_household('Copenhagen',array['document'])->>'total_count','1','parent project title finds its document');
+select is(public.search_household('Copenhagen document',array['document'])->>'total_count','1','terms span document title and parent label');
+select ok((public.search_household('Copenhagen',array['document'])#>>'{results,0,excerpt}') like '%Copenhagen%','document excerpt explains matching parent');
+update public.household_documents set project_id='00000000-0000-4000-8000-000000010011',booking_id='00000000-0000-4000-8000-000000010013' where id='00000000-0000-4000-8000-000000010019';
+select is(public.search_household('booking document',array['document'])->>'total_count','1','booking title finds linked confirmation');
+select is(public.search_household('trip document',array['document'])->>'total_count','1','booking document also inherits trip title');
+update public.household_documents set project_id=null,booking_id=null,asset_id='00000000-0000-4000-8000-000000010015' where id='00000000-0000-4000-8000-000000010019';
+select is(public.search_household('appliance document',array['document'])->>'total_count','1','asset title finds its document');
+update public.household_documents set asset_id=null,commitment_id='00000000-0000-4000-8000-000000010017' where id='00000000-0000-4000-8000-000000010019';
+select is(public.search_household('commitment document',array['document'])->>'total_count','1','commitment title finds its document');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000403',true);
+select is(public.search_household('commitment document',array['document'])->>'total_count','0','parent label search cannot see the other household document');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000401',true);
+update public.household_documents set commitment_id=null where id='00000000-0000-4000-8000-000000010019';
+select is(public.search_household('Needle document',array['document'])->>'total_count','1','standalone document remains searchable');
+select is(public.search_household('commitment document',array['document'])->>'total_count','0','unlinking a parent removes its label from the document');
+update public.household_documents set title='Emoji '||repeat('😀',194) where id='00000000-0000-4000-8000-000000010019';
+select is(length(public.search_household('Emoji',array['document'])#>>'{results,0,title}'),200,'database returns full Unicode title at character limit');
+update public.household_documents set title='Needle document' where id='00000000-0000-4000-8000-000000010019';
+
 select is(public.search_household('note',array['task'])->>'total_count','1','task notes are searchable');
 select is(public.search_household('')->>'total_count','0','empty query never returns every household record');
 select is(public.search_household('n')->>'total_count','0','one-character query does not scan the household');
@@ -151,8 +173,9 @@ insert into public.household_contacts(id,household_id,created_by,name) values ('
 insert into public.household_contacts(id,household_id,created_by,name) values ('00000000-0000-4000-8000-000000050058','00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000000401','Pagination contact');
 insert into public.household_contacts(id,household_id,created_by,name) values ('00000000-0000-4000-8000-000000050059','00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000000401','Pagination contact');
 insert into public.household_contacts(id,household_id,created_by,name,archived_at) values ('00000000-0000-4000-8000-000000050999','00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000000401','Archived contact','2026-09-01');
-insert into public.household_projects(id,household_id,created_by,kind,title,archived_at) values ('00000000-0000-4000-8000-000000051000','00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000000401','project','Archived parent','2026-09-01');
+insert into public.household_projects(id,household_id,created_by,kind,title) values ('00000000-0000-4000-8000-000000051000','00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000000401','project','Archived parent');
 insert into public.project_tasks(id,household_id,created_by,project_id,title) values ('00000000-0000-4000-8000-000000051001','00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000000401','00000000-0000-4000-8000-000000051000','Hiddenchild task');
+update public.household_projects set archived_at='2026-09-01' where id='00000000-0000-4000-8000-000000051000';
 insert into public.grocery_items(id,household_id,name,sort_order,state,purchased_at) values ('00000000-0000-4000-8000-000000051002','00000000-0000-4000-8000-000000004001','Purchased grocery',2,'purchased','2026-09-01');
 insert into public.routine_occurrences(id,household_id,routine_id,due_date,original_due_date,status,closed_at) values ('00000000-0000-4000-8000-000000051003','00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000010002','2026-09-01','2026-09-01','completed','2026-09-01');
 insert into public.routine_completions(household_id,occurrence_id,completed_by_member_id,completed_on,note) values ('00000000-0000-4000-8000-000000004001','00000000-0000-4000-8000-000000051003','00000000-0000-4000-8000-000000000401','2026-09-01','Completednote');
