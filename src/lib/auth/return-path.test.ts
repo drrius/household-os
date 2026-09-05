@@ -18,7 +18,6 @@ describe("post-authentication destination", () => {
   it.each([
     undefined,
     null,
-    ["/home"],
     "https://evil.invalid",
     "//evil.invalid",
     "\\\\evil.invalid",
@@ -43,6 +42,9 @@ describe("post-authentication destination", () => {
   ])("rejects unsafe or non-product destination %s", (path) =>
     expect(safeReturnPath(path)).toBe("/"),
   );
+  it("rejects array-valued return destinations", () => {
+    expect(safeReturnPath(["/home"])).toBe("/");
+  });
   it("retains inherited browser fragments without overwriting explicit destination fragments", () => {
     expect(
       returnPathWithFragment("/money/events/123?mode=full", "#history"),
