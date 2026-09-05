@@ -18,10 +18,10 @@ export default defineConfig({
     { name: "member-chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "pnpm dev --webpack --hostname 127.0.0.1 --port 4173",
+    command: "pnpm build && pnpm start --hostname 127.0.0.1 --port 4173",
     url: "http://127.0.0.1:4173/sign-in",
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 240_000,
     env: {
       HOUSEHOLD_OS_E2E_FIXTURES: "0",
       HOUSEHOLD_OS_VERIFY_DIST_DIR: ".next-verify",
