@@ -6,6 +6,7 @@ import { exerciseSearchReturn } from "./search-return";
 import { exerciseShoppingMoney } from "./shopping-money";
 import { exerciseHomeConnections } from "./home-connections";
 import { watchRealtime } from "./realtime-diagnostics";
+import { captureMemberView } from "./visual-evidence";
 
 async function enroll(page: Page, link: string) {
   try {
@@ -55,7 +56,7 @@ async function createTripAndBooking(page: Page) {
 test("two members share travel, paid history, assigned work and search context", async ({
   browser,
   baseURL,
-}) => {
+}, testInfo) => {
   const links = await bootstrapMembers(baseURL!);
   const memberA = await browser.newContext({ baseURL });
   const memberB = await browser.newContext({
@@ -103,6 +104,7 @@ test("two members share travel, paid history, assigned work and search context",
     await expect(
       sam.getByRole("region", { name: "Paid expenses", exact: true }),
     ).toContainText("CHF 82.10");
+    await captureMemberView(sam, testInfo, "mobile-trip");
     await sam.goto("/money");
     await expect(
       sam.getByRole("heading", { name: "You owe Alex", exact: true }),
@@ -120,10 +122,19 @@ test("two members share travel, paid history, assigned work and search context",
       }),
     ).toBeVisible();
     await exerciseMoneyHistory(alex, sam, tripUrl);
+    await captureMemberView(sam, testInfo, "mobile-financial-history");
     await exerciseProjectHandoff(alex, sam, tripUrl);
     await exerciseSearchReturn(sam);
     await exerciseShoppingMoney(alex, sam);
-    await exerciseHomeConnections(alex, sam);
+    await captureMemberView(sam, testInfo, "mobile-shopping-expense");
+    const home = await exerciseHomeConnections(alex, sam);
+    await sam.goto(home.inventoryUrl);
+    await captureMemberView(sam, testInfo, "mobile-inventory");
+    await sam.emulateMedia({ reducedMotion: "reduce" });
+    await sam.goto("/");
+    await captureMemberView(sam, testInfo, "mobile-today-reduced-motion");
+    await alex.goto(tripUrl);
+    await captureMemberView(alex, testInfo, "desktop-trip");
   } catch (error) {
     for (const [name, context] of [
       ["Alex", memberA],

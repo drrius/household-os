@@ -121,3 +121,13 @@ PR70 (`15dfb0b`, based on PR69) waits for realtime.setAuth() before subscribing.
 CodeRabbit positively reviewed assembly 1514451 (5552296356); its verify and database jobs passed. Search's final browser job 101315479898 failed one calendar test: save-heading timeout initially, then connection termination and fixture-load timeout on retries. The other 321 cases passed and 14 flaky cases eventually passed. Only the terminal failed job was requested for rerun; no application behavior was changed based on inconclusive infrastructure errors.
 
 The new review-order guide records ready main-based PRs, dependent changes, and outstanding gates. PR55/66 descriptions were rewritten to remove stale dependency and verification claims.
+
+### Partner refresh and shopping acceptance established (08e45ba)
+
+Member job 101319046580 now reports successful database subscriptions with no table/column errors. The task completion refreshed Alex's existing checklist, Sam saw Alex's grocery item and cart claim without reload, and the shopping draft/posting flow preserved the expected CHF 40.00 → CHF 50.00 obligation. Both members opened the exact posted event from purchase history. Search edit/reload/save/return also passed.
+
+The test reached inventory after creating the contact, warranty and maintenance entry. Its snapshot shows the saved warranty and maintenance record on Sam's mobile screen; the assertion failed because an unscoped text locator also matched the hidden responsive layout. The next revision scopes it to the visible record region. Renewal/decision acceptance remains unexecuted.
+
+Added screenshot and accessible-text capture of selected actual member paths, guarded to the disposable CI origin and product paths. The upload action is pinned to official v7.0.1 commit 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a, uploads only member-evidence files, and retains them for three days. No auth pages, session files or traces are included. Targeted lint and TypeScript passed. These artifacts are preparation for the final visual audit, not visual proof until downloaded and inspected.
+
+CodeRabbit accepted integration 08e45ba in comment 5552358791. PR70's automatic review produced no actionable comments; its explicit requested verdict and standalone browser gate remain to be recorded.

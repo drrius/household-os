@@ -39,7 +39,10 @@ async function exerciseInventory(alex: Page, sam: Page) {
 
   await sam.goto(inventoryUrl);
   await expect(
-    sam.getByText("Warranty ends", { exact: true }).locator(".."),
+    sam
+      .getByRole("region", { name: "CI dishwasher", exact: true })
+      .getByText("Warranty ends", { exact: true })
+      .locator(".."),
   ).toContainText(warranty);
   await expect(
     sam.getByRole("heading", { name: "CI filter cleaned", exact: true }),
@@ -49,6 +52,7 @@ async function exerciseInventory(alex: Page, sam: Page) {
     .click();
   await expect(sam).toHaveURL((url) => url.pathname === contactPath);
   await expect(heading(sam, "CI repair contact")).toBeVisible();
+  return inventoryUrl;
 }
 
 async function exerciseRenewal(alex: Page, sam: Page) {
@@ -110,7 +114,8 @@ async function exerciseDecision(alex: Page, sam: Page) {
 }
 
 export async function exerciseHomeConnections(alex: Page, sam: Page) {
-  await exerciseInventory(alex, sam);
+  const inventoryUrl = await exerciseInventory(alex, sam);
   await exerciseRenewal(alex, sam);
   await exerciseDecision(alex, sam);
+  return { inventoryUrl };
 }

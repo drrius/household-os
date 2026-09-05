@@ -15,7 +15,7 @@ These PRs have passing required GitHub CI, explicit positive CodeRabbit review o
 | [59](https://github.com/drrius/household-os/pull/59) | Concurrent meal edits and leftover dates     | `99f0eda` |
 | [69](https://github.com/drrius/household-os/pull/69) | Realtime channel replacement lifecycle race  | `1505126` |
 
-PR69 fixes a reproduced lifecycle race. The assembled two-member test still reports stale partner state, so it does not establish complete realtime acceptance.
+PR69 fixes a reproduced lifecycle race. The combined PR69 + PR70 fix passed partner task and shopping refresh in member job 101319046580.
 
 ## Reviewed dependent changes
 
@@ -36,9 +36,9 @@ The integration PRs include their source feature commits. They are not independe
 ## Not ready
 
 - [#55](https://github.com/drrius/household-os/pull/55), `8317481`, is based on #67 and includes #47. Verify/database CI and CodeRabbit review passed. Browser job `101315479898` failed: the calendar save check timed out, and both retries failed while loading the fixture. Its targeted job rerun was requested; search remains not ready.
-- [#66](https://github.com/drrius/household-os/pull/66), includes realtime authentication follow-up #70, remains draft. It integrates the remaining workflows and Today agenda. The authenticated journey has established persisted travel costs, correction/refund history, partner balances and task completion, but the other member's open checklist remains stale. Run `33970334168` confirmed that socket joins succeed but database subscriptions report table/column errors. Search edit/return passed; shopping stopped at partner visibility. PR70 waits for authentication before subscribing and still needs combined runtime proof.
+- [#66](https://github.com/drrius/household-os/pull/66), includes realtime authentication follow-up #70, remains draft. It integrates the remaining workflows and Today agenda. The authenticated journey has established persisted travel costs, correction/refund history, partner balances and task completion, but the other member's open checklist remains stale. Member job `101319046580` on `08e45ba` passed task and shopping partner refresh, search return, posting and exact financial-event navigation. It stopped on an ambiguous warranty text locator; the snapshot shows the persisted warranty and maintenance record. The next run scopes the locator and collects visual evidence.
 
-All 15 expansion PRs had zero unresolved review threads at this snapshot. CodeRabbit positively reviewed `1514451` in comment 5552296356 after the earlier service error. PR70 and its assembly integration still require review and CI.
+All 15 expansion PRs had zero unresolved review threads at this snapshot. CodeRabbit positively reviewed `1514451` in comment 5552296356 after the earlier service error. CodeRabbit also accepted the PR70 integration at `08e45ba` (5552358791). Current complete member/browser CI and the standalone PR70 verdict remain required.
 
 Many Vercel previews hit a build rate limit; canceled or ignored previews also do not count as working deployments. The separate pre-existing draft #40 is outside this expansion effort. See [integrated acceptance](integrated-acceptance.md) for evidence and remaining gates, and the [release guide](../household-release-runbook.md) for manual setup and device checks.
 

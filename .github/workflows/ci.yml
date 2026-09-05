@@ -181,3 +181,10 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm db:start
       - run: pnpm exec playwright test --config playwright.members.config.ts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: member-visual-evidence
+          path: test-results/**/member-evidence-*
+          if-no-files-found: ignore
+          retention-days: 3
