@@ -8,7 +8,7 @@ export const SURFACE_INVALIDATION_MAP = {
   grocery_items: ["groceries", "today"],
   shopping_sessions: ["groceries", "today"],
   expense_drafts: ["money", "today"],
-  financial_events: ["money", "today"],
+  financial_events: ["money", "today", "plan", "home"],
   activity_events: ["home"],
   household_projects: ["plan", "today", "home"],
   project_tasks: ["plan", "today"],
