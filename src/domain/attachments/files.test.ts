@@ -64,3 +64,12 @@ describe("household attachment boundary", () => {
     ).toBeNull();
   });
 });
+
+it("rejects PDF paths in completion photos at the canonical boundary", () => {
+  expect(
+    isHouseholdAttachment(
+      "00000000-0000-4000-8000-000000000001/completions/00000000-0000-4000-8000-000000000002.pdf",
+      "00000000-0000-4000-8000-000000000001",
+    ),
+  ).toBe(false);
+});

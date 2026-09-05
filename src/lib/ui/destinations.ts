@@ -43,6 +43,7 @@ const FORM_SURFACE_PATTERNS = [
   /^\/plan\/meals\/[^/]+$/,
   /^\/money\/opening-balance$/,
   /^\/home\/setup$/,
+  /^\/home\/occurrences\/[^/]+$/,
   /^\/home\/notifications$/,
 ] as const;
 

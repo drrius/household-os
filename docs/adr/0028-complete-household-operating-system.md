@@ -1,7 +1,7 @@
 # ADR 0028: Complete the household operating system
 
 - Status: Accepted by the household owner in the implementation request and scope clarification.
-- Date: 2026-09-05
+- Date: 2026-09-05 (Europe/Zurich)
 - Amends: the v1 feature freeze, ADR 0002, ADR 0004's calendar exclusion, ADR 0020 attachment formats, and the deferred design phase.
 
 ## Decision
@@ -18,4 +18,8 @@ Preserve tenant isolation, two equal members, passkeys, CHF integer-centime acco
 
 ## Delivery
 
-Use docs/expansion/goal.md as the persistent effective goal, including the user's explicit app-wide scope clarification. Record additional decisions and acceptance criteria as implementation proceeds. Deliver complete slices as independently reviewable or clearly dependency-ordered PRs. Verify every tenant invariant and financial change. Resolve substantiated Codex findings, explain disagreements, and request rereview until positive feedback. Document external credential and service blockers without claiming their live verification.
+Use docs/expansion/goal.md as the persistent effective goal, including the user's explicit app-wide scope clarification. Record additional decisions and acceptance criteria as implementation proceeds. Deliver complete slices as independently reviewable or clearly dependency-ordered PRs. Verify every tenant invariant and financial change. Resolve substantiated CodeRabbit findings, explain disagreements, and request rereview until explicit positive CodeRabbit review is received. Document external credential and service blockers without claiming their live verification.
+
+## Attachment upload security clarification
+
+Authenticated browser Storage INSERT is disabled. The `household-attachment-upload` Supabase Edge Function verifies the user's JWT and household membership, bounds and inspects the bytes, and creates an immutable object through a narrowly confined privileged writer. The privileged credential is Supabase's injected function credential; it is never configured in Vercel, returned to clients, logged, or used for arbitrary paths. User-context reservation and database row locks still govern allocation, attachment claims, and cleanup. This permits the existing private attachment feature without adding paid infrastructure. Deployment is an explicit setup step documented in `docs/attachment-upload-setup.md`; implementation and fixture checks alone do not establish live deployment.
