@@ -1,3 +1,6 @@
+"use client";
+import { useState } from "react";
+
 import type { FormAction } from "@/lib/forms/action-state";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { FormField, FormFields, FormSection } from "@/ui/forms/form-page";
@@ -15,6 +18,8 @@ type Option = { id: string; name: string };
 type Member = { user_id: string; display_name: string };
 export type RoutineFormDefaults = {
   routineId?: string;
+  expectedUpdatedAt?: string;
+  idempotencyKey?: string;
   title?: string;
   instructions?: string | null;
   areaId?: string;
@@ -36,15 +41,7 @@ function RoutineDetails({
   pets: readonly Option[];
 }) {
   return (
-    <FormSection legend="Routine">
-      <FormField label="Title">
-        <EchoedInput
-          initialValue={defaults.title}
-          maxLength={120}
-          name="title"
-          required
-        />
-      </FormField>
+    <FormSection legend="Details">
       <FormField
         label="Instructions"
         description="Details both members can see."
@@ -58,7 +55,12 @@ function RoutineDetails({
       </FormField>
       <FormField label="Area">
         <EchoedSelect
-          initialValue={defaults.areaId ?? areas[0]?.id ?? ""}
+          initialValue={
+            defaults.areaId ??
+            areas.find((area) => area.name === "General")?.id ??
+            areas[0]?.id ??
+            ""
+          }
           items={areas.map((area) => ({
             label: area.name,
             value: area.id,
@@ -100,15 +102,7 @@ function RoutineDetails({
   );
 }
 
-export function RoutineForm({
-  action,
-  areas,
-  defaultDate,
-  defaults = {},
-  members,
-  pets,
-  submitLabel,
-}: {
+type RoutineFormProps = {
   action: FormAction;
   areas: readonly Option[];
   defaultDate: string;
@@ -116,13 +110,57 @@ export function RoutineForm({
   members: readonly Member[];
   pets: readonly Option[];
   submitLabel: string;
-}) {
+};
+export function RoutineForm(props: RoutineFormProps) {
   return (
-    <FormFields protectChanges action={action} submitLabel={submitLabel}>
+    <RoutineFormSession key={props.defaults?.routineId ?? "new"} {...props} />
+  );
+}
+function RoutineFormSession({
+  action,
+  areas,
+  defaultDate: initialDate,
+  defaults: initialDefaults = {},
+  members,
+  pets,
+  submitLabel,
+}: RoutineFormProps) {
+  const [{ defaults, defaultDate }] = useState({
+    defaults: initialDefaults,
+    defaultDate: initialDate,
+  });
+  return (
+    <FormFields
+      protectChanges
+      action={action}
+      submitLabel={submitLabel}
+      showRequiredNotice={false}
+    >
       {defaults.routineId ? (
-        <input name="routineId" type="hidden" value={defaults.routineId} />
+        <>
+          <input name="routineId" type="hidden" value={defaults.routineId} />
+          <input
+            name="expectedUpdatedAt"
+            type="hidden"
+            value={defaults.expectedUpdatedAt ?? ""}
+          />
+          <input
+            name="idempotencyKey"
+            type="hidden"
+            value={defaults.idempotencyKey ?? ""}
+          />
+        </>
       ) : null}
-      <RoutineDetails areas={areas} defaults={defaults} pets={pets} />
+      <FormSection legend="What needs doing?">
+        <FormField label="Title">
+          <EchoedInput
+            initialValue={defaults.title}
+            maxLength={120}
+            name="title"
+            required
+          />
+        </FormField>
+      </FormSection>
       <RoutineResponsibilityFields
         defaultMemberId={defaults.memberId ?? null}
         defaultPolicy={defaults.assignmentPolicy ?? "shared"}
@@ -133,6 +171,15 @@ export function RoutineForm({
         defaultMode={defaults.scheduleMode ?? "one_off"}
         rule={defaults.scheduleRule ?? {}}
       />
+      <details
+        className="group border-t pt-4"
+        open={Boolean(defaults.instructions || defaults.petId)}
+      >
+        <summary className="min-h-11 cursor-pointer font-medium">
+          Area, instructions & more
+        </summary>
+        <RoutineDetails areas={areas} defaults={defaults} pets={pets} />
+      </details>
     </FormFields>
   );
 }

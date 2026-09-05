@@ -2,7 +2,7 @@
 
 Household OS is a private, two-person application for household routines, pet care, meal planning, groceries, and auditable CHF shared expenses.
 
-The version-one product contract is frozen in [docs/product-scope.md](docs/product-scope.md). Visual design is intentionally deferred and must not be invented during foundation work.
+The version-one baseline is recorded in [docs/product-scope.md](docs/product-scope.md). The authorized household expansion and UI redesign follow [ADR 0028](docs/adr/0028-complete-household-operating-system.md). Use the [release and recovery guide](docs/household-release-runbook.md) when preparing an assembled release.
 
 ## Stack
 
@@ -100,13 +100,9 @@ production hostname after enrollment invalidates every registered passkey.
 
 ## Verification
 
-```bash
-pnpm verify
-pnpm db:test
-pnpm test:e2e
-```
+Follow [AGENTS.md](AGENTS.md): locally run touched and directly affected tests, targeted lint and appropriate typechecking. Database changes need their relevant database tests; financial changes need focused examples and property tests. CI runs the full suite according to the workflow gates. Do not default to a full local `pnpm verify` or browser suite.
 
-Database and browser tests require their respective local services. The default `verify` command remains independent of Docker and browser installation.
+The complete commands remain `pnpm verify`, `pnpm db:test` and `pnpm test:e2e` for CI or deliberate broader investigation. Database and browser tests require their respective services; `verify` needs neither Docker nor browser installation.
 
 ## Product and implementation references
 

@@ -18,6 +18,7 @@ const scheduleModes = [
   { label: "Daily", value: "daily" },
   { label: "Selected weekdays", value: "weekdays" },
   { label: "Weekly", value: "weekly" },
+  { label: "Every two weeks", value: "biweekly" },
   { label: "Monthly by date", value: "monthly" },
   { label: "After completion", value: "after_completion" },
 ] as const;
@@ -166,7 +167,7 @@ function ModeFields({
       />
     );
   }
-  if (mode === "weekly") {
+  if (mode === "weekly" || mode === "biweekly") {
     return (
       <FormField label="Weekday">
         <EchoedSelect
@@ -222,7 +223,7 @@ export function RoutineScheduleFields({
   };
 
   return (
-    <FormSection legend="Schedule">
+    <FormSection legend="When?">
       <FormField label="Repeat">
         <FormSelect
           items={[...scheduleModes]}

@@ -1,3 +1,6 @@
+import type { ReactNode } from "react";
+import { ReceiptField } from "@/ui/money/receipt-field.client";
+import { formatCentimesAsFrancs } from "@/lib/ui/franc-display";
 import { createExpenseAction } from "@/app/(product)/_actions/m7-money";
 import { EchoedTextarea } from "@/ui/forms/echoed-control.client";
 import { formatCentimesField } from "@/domain/money/chf";
@@ -9,13 +12,17 @@ import { EchoedSelect } from "@/ui/forms/form-select.client";
 
 type Member = { user_id: string; display_name: string };
 type Option = { id: string; name: string };
-type Draft = {
+export type ExpenseDraftDefaults = {
   id: string;
   description: string;
   amount_cents: number | null;
   payer_member_id: string | null;
   occurred_on: string;
   proposed_allocations: unknown;
+  category_id?: string | null;
+  note?: string | null;
+  receipt_path?: string | null;
+  receipt_total_cents?: number | null;
 };
 
 function centsInput(value: number | null | undefined): string {
@@ -23,7 +30,13 @@ function centsInput(value: number | null | undefined): string {
   return formatCentimesField(value);
 }
 
-function DetailFields({ categories }: { categories: readonly Option[] }) {
+function DetailFields({
+  categories,
+  draft,
+}: {
+  categories: readonly Option[];
+  draft: ExpenseDraftDefaults | null;
+}) {
   return (
     <FormSection legend="Details">
       <FormField label="Category" optional>
@@ -35,12 +48,18 @@ function DetailFields({ categories }: { categories: readonly Option[] }) {
               value: category.id,
             })),
           ]}
+          initialValue={draft?.category_id ?? ""}
           name="categoryId"
         />
       </FormField>
       <FormField label="Note" optional>
-        <EchoedTextarea maxLength={4000} name="note" />
+        <EchoedTextarea
+          maxLength={4000}
+          name="note"
+          initialValue={draft?.note ?? ""}
+        />
       </FormField>
+      <ReceiptField initialPath={draft?.receipt_path} />
     </FormSection>
   );
 }
@@ -52,13 +71,19 @@ export function ExpenseForm({
   members,
   occurredOn,
   viewerId,
+  submitLabel,
+  children,
+  editing = false,
 }: {
   action?: FormAction;
   categories: readonly Option[];
-  draft: Draft | null;
+  draft: ExpenseDraftDefaults | null;
   members: readonly Member[];
   occurredOn: string;
   viewerId: string;
+  submitLabel?: string;
+  children?: ReactNode;
+  editing?: boolean;
 }) {
   const normalizedDraft = draft ?? {
     id: "",
@@ -83,21 +108,32 @@ export function ExpenseForm({
     <FormFields
       protectChanges
       action={action}
-      submitLabel={draft ? "Post draft" : "Post expense"}
+      submitLabel={
+        submitLabel ?? (draft ? "Post expense draft" : "Post expense")
+      }
     >
       <input name="idempotencyKey" type="hidden" value={crypto.randomUUID()} />
-      {draft ? <input name="draftId" type="hidden" value={draft.id} /> : null}
+      {draft && !editing ? (
+        <input name="draftId" type="hidden" value={draft.id} />
+      ) : null}
+      {children}
+      {draft?.receipt_total_cents != null ? (
+        <p className="text-base text-muted-foreground sm:text-sm">
+          Receipt total: {formatCentimesAsFrancs(draft.receipt_total_cents)}.
+          Enter only the shared amount below.
+        </p>
+      ) : null}
       <ExpenseAmountAndSplitFields
         initialAmount={centsInput(normalizedDraft.amount_cents)}
         initialDescription={normalizedDraft.description}
         initialExactCents={split.allocationsByMemberId}
         initialMode={split.mode}
         initialPayerMemberId={normalizedDraft.payer_member_id ?? viewerId}
-        isDraft={draft !== null}
+        isDraft={draft !== null && !editing}
         members={members}
         occurredOn={normalizedDraft.occurred_on}
       />
-      <DetailFields categories={categories} />
+      <DetailFields categories={categories} draft={draft} />
     </FormFields>
   );
 }

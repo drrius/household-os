@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MoneyViewModel } from "@/lib/read-models/money";
@@ -33,7 +34,14 @@ export function EventLedger({ events }: EventLedgerProps) {
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold">{event.title}</h3>
+                      <h3 className="font-semibold">
+                        <Link
+                          className="inline-flex min-h-11 items-center underline decoration-border underline-offset-4 hover:decoration-current"
+                          href={`/money/events/${event.id}`}
+                        >
+                          {event.title}
+                        </Link>
+                      </h3>
                       <Badge variant="secondary">
                         {toBadgeLabel(event.type)}
                       </Badge>

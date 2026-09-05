@@ -36,6 +36,16 @@ describe("routine form parsing", () => {
     });
   });
 
+  it("keeps a biweekly schedule on the calendar contract", () => {
+    const form = weekdayForm([]);
+    form.set("scheduleMode", "biweekly");
+    form.set("weeklyWeekday", "4");
+    expect(parseRoutineForm(form)).toMatchObject({
+      scheduleKind: "calendar",
+      scheduleRule: { kind: "biweekly", weekday: 4 },
+    });
+  });
+
   it("attaches an empty weekday rejection to the weekday group", () => {
     const failure = rejection(weekdayForm([]));
     expect(failure.field).toBe("weekdays");

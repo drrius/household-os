@@ -44,6 +44,15 @@ export default defineConfig([
     },
   },
   {
+    // Vendored AI Elements components; keep them unedited to match upstream.
+    files: ["src/components/ai-elements/**"],
+    rules: {
+      "max-lines": "off",
+      "max-lines-per-function": "off",
+      "react-hooks/refs": "off",
+    },
+  },
+  {
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["src/domain/**/*"],
     rules: {

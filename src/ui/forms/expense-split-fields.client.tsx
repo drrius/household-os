@@ -1,5 +1,6 @@
 "use client";
 
+import { EqualSplitPreview } from "@/ui/money/equal-split-preview";
 import { useId, useState } from "react";
 
 import { EchoedInput } from "@/ui/forms/echoed-control.client";
@@ -277,6 +278,13 @@ export function ExpenseAmountAndSplitFields({
         onPayerChange={setPayerMemberId}
         payerMemberId={payerMemberId}
       />
+      {mode === "equal" ? (
+        <EqualSplitPreview
+          amount={amount}
+          members={members}
+          payerMemberId={payerMemberId}
+        />
+      ) : null}
       <SplitSection
         members={members}
         mode={mode}

@@ -30,6 +30,18 @@ describe("validateScheduleRule", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("accepts a biweekly rule on the calendar kind", () => {
+    expect(
+      validateScheduleRule("calendar", { kind: "biweekly", weekday: 4 }),
+    ).toEqual({ ok: true, rule: { kind: "biweekly", weekday: 4 } });
+    expect(
+      validateScheduleRule("calendar", {
+        kind: "biweekly",
+        weekday: 8 as never,
+      }).ok,
+    ).toBe(false);
+  });
+
   it("accepts selected weekdays sorted uniquely", () => {
     const result = validateScheduleRule("calendar", {
       kind: "weekdays",
@@ -56,6 +68,39 @@ describe("calendar recurrence", () => {
     );
     expect(isoWeekday(due)).toBe(1);
     expect(compareIsoDates(due, asIsoDate("2026-08-09"))).toBe(1);
+  });
+
+  it("biweekly advances fourteen days from an on-weekday due date", () => {
+    // 2026-08-10 is a Monday.
+    expect(
+      nextCalendarDueDate(
+        { kind: "biweekly", weekday: 1 },
+        asIsoDate("2026-08-10"),
+      ),
+    ).toBe("2026-08-24");
+  });
+
+  it("biweekly re-anchors to the weekday after an off-weekday closure", () => {
+    fc.assert(
+      fc.property(
+        isoDateArbitrary,
+        fc.constantFrom<IsoWeekday>(1, 2, 3, 4, 5, 6, 7),
+        (anchor, weekday) => {
+          const next = nextCalendarDueDate(
+            { kind: "biweekly", weekday },
+            anchor,
+          );
+          expect(isoWeekday(next)).toBe(weekday);
+          expect(compareIsoDates(next, addDays(anchor, 7))).toBe(1);
+          expect(
+            compareIsoDates(next, addDays(anchor, 14)),
+          ).toBeLessThanOrEqual(0);
+          if (isoWeekday(anchor) === weekday) {
+            expect(next).toBe(addDays(anchor, 14));
+          }
+        },
+      ),
+    );
   });
 
   it("monthly clamps to the final day of shorter months", () => {
@@ -186,5 +231,19 @@ describe("firstDueDateOnOrAfter", () => {
   it("returns the start day for daily routines", () => {
     const start = asIsoDate("2026-08-09");
     expect(firstDueDateOnOrAfter({ kind: "daily" }, start)).toBe(start);
+  });
+
+  it("anchors biweekly on the first matching weekday like weekly", () => {
+    fc.assert(
+      fc.property(
+        isoDateArbitrary,
+        fc.constantFrom<IsoWeekday>(1, 2, 3, 4, 5, 6, 7),
+        (start, weekday) => {
+          expect(
+            firstDueDateOnOrAfter({ kind: "biweekly", weekday }, start),
+          ).toBe(firstDueDateOnOrAfter({ kind: "weekly", weekday }, start));
+        },
+      ),
+    );
   });
 });

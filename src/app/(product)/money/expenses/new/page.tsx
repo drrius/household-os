@@ -1,20 +1,13 @@
-import { z } from "zod";
+import { dismissDraftAction } from "@/app/(product)/_actions/money";
+import { MoneyCommandForm } from "@/ui/money/command-form.client";
+import { notFound } from "next/navigation";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { loadMoneyFormOptions } from "@/lib/forms/options";
-import { createClient } from "@/lib/supabase/server";
+import { loadMoneyDraft } from "@/lib/read-models/money-draft";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { ExpenseForm } from "@/ui/forms/expense-form";
 import { FormPage } from "@/ui/forms/form-page";
-
-const draftSchema = z.object({
-  id: z.string().uuid(),
-  description: z.string(),
-  amount_cents: z.number().int().nonnegative().nullable(),
-  payer_member_id: z.string().uuid().nullable(),
-  occurred_on: z.string(),
-  proposed_allocations: z.unknown(),
-});
 
 export default async function NewExpensePage({
   searchParams,
@@ -26,27 +19,17 @@ export default async function NewExpensePage({
     loadMoneyFormOptions(),
     requireMemberContext(),
   ]);
-  let draft: z.infer<typeof draftSchema> | null = null;
-  if (query.draft && z.string().uuid().safeParse(query.draft).success) {
-    const supabase = await createClient();
-    const result = await supabase
-      .from("expense_drafts")
-      .select(
-        "id, description, amount_cents, payer_member_id, occurred_on, proposed_allocations",
-      )
-      .eq("household_id", member.householdId)
-      .eq("id", query.draft)
-      .eq("status", "pending")
-      .maybeSingle();
-    if (result.error)
-      throw new Error(`expense draft lookup failed: ${result.error.message}`);
-    draft = result.data === null ? null : draftSchema.parse(result.data);
-  }
+  const draft = query.draft ? await loadMoneyDraft(query.draft) : null;
+  if (query.draft && !draft) notFound();
   return (
     <FormPage
       backHref="/money"
-      description="Record something one of you already paid for. We'll split it and update who owes who straight away."
-      title={draft ? "Complete expense draft" : "New expense"}
+      description={
+        draft
+          ? "Review the amount, payer, and split before this draft changes your balance."
+          : "Record something one of you already paid for. The balance changes after you save."
+      }
+      title={draft ? "Review expense draft" : "New expense"}
     >
       <ExpenseForm
         categories={options.categories}
@@ -55,6 +38,20 @@ export default async function NewExpensePage({
         occurredOn={zurichCivilDate()}
         viewerId={member.userId}
       />
+      {draft ? (
+        <div className="mt-8 border-t pt-6">
+          <p className="mb-3 text-sm text-muted-foreground">
+            Not a shared expense? Dismiss this draft without changing your
+            balance.
+          </p>
+          <MoneyCommandForm
+            action={dismissDraftAction}
+            label="Dismiss draft"
+            idempotencyKey={crypto.randomUUID()}
+            fields={{ draftId: draft.id }}
+          />
+        </div>
+      ) : null}
     </FormPage>
   );
 }

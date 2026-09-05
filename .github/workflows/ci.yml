@@ -2,17 +2,93 @@ name: CI
 
 on:
   pull_request:
+    # Label changes re-evaluate whether the E2E suite is required.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+# One live run per ref for PRs: rapid pushes cancel the outdated run instead
+# of stacking full suites. Non-PR runs get a unique group each, because a
+# shared group holds at most one *pending* run even with cancel-in-progress
+# off — back-to-back main pushes could silently replace a queued run.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+jobs:
+  # Classifies the diff so downstream jobs only run when their inputs changed.
+  # db:test depends only on supabase/** plus its tooling (package.json,
+  # pnpm-lock.yaml, this workflow), so it is path-gated everywhere. The
+  # Playwright suite runs on PRs only when they carry the `e2e` label.
+  # Pushes to main always run full verify and e2e as the integration backstop.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+      db: ${{ steps.filter.outputs.db }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+
+          run_everything() {
+            {
+              echo "docs_only=false"
+              echo "db=true"
+            } >> "$GITHUB_OUTPUT"
+          }
+
+          # No usable diff base (manual dispatch, branch creation, force
+          # push with an unreachable before-sha): run the full suite.
+          if [ "$EVENT" = "workflow_dispatch" ] || [ -z "$BASE" ] ||
+            ! git cat-file -e "$BASE" 2>/dev/null; then
+            run_everything
+            exit 0
+          fi
+
+          mapfile -t files < <(git diff --name-only "$BASE"...HEAD)
+          if [ "${#files[@]}" -eq 0 ]; then
+            run_everything
+            exit 0
+          fi
+
+          docs_only=true
+          db=false
+          for f in "${files[@]}"; do
+            case "$f" in
+              docs/* | *.md | .codex/* | "Household OS Designs.html") ;;
+              *) docs_only=false ;;
+            esac
+            case "$f" in
+              supabase/* | package.json | pnpm-lock.yaml | .github/workflows/ci.yml) db=true ;;
+            esac
+          done
+
+          if [ "$EVENT" = "push" ]; then
+            docs_only=false
+          fi
+
+          {
+            echo "docs_only=$docs_only"
+            echo "db=$db"
+          } >> "$GITHUB_OUTPUT"
+
+  verify:
+    needs: changes
+    if: needs.changes.outputs.docs_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -24,7 +100,64 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
+
+  # Docs-only PR pushes skip verify (and its build) but still gate on
+  # formatting. Markdown cannot affect typecheck, tests, or the build, and
+  # the push to main always runs full verify as the integration gate.
+  format-docs:
+    needs: changes
+    if: needs.changes.outputs.docs_only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+
+  db-test:
+    needs: changes
+    if: needs.changes.outputs.db == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm db:start
       - run: pnpm db:test
+
+  e2e:
+    needs: changes
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm db:start
       - run: pnpm test:e2e
