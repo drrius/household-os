@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 type RemoveMealButtonProps = {
   dateLabel: string;
+  date?: string;
   entryId: string;
   idempotencyKey: string;
   title: string;
@@ -30,6 +31,7 @@ function RemoveSubmit() {
 
 export function RemoveMealButton({
   dateLabel,
+  date,
   entryId,
   idempotencyKey,
   title,
@@ -40,7 +42,7 @@ export function RemoveMealButton({
     <>
       <button
         className={cn(
-          buttonVariants({ size: "lg", variant: "destructive" }),
+          buttonVariants({ size: "lg", variant: "outline" }),
           "w-full sm:w-fit",
         )}
         onClick={() => {
@@ -56,6 +58,7 @@ export function RemoveMealButton({
         // navigating away rather than by flipping `open`.
         confirmSlot={
           <form action={removeMealEntryAction}>
+            <input name="date" type="hidden" value={date ?? ""} />
             <input name="entryId" type="hidden" value={entryId} />
             <input name="idempotencyKey" type="hidden" value={idempotencyKey} />
             <RemoveSubmit />

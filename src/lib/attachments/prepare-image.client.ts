@@ -1,16 +1,27 @@
 "use client";
 
-import { MAX_ATTACHMENT_BYTES } from "@/domain/attachments/files";
+import {
+  attachmentFileType,
+  MAX_ATTACHMENT_BYTES,
+} from "@/domain/attachments/files";
 
 export async function prepareAttachment(file: File): Promise<File> {
-  if (file.type === "application/pdf") {
+  const detected = attachmentFileType(
+    new Uint8Array(await file.slice(0, 12).arrayBuffer()),
+  );
+  if (detected?.mime === "application/pdf") {
     if (file.size > MAX_ATTACHMENT_BYTES)
-      throw new Error("Choose a PDF smaller than 4 MiB.");
-    return file;
+      throw new Error("Choose a PDF smaller than 4 MB.");
+    return new File([file], file.name, { type: "application/pdf" });
   }
-  if (!file.type.startsWith("image/"))
+  if (!detected?.mime.startsWith("image/") && !file.type.startsWith("image/"))
     throw new Error("Choose a photo or PDF.");
-  const image = await createImageBitmap(file);
+  let image: ImageBitmap;
+  try {
+    image = await createImageBitmap(file);
+  } catch {
+    throw new Error("Couldn't decode this photo. Choose another image.");
+  }
   try {
     const scale = Math.min(1, 2000 / Math.max(image.width, image.height));
     const canvas = document.createElement("canvas");
