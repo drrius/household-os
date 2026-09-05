@@ -57,3 +57,17 @@ Automatic approval review rejected feature-branch integration twice and requeste
 Codex previously returned review-quota errors. Later explicit approval of PR44 `87fd556` and PR58 `b2d1e93`, followed by an accepted running review of `5050d98`, established that review requests could resume. Outstanding changed heads have been requested once; prior approvals are never extended to later code by assumption. No credits or usage resets were purchased or redeemed.
 
 Live iCloud setup needs the server encryption key and the member's Apple app-specific password. Live push requires the compatible worker deployed before its database change. Production changes and PR merges remain outside authorization.
+
+## September 5 review-thread and verification checkpoint
+
+The user requires fixed review threads to be resolved immediately after fixes are pushed. This pass manually resolved 74 previously open threads, with commit evidence in replies; remaining original findings concern actual project coordination or dependency integration. CodeRabbit also resolves some threads automatically. Do not use an empty thread list as proof that the final head has passed CI or full review.
+
+The current main `AGENTS.md` is imported here. Local checks are limited to directly affected tests, targeted lint and typechecking; full suites run in CI. The goal document now reflects this policy and immediate thread resolution. No local `pnpm verify` or full suite was run during this pass.
+
+- PR #53: `179bb43` makes the existing sign-in route regression discoverable by renaming its JSX-free `.test.tsx` file to `.test.ts`, and requires an exact safe fallback. Three focused tests, lint and typechecking passed. Push re-enrollment integration remains an outstanding dependency.
+- PR #59: `1603ce8` clarifies historical verification wording and imports the current agent instructions. CodeRabbit reported no actionable comments on this head.
+- PR #60: `16beb5d` accurately labels desktop WebKit and records the user's verification and review-resolution requirements.
+- PR #64: `3f48a18` follows up merged PRs #44 and #56. Failed attachment removal now gives actionable validation feedback; push actions preserve actual Next.js authentication redirects. The release guide specifies migration dry run/review/application before Edge deployment. Eighteen focused tests, targeted lint and typechecking, and one Chromium removal/retry case passed. Hosted verification passed; broader browser CI and CodeRabbit review were still running at this checkpoint. No production command was run.
+- PR #46: main was externally integrated at `72f6cde`, and PR #49 was externally merged into the routine branch at `dd7f648`. Do not overwrite that external integration. SQL040 adds two-session current/routine/preview contention, unchanged-state checks, exact-key retries and concurrent completion. All 16 assertions passed on `dd7f648`; fixture cleanup then failed because a completion still referenced its member. `2cfa5a9` corrects that cleanup. Its new hosted run remains to be recorded. The local worktree was fast-forwarded to the published external history before that fix; no new feature-branch integration was performed here.
+
+Known implementation findings still include project/task assignment notifications and activity/recovery history in PR #52. Home and search require their assembled dependencies and route-level verification. Global completion and live iCloud setup remain separate outstanding work.
