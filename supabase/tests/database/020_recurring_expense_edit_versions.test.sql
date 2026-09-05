@@ -41,12 +41,15 @@ select public.set_recurring_expense_rule_active(current_setting('test.version_ru
 select ok((select updated_at > current_setting('test.version_generated')::timestamptz from public.recurring_expense_rules where id=current_setting('test.version_rule')::uuid),'pause also advances the version');
 select throws_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_generated')::timestamptz,'stale-after-pause')$$,'40001','This recurring expense changed. Reopen it before saving.','old edit cannot ignore a partner pause');
 select set_config('test.version_edit',(select updated_at::text from public.recurring_expense_rules where id=current_setting('test.version_rule')::uuid),true);
+-- Pause also emits this activity kind; measure only the edits under test.
+select set_config('test.edit_activity_before',(select count(*)::integer from public.activity_events where household_id='10000000-0000-4000-8000-000000000201' and entity_id=current_setting('test.version_rule')::uuid and kind='recurring_expense_rule_updated')::text,true);
 select lives_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_edit')::timestamptz,'version-edit')$$,'fresh version can edit');
+select is((select count(*)::integer from public.activity_events where household_id='10000000-0000-4000-8000-000000000201' and entity_id=current_setting('test.version_rule')::uuid and kind='recurring_expense_rule_updated'),current_setting('test.edit_activity_before')::integer+1,'accepted edit adds exactly one activity');
 select lives_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_edit')::timestamptz,'version-edit')$$,'identical retry replays before the stale version check');
 select throws_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_edit')::timestamptz,'competing-edit')$$,'40001','This recurring expense changed. Reopen it before saving.','second command from the same baseline cannot overwrite the first');
 select throws_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_edit')::timestamptz,'version-edit','Different label')$$,'22023','idempotency key was already used for a different command','key cannot be reused for different values');
 select throws_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_generated')::timestamptz,'version-edit')$$,'22023','idempotency key was already used for a different command','version belongs to the exact idempotency payload');
-select is((select count(*)::integer from public.activity_events where kind='recurring_expense_rule_updated'),1,'replay and conflicts add no duplicate edit activity');
+select is((select count(*)::integer from public.activity_events where household_id='10000000-0000-4000-8000-000000000201' and entity_id=current_setting('test.version_rule')::uuid and kind='recurring_expense_rule_updated'),current_setting('test.edit_activity_before')::integer+1,'replay and conflicts add no duplicate edit activity');
 select set_config('test.version_failure',(select updated_at::text from public.recurring_expense_rules where id=current_setting('test.version_rule')::uuid),true);
 select set_config('test.fail_recurring_activity','on',true);
 select throws_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_failure')::timestamptz,'rollback-edit','After failure')$$,'P0001','test failure after rule mutation','an error after the row update rolls back the command');
@@ -56,6 +59,7 @@ select set_config('test.fail_recurring_activity','off',true);
 select lives_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_failure')::timestamptz,'rollback-edit','After failure')$$,'failed command did not consume its key');
 select lives_ok($$select pg_temp.edit_versioned_rule(current_setting('test.version_edit')::timestamptz,'version-edit')$$,'original command still replays after a later accepted edit');
 select is((select description from public.recurring_expense_rules where id=current_setting('test.version_rule')::uuid),'After failure','old replay cannot overwrite the later edit');
+select is((select count(*)::integer from public.activity_events where household_id='10000000-0000-4000-8000-000000000201' and entity_id=current_setting('test.version_rule')::uuid and kind='recurring_expense_rule_updated'),current_setting('test.edit_activity_before')::integer+2,'two accepted edits add two activities despite failed commands and older replay');
 select is((select amount_cents from public.expense_drafts where recurring_expense_rule_id=current_setting('test.version_rule')::uuid),1000::bigint,'existing draft amount remains unchanged');
 select is((select count(*)::integer from public.financial_events where type<>'opening_balance'),0,'editing and generation do not post financial events');
 select throws_ok($$select pg_temp.edit_versioned_rule(null,'missing-version')$$,'22023','Reload this recurring expense before editing','version is mandatory');
