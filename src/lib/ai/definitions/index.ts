@@ -1,3 +1,6 @@
+import { MONEY_DETAIL_TOOLS } from "./money-detail-tools";
+import { NOTIFICATION_TOOLS } from "./notification-tools";
+import { DAILY_DETAIL_TOOLS } from "./daily-detail-tools";
 import { GROCERY_DETAIL_TOOLS } from "./grocery-detail-tools";
 import { LIBRARY_TOOLS } from "./library-tools";
 import { RECURRING_TOOLS } from "./recurring-tools";
@@ -33,6 +36,9 @@ export {
  */
 export const AI_TOOL_DEFINITIONS = [
   ...READ_TOOLS,
+  ...MONEY_DETAIL_TOOLS,
+  ...NOTIFICATION_TOOLS,
+  ...DAILY_DETAIL_TOOLS,
   ...CONNECTED_READ_TOOLS,
   ...PROJECT_TOOLS,
   ...PROJECT_DETAIL_TOOLS,

@@ -1,4 +1,9 @@
 import "server-only";
+import {
+  financialHistoryBefore,
+  financialHistoryCursor,
+  type FinancialHistoryCursor,
+} from "@/domain/money/history-cursor";
 
 import { deriveMemberBalances } from "@/domain/money/balances";
 import { asMemberId } from "@/domain/money/values";
@@ -55,22 +60,26 @@ async function attachAllocations(
 
 export async function readMoneyOverview(input: {
   eventsBefore?: string;
+  eventsCursor?: FinancialHistoryCursor;
 }): Promise<Record<string, unknown>> {
   const member = await requireMemberContext();
   const supabase = await createClient();
   let eventQuery = supabase
     .from("financial_events")
     .select(
-      "id, type, occurred_on, description, amount_cents, payer_member_id, related_event_id, category_id, note",
+      "id, type, occurred_on, created_at, description, amount_cents, payer_member_id, related_event_id, category_id, note",
     )
     .eq("household_id", member.householdId)
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     // One extra row so truncation is detectable rather than silent.
     .limit(RECENT_EVENT_LIMIT + 1);
   if (input.eventsBefore !== undefined) {
     eventQuery = eventQuery.lt("occurred_on", input.eventsBefore);
   }
+  if (input.eventsCursor)
+    eventQuery = eventQuery.or(financialHistoryBefore(input.eventsCursor));
   const [members, ledgerRows, events, drafts, rules] = await Promise.all([
     memberDirectory(supabase, member.householdId),
     fetchAllLedgerRows(supabase, member.householdId),
@@ -111,7 +120,25 @@ export async function readMoneyOverview(input: {
       recentEvents,
     ),
     recentEventsTruncated: eventRows.length > RECENT_EVENT_LIMIT,
+    nextEventsCursor: nextCursor(
+      recentEvents,
+      eventRows.length > RECENT_EVENT_LIMIT,
+    ),
     pendingExpenseDrafts: requireRows("expense drafts", drafts),
     recurringExpenseRules: requireRows("recurring rules", rules),
   };
+}
+
+function nextCursor(
+  events: readonly Record<string, unknown>[],
+  hasMore: boolean,
+): FinancialHistoryCursor | null {
+  const last = events.at(-1);
+  return hasMore && last
+    ? financialHistoryCursor.parse({
+        occurredOn: last.occurred_on,
+        createdAt: last.created_at,
+        id: last.id,
+      })
+    : null;
 }

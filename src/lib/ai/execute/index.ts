@@ -1,4 +1,6 @@
 import "server-only";
+import { NOTIFICATION_HANDLERS } from "./notifications";
+import { DAILY_DETAIL_HANDLERS } from "./daily-details";
 import { GROCERY_DETAIL_HANDLERS } from "./grocery-details";
 import { LIBRARY_HANDLERS } from "./library";
 import { RECURRING_HANDLERS } from "./recurring";
@@ -22,6 +24,8 @@ import type { AiWriteResult } from "@/lib/ai/execute/types";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
 
 const WRITE_HANDLERS = {
+  ...NOTIFICATION_HANDLERS,
+  ...DAILY_DETAIL_HANDLERS,
   ...COST_HANDLERS,
   ...PROJECT_HANDLERS,
   ...PROJECT_STARTER_HANDLERS,

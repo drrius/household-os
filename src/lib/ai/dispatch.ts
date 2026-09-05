@@ -1,4 +1,10 @@
 import "server-only";
+import { moneyDetailSchemas } from "./definitions/money-detail-tools";
+import { readMoneyDetail } from "./reads-money-details";
+import { notificationSchemas } from "./definitions/notification-tools";
+import { readNotificationTool } from "./reads-notifications";
+import { dailyDetailSchemas } from "./definitions/daily-detail-tools";
+import { readDailyDetail } from "./reads-daily-details";
 import { groceryDetailSchemas } from "./definitions/grocery-detail-tools";
 import { readGroceryHistory } from "./reads-grocery-history";
 import { librarySchemas } from "./definitions/library-tools";
@@ -40,6 +46,12 @@ export async function executeAiTool(
     return executeAiWrite(name, rawInput, invocationId);
   }
   const input = definition.inputSchema.parse(rawInput ?? {});
+  if (Object.hasOwn(moneyDetailSchemas, name))
+    return readMoneyDetail(name, input);
+  if (Object.hasOwn(notificationSchemas, name))
+    return readNotificationTool(name, input);
+  if (Object.hasOwn(dailyDetailSchemas, name))
+    return readDailyDetail(name, input);
   if (Object.hasOwn(groceryDetailSchemas, name))
     return readGroceryHistory(name, input);
   if (Object.hasOwn(librarySchemas, name)) return readLibraryTool(name, input);
@@ -62,7 +74,9 @@ export async function executeAiTool(
     case "get_recurring_expense_rules":
       return { rules: await loadRecurringRules() };
     case "get_money_overview":
-      return readMoneyOverview(input as { eventsBefore?: string });
+      return readMoneyOverview(
+        input as Parameters<typeof readMoneyOverview>[0],
+      );
     case "get_household":
       return readHousehold();
     default:
