@@ -98,3 +98,61 @@ test("an archived fallback and its active namesake remain distinguishable", asyn
   await page.getByRole("option", { name: "Other", exact: true }).click();
   await expect(editor.locator('[name="categoryId"]')).toHaveValue("custom");
 });
+
+test("pristine category editors accept refreshed name, order and archived state", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/grocery-form-refresh");
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  const editor = page
+    .getByRole("region", { name: "Category editor" })
+    .locator("details")
+    .first();
+  await expect(editor.locator("summary")).toContainText("Produce 2 · Archived");
+  await editor.locator("summary").click();
+  await expect(editor.locator('[name="name"]')).toHaveValue("Produce 2");
+  await expect(editor.locator('[name="sortOrder"]')).toHaveValue("2");
+  await expect(editor.locator('[name="previousName"]')).toHaveValue(
+    "Produce 2",
+  );
+  await expect(editor.getByRole("checkbox")).toBeChecked();
+  await editor.getByRole("button", { name: "Save category" }).click();
+  await expect(editor.getByText("Snapshot accepted")).toBeVisible();
+});
+test("reverting category edits adopts a waiting partner refresh", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/grocery-form-refresh");
+  const editor = page
+    .getByRole("region", { name: "Category editor" })
+    .locator("details")
+    .first();
+  await editor.locator("summary").click();
+  await editor.locator('[name="name"]').fill("My change");
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  await expect(editor.locator('[name="previousName"]')).toHaveValue(
+    "Produce 1",
+  );
+  await editor.locator('[name="name"]').fill("Produce 1");
+  await expect(editor.locator('[name="name"]')).toHaveValue("Produce 2");
+  await expect(editor.locator('[name="previousName"]')).toHaveValue(
+    "Produce 2",
+  );
+});
+test("archive-only edits keep their original conflict baseline", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/grocery-form-refresh");
+  const editor = page
+    .getByRole("region", { name: "Category editor" })
+    .locator("details")
+    .first();
+  await editor.locator("summary").click();
+  await editor.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  await expect(editor.locator('[name="previousName"]')).toHaveValue(
+    "Produce 1",
+  );
+  await expect(editor.locator('[name="previousArchivedAt"]')).toHaveValue("");
+  await expect(editor.getByRole("checkbox")).toBeChecked();
+});
