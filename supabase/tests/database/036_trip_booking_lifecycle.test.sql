@@ -23,6 +23,10 @@ select throws_ok($$update public.trip_bookings set status='cancelled' where id='
 update public.household_projects set archived_at=null where id='36000000-0000-4000-8000-000000000010';
 update public.trip_bookings set archived_at=now() where id='36000000-0000-4000-8000-000000000020';
 select throws_ok($$update public.trip_bookings set title='Archived edit' where id='36000000-0000-4000-8000-000000000020'$$,'55000','Restore this booking before changing it','archived bookings must be restored');
+select throws_ok($$update public.trip_bookings set archived_at=null,title='Restored and renamed' where id='36000000-0000-4000-8000-000000000020'$$,'55000','Restore this booking before changing it','restore cannot also change title');
+select throws_ok($$update public.trip_bookings set archived_at=null,status='booked' where id='36000000-0000-4000-8000-000000000020'$$,'55000','Restore this booking before changing it','restore cannot also change status');
+select throws_ok($$update public.trip_bookings set archived_at=null,time_zone='UTC' where id='36000000-0000-4000-8000-000000000020'$$,'55000','Restore this booking before changing it','restore cannot also change time_zone');
+select is((select title from public.trip_bookings where id='36000000-0000-4000-8000-000000000020'),'Partner flight','failed restore preserves saved title');
 select lives_ok($$update public.trip_bookings set archived_at=null where id='36000000-0000-4000-8000-000000000020'$$,'either member can restore a booking');
 select set_config('request.jwt.claim.sub','36000000-0000-4000-8000-000000000003',true);
 select is_empty($$select id from public.trip_bookings where id='36000000-0000-4000-8000-000000000020'$$,'foreign booking details are hidden');
