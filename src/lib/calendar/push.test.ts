@@ -1,6 +1,7 @@
 import { expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { pushCalendarEvent } from "./push";
+import { CalendarError } from "./errors";
 import { writeCalendar } from "@/domain/calendar/ical-write";
 import type { CalendarRow } from "./rows";
 const url = "https://p01-caldav.icloud.com/123/calendars/shared/";
@@ -137,3 +138,60 @@ it("sends a validated event with its fetched ETag and records that exact payload
     expect.objectContaining({ p_sent_ical: ical, p_etag: '"two"' }),
   );
 });
+
+it.each(["network", "acknowledgement"])(
+  "records %s failures against the prepared version without replacing a later edit",
+  async (failure) => {
+    const { rpc, transport } = harness();
+    const prepared = { ...row, updated_at: "prepared-version" };
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: prepared, error: null }),
+    };
+    const from = vi.fn().mockReturnValue(chain);
+    const db = { rpc, from } as unknown as Parameters<
+      typeof pushCalendarEvent
+    >[0];
+    if (failure === "network")
+      transport.mockRejectedValue(
+        new CalendarError("network", "Apple is unavailable. Retry sync."),
+      );
+    else rpc.mockResolvedValue({ error: { message: "lease expired" } });
+    await expect(
+      pushCalendarEvent(
+        db,
+        transport,
+        "connection",
+        url,
+        "token",
+        {
+          ...row,
+          ical_data: null,
+        },
+        [{ href: row.remote_href!, etag: row.remote_etag!, ical }],
+      ),
+    ).rejects.toThrow(
+      failure === "network"
+        ? "Apple is unavailable"
+        : "local confirmation failed",
+    );
+    expect(chain.update.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ ical_data: expect.any(String) }),
+    );
+    expect(chain.update.mock.calls[1]?.[0]).toEqual({
+      last_sync_error: expect.stringContaining(
+        failure === "network"
+          ? "Apple is unavailable"
+          : "local confirmation failed",
+      ),
+    });
+    expect(chain.eq.mock.calls.slice(-4)).toEqual([
+      ["id", row.id],
+      ["household_id", row.household_id],
+      ["updated_at", "prepared-version"],
+      ["sync_state", "pending"],
+    ]);
+  },
+);
