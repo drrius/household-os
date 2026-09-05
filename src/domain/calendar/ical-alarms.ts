@@ -11,7 +11,12 @@ export function validateAlarmTimes(event: ICAL.Component): void {
       !value.isDate &&
       value.zone.tzid === "UTC" &&
       !trigger?.getParameter("related");
-    const relative = value instanceof ICAL.Duration;
+    const related = trigger?.getParameter("related");
+    const relative =
+      value instanceof ICAL.Duration &&
+      (related === undefined ||
+        (typeof related === "string" &&
+          ["START", "END"].includes(related.toUpperCase())));
     if (
       triggers.length !== 1 ||
       trigger?.getParameter("tzid") ||
