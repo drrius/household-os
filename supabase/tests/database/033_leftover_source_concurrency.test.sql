@@ -7,8 +7,10 @@ select no_plan();
 select set_config('test.race.household',gen_random_uuid()::text,true);
 select set_config('test.race.member',gen_random_uuid()::text,true);
 select set_config('test.race.source',gen_random_uuid()::text,true);
-select extensions.dblink_connect('race_a','dbname='||current_database());
-select extensions.dblink_connect('race_b','dbname='||current_database());
+-- Supabase CLI's disposable local/CI database uses this standard local password.
+-- TCP requests password authentication, required by dblink for non-superusers.
+select extensions.dblink_connect('race_a','hostaddr=127.0.0.1 port=5432 user=postgres password=postgres dbname='||current_database());
+select extensions.dblink_connect('race_b','hostaddr=127.0.0.1 port=5432 user=postgres password=postgres dbname='||current_database());
 select extensions.dblink_exec('race_a',format($setup$
  insert into auth.users(id,email) values (%1$L,%1$L||'@leftover-race.example.invalid');
  insert into public.households(id,name) values (%2$L,'Leftover race fixture');
