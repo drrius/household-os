@@ -129,7 +129,7 @@ export function searchResultHref(result: {
     case "trip":
       return `/plan/projects/${id}`;
     case "booking":
-      return `/plan/projects/${uuid.parse(result.parent_id)}`;
+      return `/plan/projects/${uuid.parse(result.parent_id)}/bookings/${id}`;
     case "task":
       return `/plan/projects/${uuid.parse(result.parent_id)}/tasks/${id}`;
     case "calendar":

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-test("search filters shared plans and takes bookings to the trip", async ({
+test("search filters shared plans and opens the exact booking", async ({
   page,
 }, testInfo) => {
   await page.goto("/m7-fixture/search");
@@ -14,7 +14,7 @@ test("search filters shared plans and takes bookings to the trip", async ({
     page.getByRole("link", { name: /Lisbon flight Zurich/ }),
   ).toHaveAttribute(
     "href",
-    "/plan/projects/00000000-0000-4000-8000-000000000001",
+    "/plan/projects/00000000-0000-4000-8000-000000000001/bookings/00000000-0000-4000-8000-000000000002",
   );
   await expect(
     page.getByRole("heading", { name: "Lisbon flight payment" }),
