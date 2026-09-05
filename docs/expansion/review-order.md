@@ -38,7 +38,7 @@ The integration PRs include their source feature commits. They are not independe
 ## Not ready
 
 - [#66](https://github.com/drrius/household-os/pull/66) remains draft. Published head `82d9cd0` passed the authenticated two-member journey in job `101319942128`: travel correction/refund balances, exact task notifications, partner task/cart refresh, search context, shopping draft/posting/event links, inventory/contact/maintenance, renewal deadlines and decision conversion. Full browser job `101319942152` remains running. Additional booking conflict/archive/restore, device sign-out, and readable-date acceptance changes are integrated locally but not yet pushed or runtime-verified.
-- [#71](https://github.com/drrius/household-os/pull/71), `27c7694`, based on #51, makes Home/Money dates and correction labels readable. Verify passed; browser CI and explicit review completion remain pending.
+- [#71](https://github.com/drrius/household-os/pull/71), `611d1fb`, based on #51, makes dates and correction labels readable and acknowledges requested cancellations. Current-head browser CI and explicit review completion remain pending.
 
 Search #55's browser rerun `101318950570` passed. Its verify/database gates and positive CodeRabbit verdict `5552253899` already passed. PR70's browser job `101318807855` passed, with explicit approval `5552395668` and no unresolved threads. The previous 15-PR review-thread audit found zero unresolved threads; new PR71 still needs the final audit.
 
