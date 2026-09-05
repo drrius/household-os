@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { SignInForm } from "@/app/sign-in/sign-in-form";
+import { PasskeyLoader } from "@/app/security/passkey-loader.client";
 import { SignOutControl } from "@/app/security/sign-out-control";
 
 export function AccountFixture({
@@ -29,10 +30,10 @@ export function AccountFixture({
             ? {
                 ok: false,
                 error: "This fixture rejected the first sign-out. Try again.",
+                pushPaused: screen === "sign-out-fallback" && endpoint === null,
               }
             : {
                 ok: true,
-                pushPaused: screen === "sign-out-fallback" && endpoint === null,
                 unsubscribe: screen !== "sign-out-partner" && endpoint !== null,
               };
         }}
@@ -59,4 +60,22 @@ export function AccountFixture({
       }
     />
   );
+}
+
+export function UnavailablePasskeysFixture({ pending }: { pending: boolean }) {
+  const attempts = useRef(0);
+  const load = useCallback(async () => {
+    if (pending) return new Promise<never>(() => {});
+    if (++attempts.current === 1)
+      throw new Error("Fixture passkey endpoint unavailable");
+    return [
+      {
+        id: "00000000-0000-4000-8000-000000000901",
+        friendlyName: "Recovery authenticator",
+        createdAt: "2026-09-01T12:00:00Z",
+        lastUsedAt: null,
+      },
+    ];
+  }, [pending]);
+  return <PasskeyLoader load={load} />;
 }

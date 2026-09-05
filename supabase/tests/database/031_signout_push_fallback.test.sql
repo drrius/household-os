@@ -51,7 +51,7 @@ select throws_ok($$select public.pause_my_push_for_signout()$$,'42501','Househol
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000311',true);
 select is((public.pause_my_push_for_signout()->>'disabled')::integer,2,'unknown-device fallback pauses both active devices of the actor');
 select is((public.pause_my_push_for_signout()->>'disabled')::integer,0,'retry is idempotent and preserves already-disabled rows');
-select is((public.pause_my_push_for_signout()->>'paused')::integer,3,'retry still reports paused subscriptions for the sign-out notice');
+select is(public.pause_my_push_for_signout(),'{"disabled":0}'::jsonb,'historically disabled subscriptions do not create a new pause notice');
 select is((public.unregister_push_subscription('https://push.example.invalid/signout-partner')->>'disabled')::integer,0,'partner endpoint cleanup never authorizes browser unsubscribe');
 reset role;
 

@@ -246,3 +246,34 @@ test("sign-out preserves a partner-owned browser subscription", async ({
     await page.evaluate(() => sessionStorage.getItem("partner-push-removed")),
   ).toBeNull();
 });
+
+test("fallback notice survives discovery recovering on retry", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    let attempts = 0;
+    Object.defineProperty(navigator.serviceWorker, "getRegistration", {
+      value: async () =>
+        ++attempts === 1
+          ? {}
+          : {
+              pushManager: {
+                getSubscription: async () => ({
+                  endpoint: "https://push.example.invalid/recovered",
+                  unsubscribe: async () => true,
+                }),
+              },
+            },
+    });
+  });
+  await page.goto("/m7-fixture/account/sign-out-fallback");
+  await page.getByRole("button", { name: "Sign out of this device" }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
+  await page.getByRole("button", { name: "Sign out of this device" }).click();
+  await expect(page).toHaveURL(/\/sign-in\?push=paused$/);
+  expect(
+    await page.evaluate(() =>
+      sessionStorage.getItem("account-fixture-endpoint"),
+    ),
+  ).toBe("https://push.example.invalid/recovered");
+});

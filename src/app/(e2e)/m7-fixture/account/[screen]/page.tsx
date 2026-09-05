@@ -1,5 +1,9 @@
+import { SecurityScreen } from "@/app/security/security-screen";
 import { notFound } from "next/navigation";
-import { AccountFixture } from "@/app/(e2e)/m7-fixture/account/account-fixture.client";
+import {
+  AccountFixture,
+  UnavailablePasskeysFixture,
+} from "@/app/(e2e)/m7-fixture/account/account-fixture.client";
 import { safeReturnPath } from "@/lib/auth/return-path";
 import { GateShell } from "@/ui/layout/gate-shell";
 
@@ -12,6 +16,12 @@ export default async function AccountFixturePage({
 }) {
   if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") notFound();
   const { screen } = await params;
+  if (screen === "security-error" || screen === "security-pending")
+    return (
+      <SecurityScreen>
+        <UnavailablePasskeysFixture pending={screen === "security-pending"} />
+      </SecurityScreen>
+    );
   if (
     ![
       "sign-in",
