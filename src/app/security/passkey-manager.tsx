@@ -19,7 +19,7 @@ import type { PasskeySummary } from "@/lib/auth/passkeys";
 import { createClient } from "@/lib/supabase/client";
 import { EmptyState } from "@/ui/layout/empty-state";
 
-async function listPasskeys(): Promise<PasskeySummary[]> {
+export async function listPasskeys(): Promise<PasskeySummary[]> {
   const supabase = createClient();
   const { data, error } = await supabase.auth.passkey.list();
 
