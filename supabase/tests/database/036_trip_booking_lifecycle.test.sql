@@ -28,6 +28,8 @@ select throws_ok($$update public.trip_bookings set archived_at=null,status='book
 select throws_ok($$update public.trip_bookings set archived_at=null,time_zone='UTC' where id='36000000-0000-4000-8000-000000000020'$$,'55000','Restore this booking before changing it','restore cannot also change time_zone');
 select is((select title from public.trip_bookings where id='36000000-0000-4000-8000-000000000020'),'Partner flight','failed restore preserves saved title');
 select lives_ok($$update public.trip_bookings set archived_at=null where id='36000000-0000-4000-8000-000000000020'$$,'either member can restore a booking');
+select is((select project_kind from public.trip_bookings where id='36000000-0000-4000-8000-000000000020'),'trip','restoring preserves the generated trip discriminator');
+select is((select archived_at from public.trip_bookings where id='36000000-0000-4000-8000-000000000020'),null::timestamptz,'restore clears the archive timestamp');
 select set_config('request.jwt.claim.sub','36000000-0000-4000-8000-000000000003',true);
 select is_empty($$select id from public.trip_bookings where id='36000000-0000-4000-8000-000000000020'$$,'foreign booking details are hidden');
 select is_empty($$update public.trip_bookings set title='Foreign' where id='36000000-0000-4000-8000-000000000020' returning id$$,'foreign updates are denied');
