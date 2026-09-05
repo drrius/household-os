@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { Search } from "lucide-react";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -46,6 +48,16 @@ export function AppShell({
               className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 pt-6 max-lg:pb-[calc(13.25rem+max(0.75rem,env(safe-area-inset-bottom)))] lg:max-w-none lg:p-8"
               tabIndex={-1}
             >
+              <div className="mb-3 flex justify-end lg:hidden">
+                <Link
+                  href="/search"
+                  prefetch={false}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium no-underline hover:bg-secondary focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <Search className="size-4" aria-hidden="true" />
+                  Search household
+                </Link>
+              </div>
               {children}
             </main>
 
