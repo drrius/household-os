@@ -106,6 +106,7 @@ export function ExpenseForm({
         );
   return (
     <FormFields
+      protectChanges
       action={action}
       submitLabel={
         submitLabel ?? (draft ? "Post expense draft" : "Post expense")

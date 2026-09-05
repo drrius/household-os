@@ -18,19 +18,16 @@ export type SubscribeHouseholdSurfacesInput = {
   onDirty: (surfaces: readonly AppSurface[]) => void;
 };
 
-function isWatchedTable(value: string): value is WatchedTable {
-  return (WATCHED_TABLES as readonly string[]).includes(value);
-}
-
 export function subscribeHouseholdSurfaces(
   input: SubscribeHouseholdSurfacesInput,
 ): () => void {
   const supabase = createClient();
   const dirty = new Set<AppSurface>();
+  let disposed = false;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   const flush = () => {
-    if (dirty.size === 0) {
+    if (disposed || dirty.size === 0) {
       return;
     }
     const surfaces = [...dirty];
@@ -39,6 +36,7 @@ export function subscribeHouseholdSurfaces(
   };
 
   const markDirty = (table: WatchedTable) => {
+    if (disposed) return;
     for (const surface of surfacesForTableChange(table)) {
       dirty.add(surface);
     }
@@ -54,7 +52,10 @@ export function subscribeHouseholdSurfaces(
     }
   };
 
-  let channel = supabase.channel(`household-surfaces:${input.householdId}`);
+  // Channel removal is asynchronous; a new listener must not reuse a closing channel.
+  let channel = supabase.channel(
+    `household-surfaces:${input.householdId}:${crypto.randomUUID()}`,
+  );
   for (const table of WATCHED_TABLES) {
     channel = channel.on(
       "postgres_changes",
@@ -64,29 +65,40 @@ export function subscribeHouseholdSurfaces(
         table,
         filter: `household_id=eq.${input.householdId}`,
       },
-      (payload) => {
-        const tableName = payload.table;
-        if (typeof tableName === "string" && isWatchedTable(tableName)) {
-          markDirty(tableName);
-        }
-      },
+      () => markDirty(table),
     );
   }
 
-  channel.subscribe((status) => {
-    if (status === "SUBSCRIBED") {
-      refreshAllWatched();
-    }
-  });
+  let subscriptionStart: Promise<void> | null = null;
+  const startSubscription = () => {
+    if (disposed || subscriptionStart) return;
+    // Cookie-backed session restoration may finish after the socket connects.
+    subscriptionStart = supabase.realtime
+      .setAuth()
+      .then(() => {
+        if (disposed) return;
+        channel.subscribe((status) => {
+          if (status === "SUBSCRIBED") refreshAllWatched();
+        });
+      })
+      .catch(() => {
+        // A later visibility change can retry transient auth initialization.
+        subscriptionStart = null;
+      });
+  };
+  startSubscription();
 
   const onVisibility = () => {
     if (document.visibilityState === "visible") {
+      startSubscription();
       refreshAllWatched();
     }
   };
   document.addEventListener("visibilitychange", onVisibility);
 
   return () => {
+    disposed = true;
+    dirty.clear();
     if (debounceTimer !== null) {
       clearTimeout(debounceTimer);
     }

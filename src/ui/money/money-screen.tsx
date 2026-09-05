@@ -36,6 +36,14 @@ export function MoneyScreen({ confirmDraftAction, model }: MoneyScreenProps) {
         explanation={model.explanation}
         hasOpeningBalance={model.hasOpeningBalance}
       />
+      <div>
+        <Link
+          href="/money/contexts"
+          className={buttonVariants({ variant: "outline" })}
+        >
+          Paid costs by trip & household record
+        </Link>
+      </div>
       <DraftList
         confirmDraftAction={confirmDraftAction}
         drafts={model.drafts}

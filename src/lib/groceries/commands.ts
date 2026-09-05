@@ -1,4 +1,6 @@
 import "server-only";
+import { isShoppingReceipt } from "@/domain/groceries/receipt-path";
+import { nextGroceryPosition } from "@/domain/groceries/order";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
@@ -35,7 +37,9 @@ export async function createGroceryItem(input: {
     throw new Error(`grocery_item_order failed: ${orderError.message}`);
   }
   const previousOrder = orderRows?.[0]?.sort_order;
-  const sortOrder = typeof previousOrder === "number" ? previousOrder + 10 : 0;
+  const sortOrder = nextGroceryPosition(
+    typeof previousOrder === "number" ? previousOrder : undefined,
+  );
   const { data, error } = await supabase
     .from("grocery_items")
     .insert({
@@ -167,7 +171,12 @@ export async function finishShoppingSession(input: {
   payerMemberId?: string | null;
   proposedAllocations?: unknown;
 }): Promise<Record<string, unknown>> {
-  await requireMemberContext();
+  const member = await requireMemberContext();
+  if (
+    input.receiptPath != null &&
+    !isShoppingReceipt(input.receiptPath, member.householdId)
+  )
+    throw new Error("Choose a receipt uploaded to this household.");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("finish_shopping_session", {
     p_shopping_session_id: input.shoppingSessionId,

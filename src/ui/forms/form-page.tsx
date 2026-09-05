@@ -14,12 +14,14 @@ export { FormFields } from "@/ui/forms/form-fields.client";
 
 export function FormPage({
   backHref,
+  backLabel = "Cancel",
   children,
   description,
   error,
   title,
 }: {
   backHref: string;
+  backLabel?: string;
   children: ReactNode;
   description: string;
   error?: string;
@@ -40,7 +42,7 @@ export function FormPage({
               })}
               href={backHref}
             >
-              Cancel
+              {backLabel}
             </Link>
           }
         />
