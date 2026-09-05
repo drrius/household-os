@@ -57,18 +57,55 @@ it("discovers the private calendar home and distinguishes shared write access", 
   ]);
   expect(transport.mock.calls[2]?.[0].headers).toEqual({ Depth: "1" });
 });
-it("rejects incomplete multistatus before treating absent events as deleted", async () => {
-  const transport = vi.fn().mockResolvedValue({
-    status: 207,
-    url: "https://p12-caldav.icloud.com/home/shared/",
-    body: multistatus(
-      resource("/home/shared/event.ics", "<d:getetag>v1</d:getetag>"),
-    ),
-  });
-  await expect(
-    readAppleCalendar(transport, "https://p12-caldav.icloud.com/home/shared/"),
-  ).rejects.toThrow("incomplete event listing");
-});
+it.each(["", ' content-type="text/calendar" version="2.0"'])(
+  "reads calendar text with XML attributes %s",
+  async (attributes) => {
+    const ical =
+      "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:Us & home\r\nEND:VEVENT\r\nEND:VCALENDAR";
+    const transport = vi.fn().mockResolvedValue({
+      status: 207,
+      url: "https://p12-caldav.icloud.com/home/shared/",
+      body: multistatus(
+        resource(
+          "/home/shared/event.ics",
+          `<d:getetag>&quot;v1&quot;</d:getetag><c:calendar-data${attributes}>${ical.replaceAll("&", "&amp;")}</c:calendar-data>`,
+        ),
+      ),
+    });
+    await expect(
+      readAppleCalendar(
+        transport,
+        "https://p12-caldav.icloud.com/home/shared/",
+      ),
+    ).resolves.toEqual([
+      {
+        href: "https://p12-caldav.icloud.com/home/shared/event.ics",
+        etag: '"v1"',
+        ical: ical.replaceAll("\r\n", "\n"),
+      },
+    ]);
+  },
+);
+it.each([
+  "<d:getetag>v1</d:getetag>",
+  '<d:getetag>v1</d:getetag><c:calendar-data content-type="text/calendar"/>',
+  "<d:getetag>v1</d:getetag><c:calendar-data><c:unexpected>event</c:unexpected></c:calendar-data>",
+])(
+  "rejects incomplete multistatus before treating absent events as deleted: %s",
+  async (properties) => {
+    const transport = vi.fn().mockResolvedValue({
+      status: 207,
+      url: "https://p12-caldav.icloud.com/home/shared/",
+      body: multistatus(resource("/home/shared/event.ics", properties)),
+    });
+    await expect(
+      readAppleCalendar(
+        transport,
+        "https://p12-caldav.icloud.com/home/shared/",
+      ),
+    ).rejects.toThrow("incomplete event listing");
+  },
+);
 it("bounds the response body and the total sync deadline", async () => {
   const fetcher = vi
     .fn<typeof fetch>()

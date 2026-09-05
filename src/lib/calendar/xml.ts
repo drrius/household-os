@@ -10,6 +10,8 @@ export function xmlEscape(value: string): string {
     .replaceAll("'", "&apos;");
 }
 function xmlText(value: unknown): string {
+  // Elements with attributes keep their text in fast-xml-parser's #text field.
+  if (typeof value !== "string") value = record(value)["#text"];
   if (typeof value !== "string") return "";
   return value.replace(
     /&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi,
