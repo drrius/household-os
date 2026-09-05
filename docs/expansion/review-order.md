@@ -21,17 +21,17 @@ PR69 fixes a reproduced lifecycle race. The combined PR69 + PR70 fix passed part
 
 These also have passing required CI and positive review. Their current bases are feature branches. Before merging a child into main, land its dependencies and retarget it to main if GitHub has not done so automatically; inspect the resulting diff and checks. Merging a child directly into its current feature-branch base is not a release to main.
 
-| PR                                                   | Purpose                                      | Current base              | Head      |
-| ---------------------------------------------------- | -------------------------------------------- | ------------------------- | --------- |
-| [50](https://github.com/drrius/household-os/pull/50) | Calendar and private iCloud synchronization  | #48                       | `39718bd` |
-| [52](https://github.com/drrius/household-os/pull/52) | Projects, trips and task coordination        | #48                       | `0227db3` |
-| [58](https://github.com/drrius/household-os/pull/58) | Link paid expenses to plans and records      | #48                       | `60fc733` |
-| [51](https://github.com/drrius/household-os/pull/51) | Inventory, renewals, decisions and documents | #52                       | `0523d87` |
-| [60](https://github.com/drrius/household-os/pull/60) | Bookings and itinerary                       | #52                       | `8b76626` |
-| [67](https://github.com/drrius/household-os/pull/67) | Combine calendar/bookings with Home records  | #51; includes #50 and #60 | `5e359ac` |
-| [68](https://github.com/drrius/household-os/pull/68) | Exact posted expense from shopping history   | #47                       | `62db608` |
-| [70](https://github.com/drrius/household-os/pull/70) | Authenticate before realtime subscription | #69 | `15dfb0b` |
-| [55](https://github.com/drrius/household-os/pull/55) | Household search and preserved result context | #67; includes #47 | `8317481` |
+| PR                                                   | Purpose                                       | Current base              | Head      |
+| ---------------------------------------------------- | --------------------------------------------- | ------------------------- | --------- |
+| [50](https://github.com/drrius/household-os/pull/50) | Calendar and private iCloud synchronization   | #48                       | `39718bd` |
+| [52](https://github.com/drrius/household-os/pull/52) | Projects, trips and task coordination         | #48                       | `0227db3` |
+| [58](https://github.com/drrius/household-os/pull/58) | Link paid expenses to plans and records       | #48                       | `60fc733` |
+| [51](https://github.com/drrius/household-os/pull/51) | Inventory, renewals, decisions and documents  | #52                       | `0523d87` |
+| [60](https://github.com/drrius/household-os/pull/60) | Bookings and itinerary                        | #52                       | `8b76626` |
+| [67](https://github.com/drrius/household-os/pull/67) | Combine calendar/bookings with Home records   | #51; includes #50 and #60 | `5e359ac` |
+| [68](https://github.com/drrius/household-os/pull/68) | Exact posted expense from shopping history    | #47                       | `62db608` |
+| [70](https://github.com/drrius/household-os/pull/70) | Authenticate before realtime subscription     | #69                       | `15dfb0b` |
+| [55](https://github.com/drrius/household-os/pull/55) | Household search and preserved result context | #67; includes #47         | `8317481` |
 
 The integration PRs include their source feature commits. They are not independent copies to apply twice. Use the focused PRs to review individual features, then inspect the remaining integration diff after the selected dependencies land.
 
