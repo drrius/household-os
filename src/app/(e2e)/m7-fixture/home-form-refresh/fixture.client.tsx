@@ -39,6 +39,7 @@ export function HomeRefreshFixture({ seedId }: { seedId: string }) {
         />
       </section>
       <AdditionalEditors revision={revision} action={save} />
+      <NewLinkedRecord revision={revision} action={save} />
       <section aria-label="New record">
         <RecordForm
           kind="contacts"
@@ -96,5 +97,30 @@ function AdditionalEditors({
         />
       </section>
     </>
+  );
+}
+
+function NewLinkedRecord({
+  revision,
+  action,
+}: {
+  revision: number;
+  action: FormAction;
+}) {
+  return (
+    <section aria-label="New commitment">
+      <RecordForm
+        kind="commitments"
+        record={{ id: `new-commitment-${revision}`, notice_days: 0 }}
+        options={{
+          responsible_member_id: [
+            { value: "alex", label: `Alex ${revision}` },
+            { value: "sam", label: "Sam" },
+          ],
+        }}
+        returnTo="/home/commitments"
+        action={action}
+      />
+    </section>
   );
 }

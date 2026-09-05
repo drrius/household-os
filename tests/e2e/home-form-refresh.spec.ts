@@ -85,3 +85,36 @@ test("selection-only edits preserve matching options and release after reverting
   await expect(editor.locator('[name="version"]')).toHaveValue("v2");
   await expect(editor.locator('option[value="alex"]')).toHaveText("Alex 2");
 });
+
+test("pristine new records keep their ID while receiving current choices", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/home-form-refresh");
+  const editor = page.getByRole("region", {
+    name: "New commitment",
+    exact: true,
+  });
+  const id = await editor.locator('[name="id"]').inputValue();
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  await expect(editor.locator('option[value="alex"]')).toHaveText("Alex 2");
+  await expect(editor.locator('[name="id"]')).toHaveValue(id);
+});
+test("new-record choices freeze only for an actual draft and refresh after reverting", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/home-form-refresh");
+  const editor = page.getByRole("region", {
+    name: "New commitment",
+    exact: true,
+  });
+  const id = await editor.locator('[name="id"]').inputValue();
+  await editor.locator('[name="responsible_member_id"]').selectOption("sam");
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  await expect(editor.locator('option[value="alex"]')).toHaveText("Alex 1");
+  await expect(editor.locator('[name="responsible_member_id"]')).toHaveValue(
+    "sam",
+  );
+  await editor.locator('[name="responsible_member_id"]').selectOption("");
+  await expect(editor.locator('option[value="alex"]')).toHaveText("Alex 2");
+  await expect(editor.locator('[name="id"]')).toHaveValue(id);
+});

@@ -19,12 +19,16 @@ export function useRecordSnapshot(
   const [initial] = useState({ record, options });
   const [snapshot, setSnapshot] = useState<typeof initial | null>(null);
   const current = useMemo(
-    () => (record.updated_at ? (snapshot ?? { record, options }) : initial),
+    () =>
+      snapshot ?? {
+        record: record.updated_at ? record : initial.record,
+        options,
+      },
     [record, options, snapshot, initial],
   );
   const capture = useCallback(() => {
     const form = holder.current?.querySelector("form");
-    if (!form || !current.record.updated_at) return;
+    if (!form) return;
     const values = new FormData(form);
     const dirty =
       fields[kind].some(
