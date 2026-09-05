@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -106,6 +107,7 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
                       </SidebarMenuItem>
                     );
                   })}
+                  <HouseholdSearchItem active={pathname === "/search"} />
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -119,5 +121,21 @@ export function AppSidebar({ householdName }: AppSidebarProps) {
         <SidebarRail className="w-6" />
       </Sidebar>
     </div>
+  );
+}
+
+function HouseholdSearchItem({ active }: { active: boolean }) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        aria-current={active ? "page" : undefined}
+        isActive={active}
+        render={<Link href="/search" prefetch={false} />}
+        title="Search household"
+      >
+        <Search aria-hidden="true" />
+        <span>Search household</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }

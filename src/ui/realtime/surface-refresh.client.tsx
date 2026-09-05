@@ -7,6 +7,7 @@ import type { AppSurface } from "@/domain/notifications/types";
 import { subscribeHouseholdSurfaces } from "@/lib/realtime/surfaces";
 
 function surfaceFromPath(pathname: string): AppSurface {
+  if (pathname === "/search") return "search";
   if (pathname === "/plan" || pathname.startsWith("/plan/")) {
     return "plan";
   }

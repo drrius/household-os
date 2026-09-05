@@ -192,7 +192,7 @@ export type JobClaimDecision =
     };
 
 export type AppSurface =
-  "today" | "plan" | "groceries" | "money" | "home" | "inbox";
+  "today" | "plan" | "groceries" | "money" | "home" | "inbox" | "search";
 
 export type WatchedTable =
   | "areas"
@@ -222,4 +222,9 @@ export type WatchedTable =
   | "household_documents"
   | "asset_maintenance"
   | "asset_routines"
-  | "grocery_categories";
+  | "grocery_categories"
+  | "meal_definitions"
+  | "areas"
+  | "pets"
+  | "routine_completions"
+  | "expense_categories";
