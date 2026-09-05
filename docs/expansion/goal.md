@@ -27,9 +27,9 @@ Preserve two equal members, one private household, CHF integer-centime accountin
 ## Verification and delivery
 
 - Work in isolated branches/worktrees with explicit path ownership and dependency ordering.
-- Run focused checks during development and pnpm verify per integrated PR. Database changes require pnpm db:test and RLS/invariant coverage. Financial changes require example and property tests.
+- Follow the current main-branch AGENTS.md: run only touched and directly affected tests, targeted lint and scoped typechecking locally. CI runs the full suite; do not run pnpm verify or full suites locally by default. Database changes require relevant database tests and RLS/invariant coverage. Financial changes require focused example and property tests.
 - Settle affected designs, then exercise complete Playwright workflows and mobile/desktop browser checks. Validate empty/populated/error/pending/concurrent states where relevant.
-- Open a PR for every completed unit. Respond to CodeRabbit review comments. Fix and push substantiated bugs; explain disagreements with evidence. Request rereview until explicit positive CodeRabbit review is received. Never equate missing feedback, rate limits, or failed review jobs with approval.
+- Open a PR for every completed unit. Respond to CodeRabbit review comments. Fix and push substantiated bugs; explain disagreements with evidence. Resolve each fixed review thread as soon as its fix is pushed, so open threads represent outstanding work. Request rereview until explicit positive CodeRabbit review is received. Never equate missing feedback, rate limits, or failed review jobs with approval.
 - Record scope, acceptance evidence, PR URLs, review status, decisions, and remaining gaps in docs/expansion. Keep implementation and completeness audits current through context compaction and goal continuations.
 - Implement and test external integrations against controlled fixtures when credentials are unavailable. Distinguish implemented capability from live-account verification. Do not invent credentials or claim unperformed checks.
 
