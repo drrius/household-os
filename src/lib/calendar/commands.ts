@@ -145,13 +145,20 @@ export async function cancelCalendarEvent(form: FormData) {
   );
 }
 export async function resolveCalendarConflict(form: FormData) {
+  const choices = form.getAll("choice");
+  const choice = z.enum(["local", "remote"]).safeParse(choices[0]);
+  if (choices.length !== 1 || !choice.success)
+    throw new CalendarError(
+      "invalid",
+      "Choose which version to keep before resolving this conflict.",
+    );
   const row = await getCalendarEvent(z.uuid().parse(form.get("id")));
   if (row.sync_state !== "conflict" || row.remote_conflict_ical === null)
     throw new CalendarError(
       "conflict",
       "This conflict has already changed. Reload the event.",
     );
-  const useRemote = form.get("choice") === "remote";
+  const useRemote = choice.data === "remote";
   if (!useRemote && (await getConnectionSummary())?.read_only)
     throw new CalendarError(
       "permission",

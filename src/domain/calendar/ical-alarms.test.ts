@@ -25,6 +25,7 @@ it.each([
   "TRIGGER;VALUE=DATE-TIME:20260901T080000",
   "TRIGGER;VALUE=DATE-TIME;RELATED=START:20260901T080000Z",
   "TRIGGER;TZID=America/New_York:-PT30M",
+  "TRIGGER;RELATED=INVALID:-PT30M",
 ])("rejects an invalid alarm before editing or export: %s", (trigger) => {
   const ical = resource(trigger);
   expect(calendarEditingIssue(ical)).toMatch(/alarm.*Apple Calendar/);
