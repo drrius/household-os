@@ -19,7 +19,7 @@ The proposed fallback for invalid commitment notice days was declined: the datab
 ## Verification
 
 - `pnpm verify`: passed, including 406 unit/property tests and the production build.
-- Home records, concurrent refresh, pristine parented creation, navigation, and archived fixture editing: 54 Playwright cases passed across desktop Chromium, mobile Chromium, and mobile Safari.
+- Home records, concurrent refresh, pristine parented creation, navigation, and archived fixture editing: 54 Playwright cases passed across desktop Chromium, desktop Safari, and mobile Safari.
 - Database tests 034 and 037 cover archive guards, immutable option parents, monotonic versions, stale option archival, tenant isolation, and attention pagination. Local `pnpm db:test` could not connect to Postgres on port 54322; no local SQL pass is claimed.
 
 ## Integration dependencies
