@@ -27,8 +27,8 @@ export function useEditSnapshot<T>(
   return {
     data: current.data,
     events: {
-      onInputCapture: capture,
-      onChangeCapture: capture,
+      onInput: capture,
+      onChange: capture,
       onSubmitCapture: () => setSnapshot(current),
     },
   };

@@ -33,6 +33,18 @@ export const GLOBAL_ADD_OPTIONS = [
     label: "Expense",
     description: "CHF · 50/50 or exact split · counts right away",
   },
+  {
+    id: "trip",
+    href: "/plan/trips/new",
+    label: "Trip",
+    description: "A getaway, bookings and plans together",
+  },
+  {
+    id: "project",
+    href: "/plan/projects/new",
+    label: "Project",
+    description: "A shared goal and its next steps",
+  },
 ] as const;
 
 // Dedicated create and edit surfaces already are the add flow. Not every one of

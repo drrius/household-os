@@ -226,7 +226,7 @@ select throws_ok($$update public.household_commitments set expected_amount_cents
 select throws_ok($$update public.project_tasks set assigned_member_id = '00000000-0000-4000-8000-000000000103' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23503',null,'task assignment stays in household');
 select throws_ok($$update public.calendar_events set ends_at = '2020-01-01' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'event dates ordered');
 select throws_ok($$update public.calendar_events set attendance = 'one' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'single attendance requires member');
-select throws_ok($$update public.trip_bookings set project_id = '00000200-0000-4000-8000-000000000002' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23503',null,'booking project stays in household');
+select throws_ok($$update public.trip_bookings set project_id = '00000200-0000-4000-8000-000000000002' where household_id = '00000100-0000-4000-8000-000000000001'$$,'42501',null,'booking project stays in household');
 -- Trusted fixture mutation tests structural constraints, separately from browser privileges.
 reset role;
 select throws_ok($$update public.household_financial_links set asset_id = '00000200-0000-4000-8000-000000000001' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'only one financial context');
@@ -240,7 +240,7 @@ select throws_ok($$select public.convert_household_decision('00000200-0000-4000-
 select throws_ok($$update public.household_decisions set status = 'decided'$$,'42501',null,'decision status requires command');
 select throws_ok($$update public.household_decisions set converted_project_id = '00000200-0000-4000-8000-000000000001'$$,'42501',null,'conversion target requires command');
 select throws_ok($$update public.decision_options set chosen = true$$,'42501',null,'choice requires command');
-select throws_ok($$update public.household_projects set kind = 'project' where id = '00000200-0000-4000-8000-000000000001'$$,'23503',null,'cannot turn booked trip into ordinary project');
+select throws_ok($$update public.household_projects set kind = 'project' where id = '00000200-0000-4000-8000-000000000001'$$,'23514',null,'cannot turn booked trip into ordinary project');
 select lives_ok($$select public.set_household_decision_status('00000200-0000-4000-8000-000000000001','dismissed')$$,'can dismiss a decision');
 select is((select count(*) from public.decision_options where chosen),0::bigint,'dismiss clears choice atomically');
 reset role;
@@ -250,7 +250,7 @@ select '00000200-0000-4000-8000-000000000003', household_id, 'settlement', occur
 insert into public.financial_events(id,household_id,type,occurred_on,created_by_member_id,payer_member_id,description,amount_cents)
 select '00000200-0000-4000-8000-000000000004', household_id, 'opening_balance', occurred_on, created_by_member_id, payer_member_id, 'Opening balance', 100 from public.financial_events where id='00000200-0000-4000-8000-000000000001';
 set local role authenticated;
-select throws_ok($$update public.trip_bookings set project_id = '00000200-0000-4000-8000-000000000003'$$,'23503',null,'bookings require a trip parent');
+select throws_ok($$update public.trip_bookings set project_id = '00000200-0000-4000-8000-000000000003'$$,'23514',null,'bookings require a trip parent');
 -- Trusted fixture mutation tests structural constraints, separately from browser privileges.
 reset role;
 select throws_ok($$update public.household_financial_links set financial_event_id = '00000200-0000-4000-8000-000000000003'$$,'23514',null,'settlement is not spending');
