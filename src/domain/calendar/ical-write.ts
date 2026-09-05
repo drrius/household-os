@@ -1,3 +1,4 @@
+import { ensureCalendarTimezones } from "./ical-timezones";
 import ICAL from "ical.js";
 import { isTimeZone } from "./date-time";
 import { readCalendar } from "./ical-read";
@@ -109,6 +110,7 @@ export function writeCalendar(
     markRevision(target, true, false);
   else
     applyFields(target, input, options.cancelled ?? false, !options.existing);
+  ensureCalendarTimezones(calendar);
   return calendar.toString();
 }
 
