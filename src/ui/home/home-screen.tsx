@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SECURITY_PATH } from "@/lib/auth/paths";
 import type { HomeViewModel } from "@/lib/read-models/home";
 import { SettingsList } from "@/ui/home/home-settings";
+import { HomeCollections } from "@/ui/home/home-collections";
 import { AppPage } from "@/ui/layout/app-page";
 import { EmptyState } from "@/ui/layout/empty-state";
 import { PageHeader } from "@/ui/layout/page-header";
@@ -209,6 +210,7 @@ export function HomeScreen({ model }: HomeScreenProps) {
           </Link>
         }
       />
+      <HomeCollections />
       <HouseholdCard
         householdLabel={model.householdLabel}
         members={model.members}
