@@ -1,12 +1,12 @@
-import { CheckIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { GroceriesViewModel } from "@/lib/read-models/groceries";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/ui/layout/empty-state";
+import { CartControl } from "./cart-control.client";
 import { PageSection } from "@/ui/layout/page-section";
 
 type GroceryListProps = {
@@ -22,7 +22,6 @@ function GroceryItem({
   item: GroceriesViewModel["categories"][number]["items"][number];
 }) {
   const isClaimed = item.claimedByName !== null;
-  const canToggle = !isClaimed || item.claimedByMe;
 
   return (
     <li
@@ -31,45 +30,15 @@ function GroceryItem({
         isClaimed && "bg-success-soft",
       )}
     >
-      <form action={claimAction} className="flex">
-        <input name="itemId" type="hidden" value={item.id} />
-        <input
-          name="intent"
-          type="hidden"
-          value={item.claimedByMe ? "release" : "claim"}
-        />
-        <Button
-          aria-checked={isClaimed}
-          aria-label={
-            item.claimedByMe
-              ? `Remove ${item.name} from your cart`
-              : isClaimed
-                ? `${item.name} is in ${item.claimedByName}'s cart`
-                : `Add ${item.name} to your cart`
-          }
-          className="size-11"
-          disabled={!canToggle}
-          role="checkbox"
-          size="icon-lg"
-          type="submit"
-          variant="ghost"
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "inline-flex size-6 items-center justify-center rounded-[6px] border border-input",
-              isClaimed && "border-success bg-success text-success-foreground",
-            )}
-          >
-            {isClaimed ? (
-              <CheckIcon className="size-4 shrink-0" strokeWidth={3} />
-            ) : null}
-          </span>
-        </Button>
-      </form>
+      <CartControl action={claimAction} item={item} />
       <div className="grid min-w-0 gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <strong className="wrap-anywhere">{item.name}</strong>
+          <Link
+            className="inline-flex min-h-11 items-center wrap-anywhere font-semibold underline-offset-4 hover:underline"
+            href={`/groceries/items/${item.id}`}
+          >
+            {item.name}
+          </Link>
           {item.quantity !== null || item.unit !== null ? (
             <span className="text-sm text-muted-foreground">
               {[item.quantity, item.unit].filter(Boolean).join(" ")}
@@ -131,7 +100,7 @@ export function GroceryList({ categories, claimAction }: GroceryListProps) {
                 </div>
                 <Card className="gap-0 py-0">
                   <CardContent className="px-0">
-                    <ul className="list-none">
+                    <ul className="list-none" role="list">
                       {category.items.map((item) => (
                         <GroceryItem
                           claimAction={claimAction}

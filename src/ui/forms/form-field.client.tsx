@@ -1,6 +1,12 @@
 "use client";
 
-import { cloneElement, isValidElement, useId, type ReactNode } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useId,
+  type ReactNode,
+} from "react";
 
 import {
   Field,
@@ -35,7 +41,11 @@ export function FormField({
   const descriptionId = `${id}-description`;
   const errorId = `${id}-error`;
   const { errors } = useFormFieldsState();
-  const control = isValidElement<ControlProps>(children) ? children : null;
+  // Server-rendered children can arrive through React's lazy child wrapper.
+  // Normalize with its public Children API before checking the control.
+  const childrenArray = Children.toArray(children);
+  const child = childrenArray.length === 1 ? childrenArray[0] : null;
+  const control = isValidElement<ControlProps>(child) ? child : null;
   const field = name ?? control?.props.name;
   const error = field === undefined ? undefined : errors[field];
   const describedBy =

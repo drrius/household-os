@@ -16,6 +16,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.client }));
 const input = {
   id: "11111111-1111-4111-8111-111111111111",
   sourceEntryId: null,
+  version: null,
   isNew: true,
   name: "Pasta",
   recipeUrl: null,
@@ -79,9 +80,13 @@ describe("saved meal persistence", () => {
   });
   it("rejects editing a missing or inaccessible meal instead of claiming success", async () => {
     database([{ data: null }]);
-    await expect(saveLibraryMeal({ ...input, isNew: false })).rejects.toThrow(
-      "no longer available",
-    );
+    await expect(
+      saveLibraryMeal({
+        ...input,
+        isNew: false,
+        version: "2026-09-05T00:00:00Z",
+      }),
+    ).rejects.toThrow("no longer available");
   });
   it("scopes grocery removal to both its household and saved meal", async () => {
     const calls = database([{}]);
@@ -127,4 +132,41 @@ describe("saved meal persistence", () => {
       }),
     );
   });
+});
+
+it("keeps a saved-meal edit bound to the household and version the editor opened", async () => {
+  const version = "2026-09-05T00:00:00Z";
+  const calls = database([{ data: { id: input.id } }]);
+  await expect(
+    saveLibraryMeal({ ...input, isNew: false, version }),
+  ).resolves.toBe(input.id);
+  expect(calls).toContainEqual(["eq", "updated_at", version]);
+  expect(calls).toContainEqual(["eq", "household_id", "our-household"]);
+  database([{ data: null }]);
+  await expect(
+    saveLibraryMeal({ ...input, isNew: false, version }),
+  ).rejects.toThrow("Reload it before saving");
+});
+
+it("rejects a stale default-grocery edit without replacing the partner's data", async () => {
+  const edit = {
+    ...input,
+    isNew: false,
+    version: "2026-09-05T12:00:00.123456+00:00",
+    libraryId: input.id,
+    quantity: null,
+    unit: null,
+    categoryId: null,
+    note: null,
+  };
+  const calls = database([{ data: { id: input.id } }, { data: null }]);
+  await expect(saveMealTemplate(edit)).rejects.toThrow("Reload the saved meal");
+  const updateIndex = calls.findIndex(([method]) => method === "update");
+  expect(updateIndex).toBeGreaterThanOrEqual(0);
+  const updateCalls = calls.slice(updateIndex);
+  expect(updateCalls).toContainEqual(["eq", "updated_at", edit.version]);
+  expect(updateCalls).toContainEqual(["eq", "household_id", "our-household"]);
+  expect(updateCalls).toContainEqual(["eq", "meal_definition_id", input.id]);
+  expect(updateCalls).toContainEqual(["eq", "id", input.id]);
+  expect(updateCalls).toContainEqual(["is", "archived_at", null]);
 });
