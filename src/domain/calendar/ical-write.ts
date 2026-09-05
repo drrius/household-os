@@ -34,6 +34,14 @@ function applyFields(
   setTime(component, "dtstart", input.startsAt, input);
   setTime(component, "dtend", input.endsAt, input);
 }
+function readEditableCalendar(ical: string, uid: string) {
+  const parsed = readCalendar(ical);
+  if (parsed.event.uid !== uid)
+    throw new Error("The calendar event identity does not match.");
+  for (const event of parsed.calendar.getAllSubcomponents("vevent"))
+    validateAlarmTimes(event);
+  return parsed;
+}
 export function writeCalendar(
   input: CalendarEventInput,
   options: {
@@ -44,9 +52,9 @@ export function writeCalendar(
     resetRecurrence?: boolean;
   },
 ): string {
-  const parsed = options.existing ? readCalendar(options.existing) : null;
-  if (parsed && parsed.event.uid !== options.uid)
-    throw new Error("The calendar event identity does not match.");
+  const parsed = options.existing
+    ? readEditableCalendar(options.existing, options.uid)
+    : null;
   const calendar = parsed?.calendar ?? new ICAL.Component("vcalendar");
   if (!options.existing) {
     calendar.updatePropertyWithValue("version", "2.0");
