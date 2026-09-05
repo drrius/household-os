@@ -122,7 +122,7 @@ test("sign-out remains available when a service worker has no push support", asy
   ).toBe("none");
 });
 
-for (const failure of ["reject", "false", "pending"]) {
+for (const failure of ["reject", "false", "pending", "throw"]) {
   test(`browser push cleanup ${failure} cannot block completed sign-out`, async ({
     page,
   }) => {
@@ -137,6 +137,7 @@ for (const failure of ["reject", "false", "pending"]) {
                   "account-fixture-cleanup-attempted",
                   "yes",
                 );
+                if (mode === "throw") throw new Error("Push unavailable");
                 if (mode === "reject")
                   return Promise.reject(new Error("Push unavailable"));
                 if (mode === "pending") return new Promise(() => {});
@@ -163,4 +164,51 @@ for (const failure of ["reject", "false", "pending"]) {
       ),
     ).toBe("yes");
   });
+}
+
+for (const stage of ["registration", "subscription"]) {
+  for (const failure of ["reject", "pending"]) {
+    test(`${stage} discovery ${failure} cannot block server sign-out`, async ({
+      page,
+    }) => {
+      const browserErrors: string[] = [];
+      page.on("pageerror", (error) => browserErrors.push(error.message));
+      await page.addInitScript(
+        ({ stage, failure }) => {
+          const unavailable = () =>
+            failure === "reject"
+              ? Promise.reject(new Error("Browser discovery unavailable"))
+              : new Promise(() => {});
+          Object.defineProperty(navigator.serviceWorker, "getRegistration", {
+            value: () =>
+              stage === "registration"
+                ? unavailable()
+                : Promise.resolve({
+                    pushManager: { getSubscription: unavailable },
+                  }),
+          });
+        },
+        { stage, failure },
+      );
+      await page.goto("/m7-fixture/account/sign-out");
+      await page
+        .getByRole("button", { name: "Sign out of this device" })
+        .click();
+      // The deliberately rejected server fixture proves discovery reached the
+      // server action; a browser error must never replace this recoverable error.
+      await expect(page.getByRole("main").getByRole("alert")).toContainText(
+        "This fixture rejected",
+      );
+      expect(
+        await page.evaluate(() =>
+          sessionStorage.getItem("account-fixture-endpoint"),
+        ),
+      ).toBe("none");
+      await page
+        .getByRole("button", { name: "Sign out of this device" })
+        .click();
+      await expect(page).toHaveURL(/\/sign-in$/);
+      expect(browserErrors).toEqual([]);
+    });
+  }
 }

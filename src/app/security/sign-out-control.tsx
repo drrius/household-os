@@ -7,6 +7,27 @@ import {
   type SignOutResult,
 } from "@/app/security/sign-out-action";
 
+async function currentSubscription(): Promise<PushSubscription | null> {
+  if (!("serviceWorker" in navigator)) return null;
+  const registration = await navigator.serviceWorker.getRegistration("/");
+  return (await registration?.pushManager?.getSubscription()) ?? null;
+}
+
+/** Browser discovery is optional; neither a rejection nor a stalled API delays sign-out indefinitely. */
+export async function discoverSignOutSubscription(): Promise<PushSubscription | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      currentSubscription().catch(() => null),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), 500);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function SignOutControl({
   action = signOutThisDevice,
 }: {
@@ -20,19 +41,15 @@ export function SignOutControl({
     setPending(true);
     setError(null);
     try {
-      let subscription: PushSubscription | null | undefined;
-      if ("serviceWorker" in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration("/");
-        subscription = await registration?.pushManager?.getSubscription();
-        if (subscription) {
-          endpointRef.current = subscription.endpoint;
-        }
-      }
+      const subscription = await discoverSignOutSubscription();
+      if (subscription) endpointRef.current = subscription.endpoint;
       const result = await action(endpointRef.current);
       if (!result.ok) throw new Error(result.error);
-      // The server has already disabled delivery and ended the session.
+      // The server has ended the session and disabled any identified subscription.
       // Browser cleanup must not hold sign-out hostage to a push-service failure.
-      void subscription?.unsubscribe().catch(() => undefined);
+      void Promise.resolve()
+        .then(() => subscription?.unsubscribe())
+        .catch(() => undefined);
       // A full navigation discards this tab's authenticated router state.
       window.location.replace("/sign-in");
     } catch (failure) {
@@ -53,8 +70,8 @@ export function SignOutControl({
         This device
       </h2>
       <p className="text-base text-muted-foreground">
-        End this browser’s session and turn off its push notifications. Your
-        passkeys and other signed-in devices stay available.
+        End this browser’s session. Your passkeys and other signed-in devices
+        stay available.
       </p>
       <Button
         type="button"
