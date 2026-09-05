@@ -54,7 +54,11 @@ describe("shared grocery order", () => {
     const items = [{ id: "x", category_id: null, sort_order: 0 }];
     fc.assert(
       fc.property(
-        fc.string({ minLength: 1, maxLength: 80 }),
+        fc.oneof(
+          fc.constant("Other"),
+          fc.constant("OTHER"),
+          fc.string({ minLength: 1, maxLength: 80 }),
+        ),
         fc.nat({ max: 100 }),
         (name, position) => {
           expect(
@@ -75,7 +79,15 @@ describe("shared grocery order", () => {
               ],
               items,
             ),
-          ).toEqual([{ id: "fallback", name, sortOrder: position, items }]);
+          ).toEqual([
+            {
+              id: "fallback",
+              name:
+                name.toLowerCase() === "other" ? `${name} (unassigned)` : name,
+              sortOrder: position,
+              items,
+            },
+          ]);
         },
       ),
     );
