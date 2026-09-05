@@ -38,7 +38,7 @@ async function sendUpload(
   try {
     prepared = await prepareAttachment(file);
   } catch (failure) {
-    throw new UploadRejection(uploadError(failure), false);
+    throw new UploadRejection(attachmentError(failure), false);
   }
   const form = new FormData();
   form.set("file", prepared);
@@ -59,10 +59,11 @@ async function sendUpload(
   return result.path;
 }
 
-function uploadError(failure: unknown) {
-  return failure instanceof Error
-    ? failure.message
-    : "Couldn't upload the attachment.";
+function attachmentError(
+  failure: unknown,
+  fallback = "Couldn't upload the attachment.",
+) {
+  return failure instanceof Error ? failure.message : fallback;
 }
 
 function rejectValidity(
@@ -108,7 +109,7 @@ export function useAttachmentUpload(
       if (previous && previous !== uploadedPath)
         await discard(previous).catch(() => {});
     } catch (failure) {
-      setError(uploadError(failure));
+      setError(attachmentError(failure));
       const retryable =
         !(failure instanceof UploadRejection) || failure.retryable;
       setCanRetry(retryable);
@@ -136,11 +137,8 @@ export function useAttachmentUpload(
       attempt.current = null;
       clearInput(input);
     } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Couldn't remove the attachment.",
-      );
+      setError(attachmentError(failure, "Couldn't remove the attachment."));
+      rejectValidity(input, true);
     } finally {
       setPending(false);
     }

@@ -4,11 +4,20 @@ Uploads require both the attachment migration and the `household-attachment-uplo
 
 The Next API authenticates the session and forwards bounded file bytes using the member's JWT and the public Supabase key. The Edge Function independently validates that JWT with Auth, checks household membership, inspects bytes, derives the object path, and reserves it using the member's permissions. Only then does it use the Supabase-injected service credential for a single immutable Storage upload. Do not add that credential to Vercel or any browser environment.
 
-For an already linked project, deploy through the normal reviewed release process:
+For an already linked project, use the following sequence only as part of an authorized production release. First inspect all pending migrations, including the attachment registry and Storage claim trigger:
 
 ```sh
+pnpm exec supabase db push --linked --dry-run
+```
+
+After reviewing that pending set, apply it before deploying the upload function:
+
+```sh
+pnpm exec supabase db push --linked
 pnpm exec supabase functions deploy household-attachment-upload
 ```
+
+The database command applies every pending migration in this checkout, not just the attachment migration. Resolve any unexpected pending migrations before running it. Enable app uploads only after both steps succeed. These are operator instructions; neither production command was executed by this implementation task.
 
 Keep the gateway's default JWT verification enabled. The function also independently verifies the bearer token with `auth.getUser`, then resolves membership under that identity. It requires Supabase's automatically injected `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. No custom privileged credential is needed. Do not log request headers, tokens, or file bytes. There is no anonymous upload route or client Storage INSERT policy.
 

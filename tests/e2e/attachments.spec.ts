@@ -266,3 +266,34 @@ test("a PNG photo is prepared as JPEG before upload", async ({ page }) => {
   expect(bodies[0]).toContain('filename="photo.jpg"');
   expect(bodies[0]).toContain("Content-Type: image/jpeg");
 });
+
+test("failed attachment removal explains retry and releases validation after success", async ({
+  page,
+}) => {
+  let removals = 0;
+  await page.route("**/api/attachments**", async (route) => {
+    if (route.request().method() === "DELETE") {
+      removals += 1;
+      await route.fulfill({ status: removals === 1 ? 503 : 204 });
+    } else {
+      await route.fulfill({ status: 201, json: { path } });
+    }
+  });
+  await page.goto("/m7-fixture/attachment");
+  const input = page.getByLabel("Receipt (optional)");
+  await input.setInputFiles(file);
+  await expect(page.getByRole("status")).toHaveText("Attachment ready.");
+  await page.getByRole("button", { name: "Remove attachment" }).click();
+  await expect(page.getByRole("status")).toContainText("Try removing it again");
+  await expect(page.locator('input[name="receiptPath"]')).toHaveValue(path);
+  expect(
+    await input.evaluate((field: HTMLInputElement) => field.validationMessage),
+  ).toBe(
+    "Retry, choose another file, or remove this attachment before saving.",
+  );
+  await page.getByRole("button", { name: "Remove attachment" }).click();
+  await expect(page.locator('input[name="receiptPath"]')).toHaveValue("");
+  expect(
+    await input.evaluate((field: HTMLInputElement) => field.checkValidity()),
+  ).toBe(true);
+});
