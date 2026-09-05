@@ -100,6 +100,14 @@ export function ProjectTasks({
           </Link>
         )}
       </div>
+      {!archived && !archivedTasks && (
+        <Link
+          href={`/plan/projects/${projectId}/tasks/starters`}
+          className="mt-3 inline-flex min-h-11 items-center text-sm underline underline-offset-4"
+        >
+          Choose a starter checklist
+        </Link>
+      )}
       {tasks.length === 0 && (
         <p className="py-6 text-sm text-muted-foreground">
           Start with the next thing to do. Use checklists for packing, bookings,

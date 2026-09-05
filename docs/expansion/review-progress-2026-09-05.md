@@ -31,3 +31,23 @@ Automatic approval review rejected feature-branch integration and requested addi
 This prevents treating the PR collection as an integrated product. PR51's route/RPC findings identify implementations already present in PR48/49/52 but still absent from its isolated head. PR50 and PR51 CI currently stop at a missing attachment helper from the updated PR44 dependency. PR52 also needs its base conflicts resolved. These are unresolved integration requirements, not waived findings.
 
 No production migrations, deployments or PR merges were performed. iCloud credentials, live calendar verification and the attachment Edge Function deployment remain setup requirements. Controlled-fixture checks are not claims of live-account success.
+
+## Subsequent work
+
+- Inbox is open as PR54 at `1f443ac` (275 tests/build and eight focused browser cases passed). Search is open as PR55 at `ffd1df5` (377 tests/build and nine browser cases passed); search database tests await CI/dependency integration. Both have Codex review requests.
+- The form snapshot fixes are pushed: groceries `2873b44`, household records `f72213e`, calendar `8d7c2b7`. Their full local verification and targeted browser regressions passed. Grocery/Home successful same-page redirects were exercised to ensure a fresh editor lifetime without losing realtime safety.
+- Further Codex findings on PR48 remain required: supported time-zone validation, connected cost refresh after inherited ledger events, and safe cleanup eligibility for superseded document files with no remaining references. Custom iCalendar VTIMEZONE resources must remain supported without mislabelling their times.
+- Calendar rereview found further recurrence-identity/RANGE cancellation, repeated parsing, prepared-version error recording and missing end-boundary issues. These are being fixed in the calendar lane.
+- Money versioned recurring edits are underway (020); routine edits and meal-preparation adapters follow (019). Push registration reconciliation and a bounded current-device test are underway (021).
+
+## Starter checklists
+
+Projects and trips need useful starting work without filling the household with irrelevant tasks. Offer selectable project-start, travel-planning, packing and home-preparation checklists. The user previews and selects each task before adding it; ordinary assignment/edit/removal remains available afterward. These are planning tasks only and never financial events or automatic changes to recurring household work.
+
+Batch additions lock the parent, authenticate household membership, validate at most twenty items, and commit atomically. Stable task IDs make uncertain-response retries safe without overwriting subsequent edits or restoring removed tasks. Fresh requests skip matching active/completed checklist items. Removed items can be deliberately added again with a new request. Database regression coverage includes retries, actor identity, tenant/foreign-ID denial, complete rollback, archived parents and integer position saturation.
+
+Starter checklist final verification passed: 374 unit tests, production build and six browser cases across Chromium, WebKit and mobile Safari. Independent review found a skipped-duplicate retry could recreate a task after the partner edited it. The batch now stores private, household-scoped selection receipts for added and skipped selections, binds each identity to its payload, and rolls receipts back with a failed batch. Test022 covers edited/archived duplicate replay, payload mismatch, private receipt access and rollback. Database execution remains a CI gate.
+
+Inbox PR54 at1f443ac received an explicit no-issues Codex review and passed verify and browser CI. Calendar9eba6f9 is pushed with a new Codex review request; all433 unit tests and27 browser cases passed. Device push setup2b8b7b0 is pushed for its own PR, with279 tests,8 browser cases,2 Deno fixture checks and worker typecheck passing. Search review identified Unicode output validation and missing document parent labels; fixes are assigned. Search detail destinations remain a known dependency-integration gate.
+
+Further shared-form audit: preserve Next framework redirect/notFound signals through form action recovery, expose a correct back label for read-only detail pages, and investigate the mobile skip-link visibility artifact. Routine019 review found missing partner notification when clearing both active-window bounds; the owning lane is resolving it before commit. Meals preparation must adopt the versioned routine edit contract in its own follow-up commit.
