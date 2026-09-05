@@ -109,3 +109,11 @@ The app-wide goal stays active. These are review corrections on existing branche
 - PR descriptions46/47/53/55/57/58 now describe current behavior, validation and actual remaining dependencies. Existing generated review summaries are retained as generated material.
 
 All new local SQL attempts still fail to connect to PostgreSQL. Prior sign-out SQL031 passed hosted execution; updated sign-out SQL, routine lock coverage and search stress coverage still need executable database validation. The app-wide goal remains active and incomplete.
+
+## Latest hosted and review evidence
+
+PR55 received explicit positive review of `61d94fb` (comment5550013104). Its five corrected search-logic threads are resolved; product discovery and missing destinations remain open. PR53's updated SQL031 at `dd40422` passed hosted job101263028829; the overall job failed in meal test014 because routine019 is absent. PR47 `94354b0` hosted verify and database jobs passed; browser CI and Codex review were still running at the checkpoint.
+
+PR46 fixture follow-up `5f9fe07` corrects my unsupported `fixed` assignment policy to the actual `assigned` value. Finding3939745524 is answered and rereview requested in comment5550025205. This is a test correction; production code's 371-test/build evidence is unchanged. Corrected SQL execution remains unavailable until local PostgreSQL or the conflicting Home base is resolved.
+
+Completed fixture servers on ports3035/3036/3037/3038/3040 were stopped after verifying their process working directories. Source worktrees are clean apart from intentional untracked node_modules symlinks. No blocked dependency code was imported. The application goal remains active, with integration and final assembled-app auditing still outstanding.
