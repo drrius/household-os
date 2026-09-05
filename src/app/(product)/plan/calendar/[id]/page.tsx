@@ -3,7 +3,7 @@ import { calendarEditingIssue } from "@/domain/calendar/ical-write";
 import { isTimeZone } from "@/domain/calendar/date-time";
 import { calendarOccurrence, readCalendar } from "@/domain/calendar/ical-read";
 import { getCalendarEvent, getCalendarOptions } from "@/lib/calendar/context";
-import { inputFromRow } from "@/lib/calendar/rows";
+import { calendarInputForDisplay, inputFromRow } from "@/lib/calendar/rows";
 import { EventDetail } from "@/ui/calendar/event-detail";
 export default async function CalendarEventPage({
   params,
@@ -26,6 +26,7 @@ export default async function CalendarEventPage({
   let issue = "";
   try {
     if (row.ical_data) {
+      input = calendarInputForDisplay(row);
       recurring = readCalendar(row.ical_data).event.isRecurring();
       issue = calendarEditingIssue(row.ical_data) ?? "";
       if (occurrence)

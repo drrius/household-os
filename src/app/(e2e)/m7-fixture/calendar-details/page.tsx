@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { calendarTimePresentation } from "@/domain/calendar/presentation";
 import type { CalendarEventInput } from "@/domain/calendar/types";
-import { rowFields, type CalendarRow } from "@/lib/calendar/rows";
+import {
+  calendarInputForDisplay,
+  rowFields,
+  type CalendarRow,
+} from "@/lib/calendar/rows";
 import { AppShell } from "@/ui/shell/app-shell";
 import { EventDetail } from "@/ui/calendar/event-detail";
 export default async function CalendarDetailsFixture({
@@ -44,17 +48,39 @@ export default async function CalendarDetailsFixture({
     remote_conflict_etag: null,
     last_sync_error: null,
   };
+  if (surface === "custom")
+    row.ical_data = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "BEGIN:VTIMEZONE",
+      "TZID:Custom/Fixed",
+      "BEGIN:STANDARD",
+      "DTSTART:19700101T000000",
+      "TZOFFSETFROM:+0200",
+      "TZOFFSETTO:+0200",
+      "END:STANDARD",
+      "END:VTIMEZONE",
+      "BEGIN:VEVENT",
+      "UID:fixture@example",
+      "DTSTART;TZID=Custom/Fixed:20260907T100000",
+      "DTEND;TZID=Custom/Fixed:20260907T123000",
+      "SUMMARY:Time together",
+      "END:VEVENT",
+      "END:VCALENDAR",
+      "",
+    ].join("\r\n");
+  const display = calendarInputForDisplay(row);
   return (
     <AppShell>
       <EventDetail
-        input={input}
+        input={display}
         row={row}
         connection={null}
         issue=""
         editable={false}
         recurring={false}
         memberName={null}
-        {...calendarTimePresentation(input)}
+        {...calendarTimePresentation(display)}
       />
     </AppShell>
   );

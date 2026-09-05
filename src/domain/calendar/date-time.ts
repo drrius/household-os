@@ -1,7 +1,9 @@
 import { Temporal } from "@js-temporal/polyfill";
 
 export function isTimeZone(timeZone: string): boolean {
+  if (timeZone.startsWith("+") || timeZone.startsWith("-")) return false;
   try {
+    new Intl.DateTimeFormat("en", { timeZone });
     Temporal.Now.instant().toZonedDateTimeISO(timeZone);
     return true;
   } catch {

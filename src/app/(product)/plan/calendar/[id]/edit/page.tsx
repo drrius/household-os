@@ -4,7 +4,7 @@ import { isTimeZone } from "@/domain/calendar/date-time";
 import { calendarOccurrence } from "@/domain/calendar/ical-read";
 import { saveEventAction } from "@/lib/calendar/actions";
 import { getCalendarEvent, getCalendarOptions } from "@/lib/calendar/context";
-import { inputFromRow } from "@/lib/calendar/rows";
+import { calendarInputForDisplay } from "@/lib/calendar/rows";
 import { EventForm } from "@/ui/calendar/event-form";
 import { FormPage } from "@/ui/forms/form-page";
 export default async function EditCalendarEventPage({
@@ -19,7 +19,6 @@ export default async function EditCalendarEventPage({
     getCalendarEvent(id),
     getCalendarOptions(),
   ]);
-  const input = inputFromRow(row);
   const issue = row.ical_data ? calendarEditingIssue(row.ical_data) : null;
   if (issue)
     return (
@@ -31,7 +30,12 @@ export default async function EditCalendarEventPage({
         <p>Your event is kept in the shared agenda.</p>
       </FormPage>
     );
-  if (!isTimeZone(input.timeZone))
+  const input = calendarInputForDisplay(row);
+  const edited =
+    occurrence && row.ical_data
+      ? { ...input, ...calendarOccurrence(row.ical_data, occurrence) }
+      : input;
+  if (!isTimeZone(edited.timeZone))
     return (
       <FormPage
         backHref={`/plan/calendar/${id}`}
@@ -44,10 +48,6 @@ export default async function EditCalendarEventPage({
         </p>
       </FormPage>
     );
-  const edited =
-    occurrence && row.ical_data
-      ? { ...input, ...calendarOccurrence(row.ical_data, occurrence) }
-      : input;
   return (
     <FormPage
       backHref={`/plan/calendar/${id}`}

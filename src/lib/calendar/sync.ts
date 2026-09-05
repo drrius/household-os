@@ -1,5 +1,5 @@
 import "server-only";
-import { masterFromIcal } from "@/domain/calendar/ical-read";
+import { calendarMasterForStorage } from "@/domain/calendar/storage";
 import { readAppleCalendar } from "./caldav";
 import { pushCalendarEvent } from "./push";
 import { getPrivateConnection } from "./connection";
@@ -118,7 +118,7 @@ async function reconcileRemote(
   try {
     snapshot = objects.map((object) => ({
       ...object,
-      ...masterFromIcal(object.ical),
+      ...calendarMasterForStorage(object.ical),
     }));
   } catch {
     throw new CalendarError(
