@@ -19,7 +19,7 @@ describe("project assignment inbox destination", () => {
         kind: "partner_notice",
         activity_kind: "project_task_assigned",
         entity_type: "project_task",
-        entity_id: "task",
+        entity_id: "41000300-0000-4000-8000-000000000001",
         payload: { project_id: projectId, title: "Book the hotel" },
         read_at: null,
         created_at: "2026-09-05T09:00:00Z",
@@ -46,7 +46,7 @@ describe("project assignment inbox destination", () => {
         body: "Book the hotel",
         href: projectId.startsWith("//")
           ? "/home"
-          : `/plan/projects/${projectId}#tasks`,
+          : `/plan/projects/${projectId}/tasks/41000300-0000-4000-8000-000000000001`,
         read: false,
       });
     },

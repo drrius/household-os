@@ -90,8 +90,13 @@ function hrefForInbox(row: z.infer<typeof inboxRowSchema>): string {
       return "/";
     case "partner_notice": {
       const projectId = z.uuid().safeParse(row.payload.project_id);
-      if (row.entity_type === "project_task" && projectId.success)
-        return `/plan/projects/${projectId.data}#tasks`;
+      const taskId = z.uuid().safeParse(row.entity_id);
+      if (
+        row.entity_type === "project_task" &&
+        projectId.success &&
+        taskId.success
+      )
+        return `/plan/projects/${projectId.data}/tasks/${taskId.data}`;
       if (row.entity_type === "shopping_session") {
         return "/groceries";
       }
