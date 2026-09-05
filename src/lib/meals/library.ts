@@ -16,7 +16,7 @@ export async function loadLibraryMeal(id: string) {
   const [meal, templates] = await Promise.all([
     supabase
       .from("meal_definitions")
-      .select("id, name, recipe_url, notes, archived_at")
+      .select("id, name, recipe_url, notes, archived_at, updated_at")
       .eq("household_id", member.householdId)
       .eq("id", id)
       .maybeSingle(),
@@ -103,12 +103,13 @@ export async function saveLibraryMeal(
     .update(fields)
     .eq("household_id", member.householdId)
     .eq("id", input.id)
+    .eq("updated_at", input.version)
     .is("archived_at", null)
     .select("id")
     .maybeSingle();
   if (error || !data)
     throw new Error(
-      "This meal is no longer available. Return to the plan and try again.",
+      "This saved meal changed or is no longer available. Reload it before saving your edits.",
     );
   return input.id;
 }

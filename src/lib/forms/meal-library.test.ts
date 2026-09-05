@@ -54,3 +54,26 @@ describe("saved meal forms", () => {
     );
   });
 });
+
+it("requires the opened version for edits and preserves exact version tokens", () => {
+  fc.assert(
+    fc.property(
+      fc.date({
+        min: new Date("2020-01-01"),
+        max: new Date("2040-01-01"),
+        noInvalidDate: true,
+      }),
+      (date) => {
+        const input = form({
+          libraryId: id,
+          name: "Pasta",
+          isNew: "no",
+          version: date.toISOString(),
+        });
+        expect(parseLibraryMealForm(input).version).toBe(date.toISOString());
+        input.delete("version");
+        expect(() => parseLibraryMealForm(input)).toThrow();
+      },
+    ),
+  );
+});
