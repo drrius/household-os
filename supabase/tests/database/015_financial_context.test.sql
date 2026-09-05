@@ -59,11 +59,16 @@ select is((public.read_household_cost_context('project','00000200-0000-4000-8000
 select is((public.read_household_cost_context('project','00000200-0000-4000-8000-000000000301',2,(current_setting('test.cost_page')::jsonb#>>'{next_cursor,occurred_on}')::date,(current_setting('test.cost_page')::jsonb#>>'{next_cursor,id}')::uuid)->>'paid_cents'),'6000','next page retains the same full total');
 select throws_ok($$select public.read_household_cost_context('project','00000200-0000-4000-8000-000000000301',101)$$,'22023',null,'oversized page rejected');
 select throws_ok($$select public.read_household_cost_context('project','00000200-0000-4000-8000-000000000301',30,'2026-09-01')$$,'22023',null,'partial cursor rejected');
+-- Trusted read-model fixture/constraint setup; browser mutations are tested in 030.
+reset role;
 select throws_ok($$insert into public.household_financial_links(household_id,financial_event_id,asset_id) values ('00000100-0000-4000-8000-000000000301','00000400-0000-4000-8000-000000000001','00000200-0000-4000-8000-000000000302')$$,'23505',null,'one posted event cannot belong to two explicit contexts');
 select throws_ok($$insert into public.household_financial_links(household_id,financial_event_id,project_id) values ('00000100-0000-4000-8000-000000000301','00000400-0000-4000-8000-000000000014','00000200-0000-4000-8000-000000000301')$$,'23514',null,'settlements cannot acquire a cost context');
 update public.household_financial_links set archived_at=now() where financial_event_id='00000400-0000-4000-8000-000000000007';
+set local role authenticated;
 select is((public.read_household_cost_context('asset','00000200-0000-4000-8000-000000000302')->>'paid_cents'),'0','archived explicit context stops claiming descendants');
 select is((public.read_household_cost_context('project','00000200-0000-4000-8000-000000000301')->>'paid_cents'),'11000','archived replacement link falls back to ancestor context');
+-- Trusted read-model fixture/constraint setup; browser mutations are tested in 030.
+reset role;
 update public.household_financial_links set archived_at=null where financial_event_id='00000400-0000-4000-8000-000000000007';
 reset role;
 select set_config('request.jwt.claim.sub','',true);
