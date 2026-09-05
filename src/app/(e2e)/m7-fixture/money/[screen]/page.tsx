@@ -1,3 +1,4 @@
+import { RefreshMoneyFixture } from "@/app/(e2e)/m7-fixture/money/refresh.client";
 import { CorrectionForm } from "@/ui/money/correction-form";
 import { notFound } from "next/navigation";
 import {
@@ -13,6 +14,33 @@ import { RecurringForm } from "@/ui/money/recurring-form";
 import { ExpenseForm } from "@/ui/forms/expense-form";
 import { FormPage } from "@/ui/forms/form-page";
 import { AppShell } from "@/ui/shell/app-shell";
+
+function RefundFixture({ another }: { another: boolean }) {
+  return (
+    <FormPage
+      backHref="/m7-fixture/money/detail"
+      title="Record refund"
+      description="Record a refund already received by Darius. Each share is limited to what remains."
+    >
+      <RefreshMoneyFixture revision={crypto.randomUUID()} />
+      <RefundForm
+        detail={
+          !another
+            ? detail
+            : {
+                ...detail,
+                event: {
+                  ...detail.event,
+                  id: "20000000-0000-4000-8000-000000000002",
+                },
+              }
+        }
+        occurredOn="2026-09-05"
+        action={fixtureMoneyAction}
+      />
+    </FormPage>
+  );
+}
 
 function screenContent(screen: string) {
   if (screen === "opening-detail")
@@ -36,20 +64,8 @@ function screenContent(screen: string) {
       </FormPage>
     );
   if (screen === "detail") return <EventDetail detail={detail} />;
-  if (screen === "refund")
-    return (
-      <FormPage
-        backHref="/m7-fixture/money/detail"
-        title="Record refund"
-        description="Record a refund already received by Darius. Each share is limited to what remains."
-      >
-        <RefundForm
-          detail={detail}
-          occurredOn="2026-09-05"
-          action={fixtureMoneyAction}
-        />
-      </FormPage>
-    );
+  if (screen === "refund" || screen === "another-refund")
+    return <RefundFixture another={screen === "another-refund"} />;
   if (screen === "recurring")
     return (
       <FormPage

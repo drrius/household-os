@@ -159,3 +159,84 @@ test("legacy over-refunds remain readable with a reversal path", async ({
     page.getByRole("heading", { name: "How it affects you both" }),
   ).toBeVisible();
 });
+
+test("refund retries keep their operation through server refreshes and new refunds get a new operation", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/money/refund");
+  const key = await page.locator('input[name="idempotencyKey"]').inputValue();
+  await page.getByLabel("Refund amount in CHF").fill("5.01");
+  await page.getByLabel(/^Note/).fill("Returned item");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const revision = await page.getByTestId("server-revision").textContent();
+    await page.getByRole("button", { name: "Receive partner update" }).click();
+    await expect(page.getByTestId("server-revision")).not.toHaveText(revision!);
+    await expect(page.locator('input[name="idempotencyKey"]')).toHaveValue(key);
+    await expect(page.getByLabel("Refund amount in CHF")).toHaveValue("5.01");
+    await expect(page.getByLabel(/^Note/)).toHaveValue("Returned item");
+    await page
+      .getByRole("button", { name: "Record refund", exact: true })
+      .click();
+    await expect(
+      page.getByText("Validated. This fixture does not post to a household."),
+    ).toBeVisible();
+    await expect(page.locator('input[name="idempotencyKey"]')).toHaveValue(key);
+  }
+  await page.goto("/m7-fixture/money/another-refund");
+  await expect(page.locator('input[name="idempotencyKey"]')).not.toHaveValue(
+    key,
+  );
+  await expect(page.locator('input[name="eventId"]')).toHaveValue(
+    "20000000-0000-4000-8000-000000000002",
+  );
+});
+
+for (const status of [413, 503]) {
+  test(`receipt upload gives a useful error for HTML ${status} responses and allows retry`, async ({
+    page,
+  }) => {
+    let attempts = 0;
+    const newPath =
+      "10000000-0000-4000-8000-000000000001/receipts/30000000-0000-4000-8000-000000000002.pdf";
+    await page.route("**/api/attachments", async (route) => {
+      attempts++;
+      await route.fulfill(
+        attempts === 1
+          ? {
+              status,
+              contentType: "text/html",
+              body: "<html>Upstream unavailable</html>",
+            }
+          : {
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify({ path: newPath }),
+            },
+      );
+    });
+    await page.goto("/m7-fixture/money/correction");
+    const input = page.locator('input[type="file"]');
+    const file = {
+      name: "receipt.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4\n%%EOF"),
+    };
+    await input.setInputFiles(file);
+    await expect(
+      page.getByText("Couldn't upload the attachment.", { exact: true }),
+    ).toBeVisible();
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+    await input.setInputFiles(file);
+    await expect(
+      page.getByText("Attachment ready.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "View attachment" }),
+    ).toHaveAttribute(
+      "href",
+      `/api/attachments?path=${encodeURIComponent(newPath)}`,
+    );
+    await expect(input).toHaveAttribute("aria-invalid", "false");
+    expect(attempts).toBe(2);
+  });
+}
