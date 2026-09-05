@@ -2,6 +2,8 @@
 
 import {
   CalendarCheck,
+  FolderCheck,
+  Plane,
   Plus,
   ShoppingBasket,
   UtensilsCrossed,
@@ -31,6 +33,8 @@ const ADD_OPTION_ICONS = {
   grocery: ShoppingBasket,
   meal: UtensilsCrossed,
   expense: Wallet,
+  trip: Plane,
+  project: FolderCheck,
 } satisfies Record<(typeof GLOBAL_ADD_OPTIONS)[number]["id"], LucideIcon>;
 
 // Below `lg` the trigger floats over the page, so it can sit on top of a row it
@@ -164,7 +168,7 @@ export function GlobalAddSheet({ placement = "mobile" }: GlobalAddSheetProps) {
       </DialogTrigger>
 
       <DialogContent
-        className="max-sm:top-auto max-sm:right-0 max-sm:bottom-0 max-sm:left-0 max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:gap-5 max-sm:rounded-t-3xl max-sm:rounded-b-none max-sm:p-0 max-sm:data-closed:zoom-out-100 max-sm:data-open:zoom-in-100 sm:max-h-[calc(100dvh-3rem)] sm:w-[calc(100%-3rem)] sm:max-w-2xl sm:gap-6 sm:overflow-y-auto sm:p-8"
+        className="max-sm:max-h-[calc(100dvh-1rem)] max-sm:overflow-y-auto max-sm:overscroll-contain max-sm:top-auto max-sm:right-0 max-sm:bottom-0 max-sm:left-0 max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:gap-5 max-sm:rounded-t-3xl max-sm:rounded-b-none max-sm:p-0 max-sm:data-closed:zoom-out-100 max-sm:data-open:zoom-in-100 sm:max-h-[calc(100dvh-3rem)] sm:w-[calc(100%-3rem)] sm:max-w-2xl sm:gap-6 sm:overflow-y-auto sm:p-8"
         overlayClassName="bg-foreground/30 supports-backdrop-filter:backdrop-blur-sm"
       >
         <DialogHeader className="max-sm:px-6 max-sm:pt-6 max-sm:pr-14 sm:pr-10">

@@ -25,3 +25,9 @@ The proposed stale controlled-zone bug was not reproduced. `BookingFields` is ke
 An additional fixture changes both partner zones, verifies two successive pristine refreshes (so the first cannot silently freeze the form), submits the form, and checks both received zone values and rejected-submission retention. All 18 booking refresh cases pass across desktop Chromium, desktop WebKit and mobile Safari; full verification still passes with 398 tests/build. Evidence: `/tmp/trip-zone-refresh-e2e.log` and `/tmp/trip-review-followup-verify.log`.
 
 The ADR now repeats the exact requirement for explicit positive CodeRabbit review. Direct CI workflow dispatch can verify a feature head even when its PR conflicts with the target; it does not prove the pending combined integration.
+
+## Global creation shortcuts
+
+The shared Add menu now links directly to trip and project creation. Its mobile sheet scrolls within the available screen height, keeping the additional actions and Cancel reachable on short phones. Both destination routes already exist on this branch. This closes the trip/project portion of the app-wide discovery gap; other modules and the global search entry still depend on assembly.
+
+Focused verification: five existing destination tests, targeted lint and TypeScript checking passed. One Chromium flow at 390 × 568 verifies scrolling to both shortcuts, reaching Cancel, and restoring trigger focus. Broader browser verification remains with CI.
