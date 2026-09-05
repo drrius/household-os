@@ -2,6 +2,10 @@ import { expect, test } from "@playwright/test";
 test("pristine attachments adopt refresh but removing one preserves the edit", async ({
   page,
 }) => {
+  await page.route("**/api/attachments**", async (route) => {
+    expect(route.request().method()).toBe("DELETE");
+    await route.fulfill({ status: 204 });
+  });
   await page.goto("/m7-fixture/home-form-refresh");
   const editor = page.getByRole("region", { name: "Document record" });
   await page.getByRole("button", { name: "Simulate partner refresh" }).click();
@@ -9,6 +13,7 @@ test("pristine attachments adopt refresh but removing one preserves the edit", a
     "household/documents/manual-2.pdf",
   );
   await editor.getByRole("button", { name: "Remove attachment" }).click();
+  await expect(editor.locator('[name="file_path"]')).toHaveValue("");
   await page.getByRole("button", { name: "Simulate partner refresh" }).click();
   await expect(editor.locator('[name="version"]')).toHaveValue("v2");
   await expect(editor.locator('[name="file_path"]')).toHaveValue("");
