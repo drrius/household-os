@@ -42,6 +42,6 @@ describe("sign-in route membership continuation", () => {
       SignInPage({
         searchParams: Promise.resolve({ returnTo: "//evil.invalid" }),
       }),
-    ).rejects.toThrow("redirect:/");
+    ).rejects.toThrow(/^redirect:\/$/);
   });
 });

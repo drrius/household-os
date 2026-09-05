@@ -33,7 +33,9 @@ Read `docs/agent-work-protocol.md` before parallel implementation.
 
 ## Required checks
 
-Run the smallest relevant checks during development and `pnpm verify` before integration. Database changes additionally require `pnpm db:test`. Financial changes require both example tests and property tests.
+Run only the minimal local verification that provides the smallest meaningful proof the change works: run the tests you touched and directly affected tests, plus targeted lint and typechecking for the scope you changed. CI runs the full suite; do not run `pnpm verify` or full test suites locally by default. For database changes, run the relevant database tests. For financial changes, run focused example tests and property tests.
+
+Test meaningful logic or observable behavior. Do not render components to static markup to assert props or attributes. Do not add tests that merely assert callback wiring or mirror the implementation.
 
 ## Cursor Cloud specific instructions
 
