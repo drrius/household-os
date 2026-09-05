@@ -30,6 +30,7 @@ export async function fixtureRecordAction(
             updated_at: "2026-09-05T12:00:00Z",
             archived_at: null,
             ...(kind === "decisions" ? { status: "considering" } : {}),
+            ...(kind === "options" ? { chosen: false } : {}),
           }
         : {
             ...existing,

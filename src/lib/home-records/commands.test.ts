@@ -9,6 +9,7 @@ const mock = vi.hoisted(() => ({
   update: vi.fn(),
   eq: vi.fn(),
   result: vi.fn(),
+  select: vi.fn(),
 }));
 vi.mock("@/lib/auth/member-context", () => ({
   requireMemberContext: mock.member,
@@ -36,12 +37,13 @@ beforeEach(() => {
   mock.member.mockResolvedValue({ householdId: household, userId: id });
   const query = {
     eq: mock.eq,
-    select: () => query,
+    select: mock.select,
     maybeSingle: mock.result,
     update: mock.update,
     insert: mock.insert,
   };
   mock.from.mockReturnValue(query);
+  mock.select.mockReturnValue(query);
   mock.eq.mockReturnValue(query);
   mock.update.mockReturnValue(query);
   mock.insert.mockResolvedValue({ error: null });
@@ -173,3 +175,25 @@ it("does not acknowledge a different routine-link unique constraint as the submi
   await expect(saveRecord("routines", input)).rejects.toThrow("Couldn't save");
   expect(mock.update).not.toHaveBeenCalled();
 });
+
+it.each([false, true])(
+  "compares chosen=%s before acknowledging an option retry",
+  async (chosen) => {
+    const input = form();
+    input.set("decision_id", household);
+    const existing = {
+      id,
+      archived_at: null,
+      ...parseRecord("options", Object.fromEntries(input)),
+      chosen,
+    };
+    mock.insert.mockResolvedValueOnce({ error: { code: "23505" } });
+    mock.result.mockResolvedValueOnce({ data: existing, error: null });
+    const result = saveRecord("options", input);
+    if (chosen)
+      await expect(result).rejects.toThrow("Your changes were not saved");
+    else await expect(result).resolves.toBe(id);
+    expect(mock.select).toHaveBeenCalledWith(expect.stringContaining("chosen"));
+    expect(mock.update).not.toHaveBeenCalled();
+  },
+);

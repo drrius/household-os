@@ -11,6 +11,7 @@ export function matchesRecordCreation(
 ): boolean {
   if (!isRecord(existing)) return false;
   if (existing.archived_at !== null) return false;
+  if (kind === "options" && existing.chosen !== false) return false;
   if (kind === "decisions" && existing.status !== "considering") return false;
   return Object.entries(values).every(
     ([key, value]) => existing[key] === value,

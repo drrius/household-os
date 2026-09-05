@@ -78,6 +78,7 @@ export async function saveRecord(
               "archived_at",
               ...Object.keys(values),
               ...(kind === "decisions" ? ["status"] : []),
+              ...(kind === "options" ? ["chosen"] : []),
             ]),
           ].join(","),
         )

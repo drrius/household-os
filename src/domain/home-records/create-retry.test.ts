@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { expect, it } from "vitest";
 import { matchesRecordCreation } from "./create-retry";
 import { parseRecord, type RecordKind } from "./schema";
@@ -41,7 +42,12 @@ it.each(samples)(
   "accepts normalized %s retries and rejects changes to every submitted field",
   (kind, input) => {
     const values = parseRecord(kind, input);
-    const existing = { archived_at: null, status: "considering", ...values };
+    const existing = {
+      archived_at: null,
+      chosen: false,
+      status: "considering",
+      ...values,
+    };
     expect(matchesRecordCreation(kind, values, existing)).toBe(true);
     for (const [key, value] of Object.entries(values)) {
       const changed = {
@@ -67,13 +73,18 @@ it("compares integer centimes directly without treating them as CHF", () => {
   const values = parseRecord("options", samples[6]![1]);
   expect(values).toMatchObject({ estimated_amount_cents: 8525 });
   expect(
-    matchesRecordCreation("options", values, { ...values, archived_at: null }),
+    matchesRecordCreation("options", values, {
+      ...values,
+      archived_at: null,
+      chosen: false,
+    }),
   ).toBe(true);
   expect(
     matchesRecordCreation("options", values, {
       ...values,
       archived_at: null,
       estimated_amount_cents: 852500,
+      chosen: false,
     }),
   ).toBe(false);
 });
@@ -109,3 +120,18 @@ it.each(["cancel_requested", "ended"])(
     ).toBe(false);
   },
 );
+
+it("acknowledges option retries only while the choice remains in its initial state", () => {
+  fc.assert(
+    fc.property(fc.string(), fc.boolean(), (suffix, chosen) => {
+      const values = { title: `Option ${suffix}`, decision_id: parent };
+      expect(
+        matchesRecordCreation("options", values, {
+          ...values,
+          archived_at: null,
+          chosen,
+        }),
+      ).toBe(!chosen);
+    }),
+  );
+});
