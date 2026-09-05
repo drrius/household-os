@@ -118,7 +118,7 @@ export function RoutineForm({
   submitLabel: string;
 }) {
   return (
-    <FormFields action={action} submitLabel={submitLabel}>
+    <FormFields protectChanges action={action} submitLabel={submitLabel}>
       {defaults.routineId ? (
         <input name="routineId" type="hidden" value={defaults.routineId} />
       ) : null}

@@ -14,6 +14,7 @@ import {
   type RefObject,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { useDiscardGuard } from "./use-discard-guard.client";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
@@ -145,18 +146,25 @@ export function FormFields({
   action,
   children,
   submitLabel,
+  protectChanges = false,
 }: {
   action: FormAction;
   children: ReactNode;
   submitLabel: string;
+  protectChanges?: boolean;
 }) {
   const {
     errors: nativeErrors,
     onInput,
     onInvalidCapture,
   } = useNativeValidation();
-  const [submission, submit] = useActionState(action, initialFormActionState);
+  const [submission, submit, pending] = useActionState(
+    action,
+    initialFormActionState,
+  );
   const alertRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  useDiscardGuard(formRef, protectChanges, submission, pending);
   const { error, field, submissionId, values } = submission;
 
   useEffect(() => {
@@ -177,6 +185,7 @@ export function FormFields({
 
   return (
     <form
+      ref={formRef}
       action={submit}
       className="grid gap-5"
       onInput={onInput}

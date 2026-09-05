@@ -23,3 +23,15 @@ Screenshot evidence is intentionally outside the repository:
 - `/tmp/form-shell-mobile-safari-scrolled-viewport.png`: actual scrolled viewport without the artifact.
 
 `pnpm verify` passes formatting, lint, type checks, 46 test files / 270 tests and the production build. Unit tests use real Next.js navigation signal producers. Browser authentication is a fixed fixture redirect to a sign-in destination, with no live identity mutation. No database, migration, service-worker, package or generated-type change is required. Real sign-out/enrollment behavior belongs to its separate lane.
+
+## Substantial forms and field labels
+
+Expense and routine forms now opt into unsaved-change protection. Cancel and same-tab internal links ask before discarding actual changed values. Reverted/pristine forms leave directly; small action forms remain opt-out by default. Failed saves retain the original baseline across recovery remounts, while a successful returned save resets it. Pending disabled fields do not create false changes. Framework metadata is excluded, while selected values and attachment paths count as input. Refreshed untouched text defaults do not prompt; edited text retains its original baseline.
+
+This protects document unload where the browser supports `beforeunload`. App Router browser Back/Forward and programmatic navigation are not intercepted; no history patching or persistent/offline draft storage is introduced. Browser unload confirmation is subject to browser activation and mobile lifecycle restrictions.
+
+The routine regression exposed missing label/control association during React Server Component hydration. `FormField` now normalizes its single child through React's public `Children.toArray` API before cloning the control with its ID and validation attributes. Both server and client resolve the same child; the actual routine title remains accessible by its label, without hydration warnings.
+
+Final verification: `pnpm verify` passed 273 tests in 47 files, formatting, lint, type checks and production build. A fixture-enabled production build passed 54 Playwright cases across Chromium, WebKit and mobile Safari, including the existing full routine scheduling and exact-split expense flows. The pending-state case holds its network request until assertions finish, avoiding a short timer race. A development-server run had two timing/reload failures; the trace showed a full development reload resetting the error fixture. The final production run passed the same recovery assertions. Ordinary production builds still exclude fixtures.
+
+Evidence: `/tmp/discard-final-verify.log`, `/tmp/discard-production-e2e.log` and `/tmp/discard-fixture-build.log`. Codex's review quota remains exhausted; no new positive review is claimed.
