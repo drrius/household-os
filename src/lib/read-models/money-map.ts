@@ -2,7 +2,6 @@ import { validateExactAllocations } from "@/domain/money/allocations";
 import { deriveMemberBalances, explainBalance } from "@/domain/money/balances";
 import type {
   FinancialEvent,
-  FinancialEventType,
   LedgerEntry,
   MemberId,
 } from "@/domain/money/types";
@@ -12,6 +11,7 @@ import {
   asMemberId,
 } from "@/domain/money/values";
 import { balanceHero } from "@/lib/read-models/balance-hero";
+import { moneyEventLabels } from "@/lib/ui/money-event-labels";
 import {
   EXPENSE_DRAFT_BLOCKER_COPY,
   getExpenseDraftReadiness,
@@ -29,15 +29,6 @@ import {
 type MoneyMemberRow = MoneyReadInput["members"][number];
 type MoneyEventRow = MoneyReadInput["events"][number];
 type MoneyAllocationRow = MoneyReadInput["allocations"][number];
-
-const eventTypeLabels = {
-  opening_balance: "Starting balance",
-  expense: "Expense",
-  refund: "Refund",
-  settlement: "Settlement",
-  reversal: "Reversal",
-  replacement: "Replacement",
-} satisfies Record<FinancialEventType, string>;
 
 const sourceLabels = {
   shopping: "Shopping",
@@ -210,7 +201,7 @@ function toEventRows(
         amount: formatCentimesAsFrancs(row.amount_cents),
         balanceDelta: formatSignedCentimesAsFrancs(deltaCents),
         balanceEffect: toBalanceEffect(deltaCents, partnerName),
-        type: eventTypeLabels[row.type],
+        type: moneyEventLabels[row.type],
       };
     });
 }
@@ -269,7 +260,7 @@ export function mapMoneyViewModel(input: MoneyReadInput): MoneyViewModel {
   const explanation = contributions.map((contribution) => ({
     label:
       eventById.get(contribution.financialEventId)?.description ??
-      eventTypeLabels[contribution.eventType],
+      moneyEventLabels[contribution.eventType],
     delta: formatSignedCentimesAsFrancs(contribution.deltaCents),
   }));
   const deltaByEventId = new Map<string, number>(

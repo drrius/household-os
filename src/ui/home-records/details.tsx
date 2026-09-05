@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
 import { formatCentimesField } from "@/domain/money/chf";
 import { noticeDeadline } from "@/domain/home-records/dates";
+import { formatCivilDateShort } from "@/lib/ui/zurich-date";
 import type { RecordOptions } from "@/lib/home-records/options";
 import { fields, humanLabel } from "./fields";
 const relationshipRoutes: Record<string, string> = {
@@ -16,11 +17,19 @@ function DetailValue({
   field,
   value,
   options,
+  isDate,
 }: {
+  isDate: boolean;
   field: string;
   value: string | number | boolean;
   options: RecordOptions;
 }) {
+  if (isDate)
+    return (
+      <time dateTime={String(value)}>
+        {formatCivilDateShort(String(value))}
+      </time>
+    );
   if (field === "file_path")
     return (
       <a
@@ -82,15 +91,21 @@ export function RecordDetails({
       record.status !== "ended" ? (
         <div className="grid gap-1 rounded-xl bg-accent p-4">
           <h2 className="font-medium">
-            Decide before{" "}
-            {noticeDeadline(
-              String(record.renewal_on),
-              Number(record.notice_days),
-            )}
+            {record.status === "cancel_requested"
+              ? "Check cancellation before renewal"
+              : `Decide before ${formatCivilDateShort(
+                  noticeDeadline(
+                    String(record.renewal_on),
+                    Number(record.notice_days),
+                  ),
+                )}`}
           </h2>
           <p>
-            Notice period: {record.notice_days} days · Renewal:{" "}
-            {record.renewal_on}
+            Notice period: {record.notice_days}{" "}
+            {record.notice_days === 1 ? "day" : "days"} · Renewal:{" "}
+            <time dateTime={String(record.renewal_on)}>
+              {formatCivilDateShort(String(record.renewal_on))}
+            </time>
           </p>
         </div>
       ) : null}
@@ -112,6 +127,7 @@ export function RecordDetails({
                 <dt className="font-medium">{field.label}</dt>
                 <dd className="whitespace-pre-wrap text-muted-foreground wrap-anywhere">
                   <DetailValue
+                    isDate={field.type === "date"}
                     field={field.name}
                     value={record[field.name] as string | number | boolean}
                     options={options}

@@ -1,6 +1,7 @@
 import { deadlineLabel, noticeDeadline } from "@/domain/home-records/dates";
 import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
 import { formatCentimesField } from "@/domain/money/chf";
+import { formatCivilDateShort } from "@/lib/ui/zurich-date";
 export function recordSummary(
   kind: RecordKind,
   row: HomeRecord,
@@ -8,18 +9,19 @@ export function recordSummary(
 ): string {
   if (kind === "inventory")
     return row.warranty_until
-      ? `Warranty ends ${row.warranty_until} · ${deadlineLabel(String(row.warranty_until), today)}`
+      ? `Warranty ends ${formatCivilDateShort(String(row.warranty_until))} · ${deadlineLabel(String(row.warranty_until), today)}`
       : String(
           row.model || row.category || "Purchase details, documents & care",
         );
   if (kind === "commitments") {
     if (row.status === "ended") return "Ended";
+    if (row.status === "cancel_requested") return "Cancellation requested";
     if (row.renewal_on) {
       const date = noticeDeadline(
         String(row.renewal_on),
         Number(row.notice_days),
       );
-      return `Notice deadline ${date} · ${deadlineLabel(date, today)}`;
+      return `Notice deadline ${formatCivilDateShort(date)} · ${deadlineLabel(date, today)}`;
     }
     return String(row.provider || "No renewal date recorded");
   }
@@ -36,6 +38,7 @@ export function recordSummary(
       row.estimated_amount_cents !== undefined
       ? `Estimated CHF ${formatCentimesField(Number(row.estimated_amount_cents))}`
       : "No estimate yet";
-  if (kind === "maintenance") return `Performed ${row.performed_on}`;
+  if (kind === "maintenance")
+    return `Performed ${formatCivilDateShort(String(row.performed_on))}`;
   return "Private household document";
 }
