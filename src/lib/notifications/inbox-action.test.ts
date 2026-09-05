@@ -8,7 +8,10 @@ vi.mock("@/lib/notifications/inbox-commands", () => ({
   markInboxPageRead: mock.mark,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mock.revalidate }));
-vi.mock("next/navigation", () => ({ redirect: mock.redirect }));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  redirect: mock.redirect,
+}));
 import { markInboxPageReadAction } from "@/app/(product)/_actions/inbox";
 const id = "11111111-1111-4111-8111-111111111111";
 function form() {

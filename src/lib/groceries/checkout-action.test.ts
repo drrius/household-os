@@ -16,7 +16,10 @@ vi.mock("@/lib/groceries/commands", () => ({
   finishShoppingSession: mocks.finish,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  redirect: mocks.redirect,
+}));
 import { finishShoppingCheckoutAction } from "@/app/(product)/_actions/groceries";
 
 const homeId = "10000000-0000-4000-8000-000000000001";

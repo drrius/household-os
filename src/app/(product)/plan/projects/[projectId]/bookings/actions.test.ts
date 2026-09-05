@@ -17,7 +17,8 @@ vi.mock("@/lib/trips/commands", () => ({
   archiveBooking: mock.archive,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("next/navigation", () => ({
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
   redirect: vi.fn((url: string) => {
     throw new Error("redirect:" + url);
   }),
