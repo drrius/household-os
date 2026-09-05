@@ -153,3 +153,7 @@ PR70 15dfb0b passed browser job 101318807855 and verify, has no unresolved threa
 ### Latest review and accessibility checkpoint
 
 CodeRabbit's [PR71 review summary](https://github.com/drrius/household-os/pull/71#issuecomment-5552462188) explicitly covers `611d1fb` and states that the covered behavior is ready to merge. Browser CI remains pending. The combined member acceptance now checks horizontal overflow on every captured surface and keyboard skip-to-content on the loaded desktop trip. The example environment documents the optional server-only calendar encryption key; no key was generated or production configuration changed.
+
+### Full browser timeout and next integration run
+
+Baseline browser job 101319942152 reached its 30-minute limit while running 472 cases; it is not a passing baseline. The log shows repeated create-retry failures and unfinished mobile coverage. Two retry tests still attempted dirty-form navigation without answering PR57's discard prompt. Their explicit navigation now asserts and accepts that confirmation. CI splits the unchanged suite by browser with fail-fast disabled and preserves an aggregate `e2e` gate; the GitHub reporter emits failure details before end-of-run so a timeout does not hide them. Member, verify and database jobs on `82d9cd0` passed. New lifecycle, keyboard, overflow and readable-date acceptance remains pending the next published run.

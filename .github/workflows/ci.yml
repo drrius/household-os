@@ -140,7 +140,11 @@ jobs:
       - run: pnpm db:test
       - run: node scripts/test-search-index-retry.mjs
 
-  e2e:
+  e2e-browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, mobile-safari]
     needs: changes
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
     runs-on: ubuntu-latest
@@ -161,7 +165,17 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm db:start
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --project=${{ matrix.browser }}
+
+  e2e:
+    needs: e2e-browser
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all browser jobs
+        env:
+          BROWSER_RESULT: ${{ needs.e2e-browser.result }}
+        run: test "$BROWSER_RESULT" = success || test "$BROWSER_RESULT" = skipped
 
   member-e2e:
     needs: changes
