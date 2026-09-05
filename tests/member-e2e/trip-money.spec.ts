@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { bootstrapMembers } from "./local-runtime";
+import { exerciseMoneyHistory } from "./money-history";
+import { exerciseProjectHandoff } from "./project-handoff";
+import { exerciseSearchReturn } from "./search-return";
 
 async function enroll(page: Page, link: string) {
   try {
@@ -46,7 +49,7 @@ async function createTripAndBooking(page: Page) {
   return tripUrl;
 }
 
-test("two members share a persisted trip, booking and authoritative paid expense", async ({
+test("two members share travel, paid history, assigned work and search context", async ({
   browser,
   baseURL,
 }) => {
@@ -106,6 +109,9 @@ test("two members share a persisted trip, booking and authoritative paid expense
     await expect(
       sam.getByRole("heading", { name: "CI paid flight", exact: true }),
     ).toBeVisible();
+    await exerciseMoneyHistory(alex, sam, tripUrl);
+    await exerciseProjectHandoff(alex, sam, tripUrl);
+    await exerciseSearchReturn(sam);
   } catch (error) {
     const page = memberA.pages()[0];
     if (page && !new URL(page.url()).pathname.startsWith("/auth")) {

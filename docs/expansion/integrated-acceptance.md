@@ -74,3 +74,16 @@ Targeted lint and TypeScript passed before the first push. Runtime execution is 
 - Search `23f9b80` repairs partial/invalid concurrent index builds before retry. Its new disposable-CI regression creates an invalid index, executes the actual index phase twice, and verifies all 14 resulting indexes. This commit awaits hosted proof and is included in the next assembly push.
 
 These are incremental facts, not completion of the full acceptance checklist above.
+
+### Additional completed gates
+
+- Booking PR #60 `8b76626`: browser rerun [101310039410](https://github.com/drrius/household-os/actions/runs/33965944089/job/101310039410) passed; verify/database passed, no unresolved threads. [CodeRabbit's current-head verdict](https://github.com/drrius/household-os/pull/60#issuecomment-5552053485) found no blocking findings. Its base is PR #52.
+- Calendar PR #50 `39718bd`: verify/database/browser checks passed, no unresolved threads; its base is PR #48. Live iCloud remains separate.
+- Search PR #55 `23f9b80`: database job [101311927478](https://github.com/drrius/household-os/actions/runs/33968181972/job/101311927478) executed the invalid-index retry regression successfully. [CodeRabbit accepted the retry behavior](https://github.com/drrius/household-os/pull/55#issuecomment-5552053795). Browser CI remains pending.
+- [CodeRabbit accepted](https://github.com/drrius/household-os/pull/66#issuecomment-5552040335) the authenticated harness and integrated calendar fixes at `15ac974`. Later harness changes still require review. Assembly `d42ef9a` includes search retry recovery and the booking-save wait correction; its member journey remains pending.
+
+### First authenticated acceptance passed
+
+Assembly `d42ef9a` passed [member-e2e job 101312340322](https://github.com/drrius/household-os/actions/runs/33968329335/job/101312340322). Two fictional members enrolled through the existing product flow. Alex created the trip and booking and posted CHF 82.10; Sam saw the persisted booking, CHF 82.10 trip costs, CHF 41.05 obligation, and authoritative event detail. Fixtures were disabled and the app ran as a production build against the disposable hosted database.
+
+The next test extension covers correction/refund history and contextual totals, assignment notification → completion → partner realtime refresh, and search → booking edit/reload/save → preserved filters. These new assertions are not yet runtime proof.
