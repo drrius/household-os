@@ -144,14 +144,17 @@ select throws_ok($$update public.decision_options set id = '00000500-0000-4000-8
 select throws_ok($$update public.decision_options set created_at = '2000-01-01' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'decision_options: immutable created_at');
 select throws_ok($$delete from public.decision_options where household_id = '00000100-0000-4000-8000-000000000001'$$,'42501',null,'decision_options: hard deletion denied');
 select is((select count(*) from public.household_financial_links),1::bigint,'household_financial_links: own household only');
-select lives_ok($$update public.household_financial_links set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000001'$$,'household_financial_links: member can edit');
-select is_empty($$update public.household_financial_links set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000002' returning id$$,'household_financial_links: foreign edit has no target');
+select throws_ok($$update public.household_financial_links set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000001'$$,'42501',null,'household_financial_links: member must use guarded command');
+select throws_ok($$update public.household_financial_links set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000002' returning id$$,'42501',null,'household_financial_links: direct foreign edit denied');
 select throws_ok($$insert into public.household_financial_links (id, household_id, created_by, financial_event_id, project_id, booking_id) values ('00000300-0000-4000-8000-000000000009', '00000100-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000101', '00000200-0000-4000-8000-000000000002', '00000200-0000-4000-8000-000000000002', '00000200-0000-4000-8000-000000000002')$$,'42501',null,'household_financial_links: foreign insertion denied');
 select throws_ok($$insert into public.household_financial_links (id, household_id, created_by, financial_event_id, project_id, booking_id) values ('00000400-0000-4000-8000-000000000009', '00000100-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000102', '00000200-0000-4000-8000-000000000001', '00000200-0000-4000-8000-000000000001', '00000200-0000-4000-8000-000000000001')$$,'42501',null,'household_financial_links: creator spoof denied');
+-- Trusted fixture mutation tests structural constraints, separately from browser privileges.
+reset role;
 select throws_ok($$update public.household_financial_links set household_id = '00000100-0000-4000-8000-000000000002' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'household_financial_links: immutable household_id');
 select throws_ok($$update public.household_financial_links set created_by = '00000000-0000-4000-8000-000000000102' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'household_financial_links: immutable created_by');
 select throws_ok($$update public.household_financial_links set id = '00000500-0000-4000-8000-000000000009' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'household_financial_links: immutable id');
 select throws_ok($$update public.household_financial_links set created_at = '2000-01-01' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'household_financial_links: immutable created_at');
+set local role authenticated;
 select throws_ok($$delete from public.household_financial_links where household_id = '00000100-0000-4000-8000-000000000001'$$,'42501',null,'household_financial_links: hard deletion denied');
 select is((select count(*) from public.asset_maintenance),1::bigint,'asset_maintenance: own household only');
 select lives_ok($$update public.asset_maintenance set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000001'$$,'asset_maintenance: member can edit');
@@ -203,7 +206,7 @@ select lives_ok($$update public.household_decisions set updated_at = now() where
 select is((select count(*) from public.decision_options),1::bigint,'decision_options: partner can read');
 select lives_ok($$update public.decision_options set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000001'$$,'decision_options: partner can edit');
 select is((select count(*) from public.household_financial_links),1::bigint,'household_financial_links: partner can read');
-select lives_ok($$update public.household_financial_links set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000001'$$,'household_financial_links: partner can edit');
+select throws_ok($$update public.household_financial_links set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000001'$$,'42501',null,'household_financial_links: partner must use guarded command');
 select is((select count(*) from public.asset_maintenance),1::bigint,'asset_maintenance: partner can read');
 select lives_ok($$update public.asset_maintenance set updated_at = now() where household_id = '00000100-0000-4000-8000-000000000001'$$,'asset_maintenance: partner can edit');
 select is((select count(*) from public.asset_routines),1::bigint,'asset_routines: partner can read');
@@ -224,7 +227,10 @@ select throws_ok($$update public.project_tasks set assigned_member_id = '0000000
 select throws_ok($$update public.calendar_events set ends_at = '2020-01-01' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'event dates ordered');
 select throws_ok($$update public.calendar_events set attendance = 'one' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'single attendance requires member');
 select throws_ok($$update public.trip_bookings set project_id = '00000200-0000-4000-8000-000000000002' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23503',null,'booking project stays in household');
+-- Trusted fixture mutation tests structural constraints, separately from browser privileges.
+reset role;
 select throws_ok($$update public.household_financial_links set asset_id = '00000200-0000-4000-8000-000000000001' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'only one financial context');
+set local role authenticated;
 select throws_ok($$update public.household_documents set file_path = '00000100-0000-4000-8000-000000000002/documents/00000200-0000-4000-8000-000000000001.pdf' where household_id = '00000100-0000-4000-8000-000000000001'$$,'23514',null,'documents cannot expose foreign file');
 select lives_ok($$select public.choose_household_decision_option('00000200-0000-4000-8000-000000000001','00000200-0000-4000-8000-000000000001')$$,'choose option atomically');
 select is((select status from public.household_decisions),'decided','choice marks decision');
@@ -245,8 +251,11 @@ insert into public.financial_events(id,household_id,type,occurred_on,created_by_
 select '00000200-0000-4000-8000-000000000004', household_id, 'opening_balance', occurred_on, created_by_member_id, payer_member_id, 'Opening balance', 100 from public.financial_events where id='00000200-0000-4000-8000-000000000001';
 set local role authenticated;
 select throws_ok($$update public.trip_bookings set project_id = '00000200-0000-4000-8000-000000000003'$$,'23503',null,'bookings require a trip parent');
+-- Trusted fixture mutation tests structural constraints, separately from browser privileges.
+reset role;
 select throws_ok($$update public.household_financial_links set financial_event_id = '00000200-0000-4000-8000-000000000003'$$,'23514',null,'settlement is not spending');
 select throws_ok($$update public.household_financial_links set financial_event_id = '00000200-0000-4000-8000-000000000004'$$,'23514',null,'opening balance is not spending');
+set local role authenticated;
 select lives_ok($$select public.choose_household_decision_option('00000200-0000-4000-8000-000000000001','00000200-0000-4000-8000-000000000001')$$,'choose before archiving');
 select lives_ok($$select public.archive_household_decision_option('00000200-0000-4000-8000-000000000001',true)$$,'archive chosen option atomically');
 select is((select status from public.household_decisions where id='00000200-0000-4000-8000-000000000001'),'considering','archived choice reopens decision');
