@@ -69,13 +69,11 @@ test("a confirmation retains its booking through save and edit and cannot select
       .filter({ hasText: "Summer flight" }),
   ).toHaveCount(0);
   await page.getByLabel("Document name").fill("Our hotel confirmation");
-  await page
-    .getByLabel("File", { exact: true })
-    .setInputFiles({
-      name: "confirmation.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.7\nfixture"),
-    });
+  await page.getByLabel("File", { exact: true }).setInputFiles({
+    name: "confirmation.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.7\nfixture"),
+  });
   await expect(page.getByText("Attachment ready.")).toBeVisible();
   await page.getByRole("button", { name: "Add document", exact: true }).click();
   await expect(

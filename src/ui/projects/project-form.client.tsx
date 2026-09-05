@@ -50,6 +50,7 @@ function ProjectEditor(props: ProjectFormProps) {
 function ProjectFields({ id, kind, project, action }: ProjectFormProps) {
   return (
     <FormFields
+      protectChanges
       action={action}
       submitLabel={
         project

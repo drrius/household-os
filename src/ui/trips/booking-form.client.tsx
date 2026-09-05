@@ -80,6 +80,7 @@ function BookingFields({ id, projectId, booking, action, back }: Props) {
   const values = initialValues(booking);
   return (
     <FormFields
+      protectChanges
       action={action}
       submitLabel={booking ? "Save booking" : "Add booking"}
     >
