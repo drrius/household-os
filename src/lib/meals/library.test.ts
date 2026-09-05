@@ -16,6 +16,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.client }));
 const input = {
   id: "11111111-1111-4111-8111-111111111111",
   sourceEntryId: null,
+  version: null,
   isNew: true,
   name: "Pasta",
   recipeUrl: null,
@@ -79,9 +80,13 @@ describe("saved meal persistence", () => {
   });
   it("rejects editing a missing or inaccessible meal instead of claiming success", async () => {
     database([{ data: null }]);
-    await expect(saveLibraryMeal({ ...input, isNew: false })).rejects.toThrow(
-      "no longer available",
-    );
+    await expect(
+      saveLibraryMeal({
+        ...input,
+        isNew: false,
+        version: "2026-09-05T00:00:00Z",
+      }),
+    ).rejects.toThrow("no longer available");
   });
   it("scopes grocery removal to both its household and saved meal", async () => {
     const calls = database([{}]);
@@ -127,4 +132,18 @@ describe("saved meal persistence", () => {
       }),
     );
   });
+});
+
+it("keeps a saved-meal edit bound to the household and version the editor opened", async () => {
+  const version = "2026-09-05T00:00:00Z";
+  const calls = database([{ data: { id: input.id } }]);
+  await expect(
+    saveLibraryMeal({ ...input, isNew: false, version }),
+  ).resolves.toBe(input.id);
+  expect(calls).toContainEqual(["eq", "updated_at", version]);
+  expect(calls).toContainEqual(["eq", "household_id", "our-household"]);
+  database([{ data: null }]);
+  await expect(
+    saveLibraryMeal({ ...input, isNew: false, version }),
+  ).rejects.toThrow("Reload it before saving");
 });

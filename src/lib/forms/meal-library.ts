@@ -12,12 +12,16 @@ const optional = (value: FormDataEntryValue | null, max: number) =>
     .parse(typeof value === "string" && value.trim() ? value : null);
 
 export function parseLibraryMealForm(form: FormData) {
+  const isNew = form.get("isNew") === "yes";
   return {
+    version: isNew
+      ? null
+      : z.iso.datetime({ offset: true }).parse(form.get("version")),
     id: id.parse(form.get("libraryId")),
     sourceEntryId: form.get("sourceEntryId")
       ? id.parse(form.get("sourceEntryId"))
       : null,
-    isNew: form.get("isNew") === "yes",
+    isNew,
     name: z
       .string()
       .trim()

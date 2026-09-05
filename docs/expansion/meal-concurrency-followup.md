@@ -1,0 +1,11 @@
+# Meal concurrency and creation recovery
+
+Findings3939825782 and3939825788 are corrected. Saved-meal edits carry the raw opened `updated_at` token and update only a matching household/id/version that is still active. A stale write reports a conflict. Pristine editors accept refreshed values and versions; dirty edits/submissions retain their original snapshot, and reverts accept a waiting update. Library and default-grocery creation IDs live outside the form's submission-reset subtree, so realtime refresh and rejected actions cannot replace the original ID.
+
+Finding3939825785 is addressed by a CLI-generated append-only migration. The leftover validation trigger takes a shared lock on its source before checking dates; source updates cannot pass that lock and commit a later date without serialization. The trigger also rejects source-date changes that invalidate existing active leftovers, including writes outside the move RPC. Existing source-removal history remains readable.
+
+Validation: full369 tests/build and39 production browser cases pass across Chromium, WebKit and mobile Safari. SQL032 exercises ordered moves/placements, direct source-update protection and household isolation. SQL033 uses two dblink sessions: one holds a source move, the other starts a leftover placement against the old visible source; after the move commits, placement must reject the new invalid order. That test creates uniquely identified committed fixtures for cross-session visibility and deletes only those fixtures afterward. Its async result handling follows the [PostgreSQL dblink documentation](https://www.postgresql.org/docs/current/contrib-dblink-get-result.html).
+
+Both local database attempts failed to connect on port54322. SQL032/033 and the race reproduction therefore require hosted execution; no concurrent database pass is claimed. Evidence: `/tmp/meal-concurrency-verify-final.log`, `/tmp/meal-concurrency-fixture-build.log`, `/tmp/meal-concurrency-e2e.log`, `/tmp/leftover-source-db.log`, `/tmp/meal-concurrency-db-final.log`.
+
+Finding3939825778 remains open: preparation edits require routine019 from PR46, whose integration is blocked pending authorization. The expanded audit also identifies default-grocery descriptive-edit concurrency as remaining follow-up work; this patch preserves its create identity but does not claim versioned template editing.
