@@ -1,3 +1,7 @@
+import {
+  createOccurrenceResolver,
+  pointException,
+} from "./ical-exception-details";
 import ICAL from "ical.js";
 
 function requestedTime(event: ICAL.Event, recurrenceId: string): ICAL.Time {
@@ -38,22 +42,14 @@ export function resolveRecurrence(event: ICAL.Event, recurrenceId: string) {
     "This series is too large to verify safely. Manage it in Apple Calendar.",
   );
 }
-export function findPointException(calendar: ICAL.Component, time: ICAL.Time) {
-  const key = time.toString(),
-    utcKey = time.convertToZone(ICAL.Timezone.utcTimezone).toString();
-  return calendar.getAllSubcomponents("vevent").find((component) => {
-    const identity = component
-      .getFirstPropertyValue("recurrence-id")
-      ?.toString();
-    return identity === key || identity === utcKey;
-  });
-}
+export const findPointException = pointException;
+
 function makeException(
   event: ICAL.Event,
   time: ICAL.Time,
   range = false,
 ): ICAL.Component {
-  const details = event.getOccurrenceDetails(time);
+  const details = createOccurrenceResolver(event)(time);
   const component = new ICAL.Component(
     JSON.parse(JSON.stringify(details.item.component.toJSON())),
   );
