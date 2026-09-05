@@ -15,6 +15,7 @@ export function recordSummary(
         );
   if (kind === "commitments") {
     if (row.status === "ended") return "Ended";
+    if (row.status === "cancel_requested") return "Cancellation requested";
     if (row.renewal_on) {
       const date = noticeDeadline(
         String(row.renewal_on),

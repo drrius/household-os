@@ -100,13 +100,14 @@ export function RecordDetails({
       record.status !== "ended" ? (
         <div className="grid gap-1 rounded-xl bg-accent p-4">
           <h2 className="font-medium">
-            Decide before{" "}
-            {formatCivilDateShort(
-              noticeDeadline(
-                String(record.renewal_on),
-                Number(record.notice_days),
-              ),
-            )}
+            {record.status === "cancel_requested"
+              ? "Check cancellation before renewal"
+              : `Decide before ${formatCivilDateShort(
+                  noticeDeadline(
+                    String(record.renewal_on),
+                    Number(record.notice_days),
+                  ),
+                )}`}
           </h2>
           <p>
             Notice period: {record.notice_days}{" "}
