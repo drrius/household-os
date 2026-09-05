@@ -22,6 +22,6 @@ The final combined run passed all 75 project/task/starter/booking browser cases 
 
 The proposed stale controlled-zone bug was not reproduced. `BookingFields` is keyed by the booking edit version: a pristine partner refresh remounts its controls with matching fields and version, while an actual local draft retains its original snapshot. No synchronization effect was added to the production picker.
 
-An additional fixture changes both partner zones, verifies two successive pristine refreshes (so the first cannot silently freeze the form), submits the form, and checks both received zone values and rejected-submission retention. All 18 booking refresh cases pass across desktop Chromium, desktop Safari and mobile Safari; full verification still passes with 398 tests/build. Evidence: `/tmp/trip-zone-refresh-e2e.log` and `/tmp/trip-review-followup-verify.log`.
+An additional fixture changes both partner zones, verifies two successive pristine refreshes (so the first cannot silently freeze the form), submits the form, and checks both received zone values and rejected-submission retention. All 18 booking refresh cases pass across desktop Chromium, desktop WebKit and mobile Safari; full verification still passes with 398 tests/build. Evidence: `/tmp/trip-zone-refresh-e2e.log` and `/tmp/trip-review-followup-verify.log`.
 
 The ADR now repeats the exact requirement for explicit positive CodeRabbit review. Direct CI workflow dispatch can verify a feature head even when its PR conflicts with the target; it does not prove the pending combined integration.
