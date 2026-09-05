@@ -15,6 +15,7 @@ export function RecordField({
   multiline = false,
   maxLength,
   description,
+  step,
 }: {
   name: string;
   label: string;
@@ -24,6 +25,7 @@ export function RecordField({
   multiline?: boolean;
   maxLength?: number;
   description?: string;
+  step?: string;
 }) {
   const value = useFormFieldValue(name, initial);
   return (
@@ -45,6 +47,7 @@ export function RecordField({
         <Input
           name={name}
           type={type}
+          step={step}
           defaultValue={value}
           required={!optional}
           maxLength={maxLength}

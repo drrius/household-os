@@ -21,7 +21,7 @@ insert into public.calendar_events(id,household_id,title,starts_at,ends_at,proje
 select throws_ok($$insert into public.trip_bookings(household_id,project_id,title,kind,calendar_event_id) values ('00000000-0000-4000-8000-000000001610','00000000-0000-4000-8000-000000001621','Wrong trip','flight','00000000-0000-4000-8000-000000001630')$$,'23503',null,'booking cannot reference another trip calendar event');
 insert into public.trip_bookings(id,household_id,project_id,title,kind,calendar_event_id) values
  ('00000000-0000-4000-8000-000000001640','00000000-0000-4000-8000-000000001610','00000000-0000-4000-8000-000000001620','Flight','flight','00000000-0000-4000-8000-000000001630');
-select throws_ok($$update public.trip_bookings set project_id='00000000-0000-4000-8000-000000001621' where id='00000000-0000-4000-8000-000000001640'$$,'23503',null,'moving a booking cannot disagree with its event');
+select throws_ok($$update public.trip_bookings set project_id='00000000-0000-4000-8000-000000001621' where id='00000000-0000-4000-8000-000000001640'$$,'23514',null,'moving a booking cannot disagree with its event');
 select throws_ok($$update public.calendar_events set project_id='00000000-0000-4000-8000-000000001621' where id='00000000-0000-4000-8000-000000001630'$$,'23503',null,'moving an event cannot disagree with its booking');
 select throws_ok($$update public.calendar_events set project_id=null where id='00000000-0000-4000-8000-000000001630'$$,'23503',null,'linked event retains its project context');
 insert into public.project_tasks(household_id,project_id,title) values ('00000000-0000-4000-8000-000000001610','00000000-0000-4000-8000-000000001620','Pack');

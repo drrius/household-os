@@ -46,6 +46,7 @@ export type TripBooking = {
   website: string;
   estimated_amount_cents: number | null;
   calendar_event_id: string | null;
+  archived_at: string | null;
   notes: string;
   updated_at: string;
 };
