@@ -109,7 +109,11 @@ function DatePickerControl({
           <Calendar
             mode="single"
             onSelect={(date) => {
-              if (date !== undefined) onValueChange(calendarDateToIso(date));
+              const posted = postedRef.current;
+              if (date === undefined || posted?.matches(":disabled")) return;
+              // Record the original value before React synchronizes defaultValue.
+              posted?.dispatchEvent(new Event("input", { bubbles: true }));
+              onValueChange(calendarDateToIso(date));
             }}
             selected={selected}
           />

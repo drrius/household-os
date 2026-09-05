@@ -1,0 +1,19 @@
+# Meal concurrency and creation recovery
+
+Findings3939825782 and3939825788 are corrected. Saved-meal edits carry the raw opened `updated_at` token and update only a matching household/id/version that is still active. A stale write reports a conflict. Pristine editors accept refreshed values and versions; dirty edits/submissions retain their original snapshot, and reverts accept a waiting update. Library and default-grocery creation IDs live outside the form's submission-reset subtree, so realtime refresh and rejected actions cannot replace the original ID.
+
+Finding3939825785 is addressed by a CLI-generated append-only migration. The leftover validation trigger takes a shared lock on its source before checking dates; source updates cannot pass that lock and commit a later date without serialization. The trigger also rejects source-date changes that invalidate existing active leftovers, including writes outside the move RPC. Existing source-removal history remains readable.
+
+Validation: full369 tests/build and39 production browser cases pass across Chromium, WebKit and mobile Safari. SQL032 exercises ordered moves/placements, direct source-update protection and household isolation. SQL033 uses two dblink sessions: one holds a source move, the other starts a leftover placement against the old visible source; after the move commits, placement must reject the new invalid order. That test creates uniquely identified committed fixtures for cross-session visibility and deletes only those fixtures afterward. Its async result handling follows the [PostgreSQL dblink documentation](https://www.postgresql.org/docs/current/contrib-dblink-get-result.html).
+
+Local database attempts failed to connect on port54322. Hosted job101273710379 subsequently passed SQL032, the real two-session race in SQL033, and the default-grocery version tests in SQL035. The suite remains red because SQL014 calls public.edit_routine_definition, supplied by migration019 in PR46; that dependency has not been integrated. This is a release integration gate, not a passing full database suite. Evidence: `/tmp/template-versions-hosted-db.log`.
+
+SQL033 uses ordinary extensions.dblink_connect with the disposable supabase_db_household-os service and standard local SCRAM credentials. It uses neither loopback TCP nor dblink_connect_u, and does not change grants or use production credentials. Earlier socket/loopback and administrative-connector attempts failed before the race could execute; the current container-network connection has hosted proof.
+
+Finding3939825778 remains open pending the PR46 routine dependency. Default-grocery descriptive-edit concurrency is now covered by the versioned template update in this PR and SQL035; see [default grocery edit versions](default-grocery-edit-versions.md).
+
+## Successful-save review reproduction
+
+Codex3939892988/93 predict that the pre-save meal snapshot and default-grocery UUID survive a successful same-URL redirect. A production-built server-action fixture now exercises exactly revalidatePath plus redirect to the same URL, with the same stable editor keys and freshly rendered meal version/new grocery ID. Its isolated in-memory store simulates committed database values; it does not write cookies or change the URL on success, avoiding either extra cache-invalidation mechanism. The fixture is unavailable without the test build flag and retains at most101 isolated runs.
+
+All six browser cases pass across Chromium, desktop WebKit and mobile Safari: two consecutive edits submit accepted versions2 and3, and two default groceries get distinct creation IDs with an empty add form between them. The existing dirty/uncertain refresh tests still protect drafts and retry IDs. The alleged bugs are not reproduced in this Next16.3 server-action redirect flow, so production behavior is unchanged. The tests and this explanation will be submitted for rereview rather than adding an unneeded reset on partner refresh.

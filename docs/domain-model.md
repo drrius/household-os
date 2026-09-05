@@ -326,3 +326,17 @@ All tenant-owned rows carry or derive a `household_id`. Database Row Level Secur
 - Archived definitions: retained while the household exists.
 - Attachments: retained with their parent record unless the household is reset.
 - Backups and on-demand export: excluded from version one.
+
+## Connected household expansion (ADR 0028)
+
+Projects and trips share a lifecycle (planning, active, complete, cancelled) and own assignable tasks. Trips additionally hold booking ideas and confirmations, flight/stay times with time zones, an itinerary, budget estimates, and private documents. Task completion records the authenticated actor; reopening clears that completion. Archiving hides records without erasing linked history.
+
+Calendar events record a time interval, time zone, optional recurrence, attendance, and an optional project. Private iCloud connection metadata and synchronization state belong to a separate integration boundary; credentials never belong on ordinary household records or realtime channels.
+
+Assets hold purchase/warranty dates, manuals, maintenance records, and links to routines and repair contacts. Commitments hold renewal dates, cancellation-notice lead times, responsibility, and optional recurring-expense rules. Expected costs are integer CHF centimes and do not post to the ledger.
+
+Decisions contain comparable options, at most one active chosen option, and optional project context. Choosing an option updates the decision atomically. Converting a decision creates one project or trip, with repeated conversion returning the original result.
+
+Financial-context links associate one authoritative financial event with one project, asset, or commitment, optionally identifying a booking within that project. They describe what an expense belongs to and never modify financial events, allocations, or balances. Displayed paid totals must account for linked reversals, replacements, and refunds. Estimates and budgets remain separate from posted costs.
+
+Every new record carries `household_id`; composite foreign keys prevent links to another household. Creator and record identity are immutable, both members can maintain household records, and anonymous access is denied. Documents additionally validate household-scoped private file paths. A booking-linked document or expense must reference that booking's own project.

@@ -1,3 +1,4 @@
+import { groceryCategoryOptions } from "@/domain/groceries/category-options";
 import { createGroceryItemAction } from "@/app/(product)/_actions/m7-plan-groceries";
 import { loadGroceryFormOptions } from "@/lib/forms/options";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
@@ -37,13 +38,7 @@ export default async function NewGroceryPage() {
         </div>
         <FormField label="Category" optional>
           <EchoedSelect
-            items={[
-              { label: "Other", value: "" },
-              ...categories.map((category) => ({
-                label: category.name,
-                value: category.id,
-              })),
-            ]}
+            items={groceryCategoryOptions(categories)}
             name="categoryId"
           />
         </FormField>

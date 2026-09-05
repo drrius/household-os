@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { echoValues } from "@/lib/forms/echo";
@@ -53,6 +54,7 @@ export async function settleFormAction(
   try {
     await work();
   } catch (failure) {
+    unstable_rethrow(failure);
     return formRejection(previous, failure, echoValues(formData));
   }
   return null;
