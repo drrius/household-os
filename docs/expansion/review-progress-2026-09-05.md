@@ -98,3 +98,14 @@ Review state changed: PR44 `87fd556` received an explicit no-major-issues Codex 
 - PR46 finding3939660095 is valid: routine edits prelock only linked preparation occurrences before the routine, while ordinary closure locks the current occurrence first. The fix must also consider preview lock ordering and replacement occurrences before claiming concurrency safety.
 
 The app-wide goal stays active. These are review corrections on existing branches. Blocked branch integration has not been attempted through another mechanism, and no assembled-product verification or production deployment is claimed.
+
+## Current code heads after additional review
+
+- PR57 `e2f19f3`: all 273 tests/build and 60 production browser cases pass. Codex positive comment5549971631 approves this head. The three addressed discard/pending findings are marked resolved. PR58's direct-write finding is also resolved following its positive review.
+- PR46 `664ff2c`: 371 tests/build pass; consistent current/routine/preview order with nonblocking later locks produces a recoverable retry under contention. Finding3939660095 answered, rereview comment5549964697. No actual two-session run is claimed. GitHub reports conflicts with PR44 in `src/app/(product)/home/page.tsx` and `src/ui/home/home-screen.tsx`, preventing hosted CI. No branch import or conflict integration was performed.
+- PR47 `94354b0`: 390 tests/build and 15 browser cases pass. Archived fallback identity is retained in forms/list/checkout; an ordinary active namesake stays distinct. Finding3939708831 answered; rereview comment5550000520.
+- PR53 `dd40422`: 389 tests/build and 66 browser cases pass. Retry notices count total paused rows; browser unsubscribe requires confirmed endpoint ownership. Findings3939705313/15 answered; rereview comment5549995578. Reconnection finding3939705306 remains open because the reviewed PR56 reconciliation implementation is not yet integrated.
+- PR55 `61d94fb`: 407 tests/build pass; application rendering remains covered by 15 passing browser cases. Individual option vectors and best-parent deduplication avoid unbounded vector construction; SQL stress coverage includes 500 options. Finding3939721071 answered; rereview comment5549992731. Product entry finding3939721069 and dependent detail routes remain open until assembly.
+- PR descriptions46/47/53/55/57/58 now describe current behavior, validation and actual remaining dependencies. Existing generated review summaries are retained as generated material.
+
+All new local SQL attempts still fail to connect to PostgreSQL. Prior sign-out SQL031 passed hosted execution; updated sign-out SQL, routine lock coverage and search stress coverage still need executable database validation. The app-wide goal remains active and incomplete.
