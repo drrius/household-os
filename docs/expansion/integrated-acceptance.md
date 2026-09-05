@@ -131,3 +131,15 @@ The test reached inventory after creating the contact, warranty and maintenance 
 Added screenshot and accessible-text capture of selected actual member paths, guarded to the disposable CI origin and product paths. The upload action is pinned to official v7.0.1 commit 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a, uploads only member-evidence files, and retains them for three days. No auth pages, session files or traces are included. Targeted lint and TypeScript passed. These artifacts are preparation for the final visual audit, not visual proof until downloaded and inspected.
 
 CodeRabbit accepted integration 08e45ba in comment 5552358791. PR70's automatic review produced no actionable comments; its explicit requested verdict and standalone browser gate remain to be recorded.
+
+### Complete connected-member journey passed; visual review (82d9cd0)
+
+Member job 101319942128 passed on 82d9cd0. The complete journey now includes contact/inventory/warranty/maintenance visibility, renewal → Today → original commitment, unchanged financial balance for expected costs, and decision conversion into the same project for both members, in addition to the previously established travel, financial history, task, search and shopping paths.
+
+Downloaded artifact 9971039916 from run 33971188647 and inspected all six images. Mobile trip, financial correction history, posted shopping expense, inventory and Today render with readable hierarchy and the intended persistent navigation. The desktop image captured a loading state, so it does not prove the loaded desktop trip; explicit record-readiness assertions are added before capture. No overflow was apparent in the inspected mobile captures, but this is not exhaustive keyboard or real-device verification.
+
+Observed polish gaps: Home and Money display raw ISO dates, and corrected expenses expose the internal event label `replacement`. These become a small presentation follow-up, without altering ledger data or date semantics.
+
+Prepared remaining authenticated acceptance for simultaneous booking edits (stale rejection preserves input and deliberate discard reveals the winner), booking archive/restore, archived-parent edit restrictions and recovery without financial changes, and device sign-out protecting a saved destination while the partner stays signed in. Targeted lint and TypeScript pass; hosted execution is required.
+
+PR70 15dfb0b passed browser job 101318807855 and verify, has no unresolved threads, and received explicit CodeRabbit approval in 5552395668. It is ready after PR69. CodeRabbit also accepted the visual/warranty changes at 82d9cd0 in 5552396333.

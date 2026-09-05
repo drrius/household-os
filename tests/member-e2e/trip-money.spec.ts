@@ -7,6 +7,8 @@ import { exerciseShoppingMoney } from "./shopping-money";
 import { exerciseHomeConnections } from "./home-connections";
 import { watchRealtime } from "./realtime-diagnostics";
 import { captureMemberView } from "./visual-evidence";
+import { exerciseBookingLifecycle } from "./booking-lifecycle";
+import { exerciseDeviceSignOut } from "./device-sign-out";
 
 async function enroll(page: Page, link: string) {
   try {
@@ -129,12 +131,27 @@ test("two members share travel, paid history, assigned work and search context",
     await captureMemberView(sam, testInfo, "mobile-shopping-expense");
     const home = await exerciseHomeConnections(alex, sam);
     await sam.goto(home.inventoryUrl);
+    await expect(
+      sam.getByRole("heading", {
+        name: "CI dishwasher",
+        exact: true,
+        level: 1,
+      }),
+    ).toBeVisible();
     await captureMemberView(sam, testInfo, "mobile-inventory");
     await sam.emulateMedia({ reducedMotion: "reduce" });
     await sam.goto("/");
+    await expect(
+      sam.getByRole("link", { name: /CI home insurance/ }),
+    ).toBeVisible();
     await captureMemberView(sam, testInfo, "mobile-today-reduced-motion");
     await alex.goto(tripUrl);
+    await expect(
+      alex.getByRole("heading", { name: "CI holiday", exact: true, level: 1 }),
+    ).toBeVisible();
     await captureMemberView(alex, testInfo, "desktop-trip");
+    await exerciseBookingLifecycle(alex, sam, tripUrl);
+    await exerciseDeviceSignOut(alex, sam, tripUrl);
   } catch (error) {
     for (const [name, context] of [
       ["Alex", memberA],
