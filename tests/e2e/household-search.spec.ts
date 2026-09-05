@@ -148,6 +148,7 @@ test("Unicode query limits agree between input and server validation", async ({
 
 test("record return links preserve search pagination through reload and authentication", async ({
   page,
+  context: browserContext,
 }) => {
   await page.goto("/m7-fixture/search?q=Warranty&type=asset&archived=1");
   await page.getByRole("link", { name: "More results" }).click();
@@ -163,18 +164,23 @@ test("record return links preserve search pagination through reload and authenti
   const context = destination.searchParams.get("fromSearch")!;
   expect(context).toContain("cursor=");
   expect(context).toContain("archived=1");
-  await page.goto(
+  // A fresh document isolates this record check from the search page's
+  // pending development-server reload when a new route compiles in Safari.
+  const recordPage = await browserContext.newPage();
+  await recordPage.goto(
     `/m7-fixture/plan-resources?fromSearch=${encodeURIComponent(context)}`,
   );
-  await page.reload();
-  const back = page.getByRole("link", {
+  await recordPage.waitForLoadState("networkidle");
+  await recordPage.reload();
+  await recordPage.waitForLoadState("networkidle");
+  const back = recordPage.getByRole("link", {
     name: "Back to search results",
     exact: true,
   });
   await expect(back).toHaveAttribute("href", context);
   await back.click();
-  await expect(page).toHaveURL(/sign-in/);
-  expect(new URL(page.url()).searchParams.get("returnTo")).toBe(context);
+  await expect(recordPage).toHaveURL(/sign-in/);
+  expect(new URL(recordPage.url()).searchParams.get("returnTo")).toBe(context);
 });
 
 test("a valid absent cursor keeps keyset pagination instead of restarting", async ({

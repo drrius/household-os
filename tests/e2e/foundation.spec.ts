@@ -25,9 +25,7 @@ for (const destination of protectedDestinations) {
   });
 }
 
-test("auth failure and membership-denied gates remain usable", async ({
-  page,
-}) => {
+test("auth failure explains how to return to sign in", async ({ page }) => {
   await page.goto("/auth/error");
   await expect(
     page.getByRole("heading", { name: "Sign-in link invalid" }),
@@ -35,7 +33,9 @@ test("auth failure and membership-denied gates remain usable", async ({
   await expect(
     page.getByRole("link", { name: "Back to sign in" }),
   ).toHaveAttribute("href", "/sign-in");
+});
 
+test("membership-denied gate remains usable", async ({ page }) => {
   await page.goto("/access-denied");
   await expect(
     page.getByRole("heading", { name: "No household membership" }),
