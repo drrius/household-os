@@ -106,10 +106,14 @@ export async function archiveRecord(
   z.uuid().parse(id);
   const db = await createClient();
   if (kind === "options") {
-    const { error } = await db.rpc("archive_household_decision_option", {
-      p_option_id: id,
-      p_archived: !restore,
-    });
+    const { error } = await db.rpc(
+      "archive_household_decision_option_versioned",
+      {
+        p_option_id: id,
+        p_archived: !restore,
+        p_version: version,
+      },
+    );
     if (error)
       throw new Error("Couldn't change this option. Reload and try again.");
     return;

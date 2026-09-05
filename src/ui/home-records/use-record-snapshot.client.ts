@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
+import type { HomeRecord } from "@/domain/home-records/schema";
 import type { RecordOptions } from "@/lib/home-records/options";
 import { formatCentimesField } from "@/domain/money/chf";
-import { fields, type RecordField } from "./fields";
+import { type RecordField } from "./fields";
 export function recordFieldValue(record: HomeRecord, field: RecordField) {
   const value = record[field.name];
   return typeof value === "number" && field.type === "money"
@@ -11,7 +11,7 @@ export function recordFieldValue(record: HomeRecord, field: RecordField) {
     : String(value ?? field.initial ?? "");
 }
 export function useRecordSnapshot(
-  kind: RecordKind,
+  editableFields: readonly RecordField[],
   record: HomeRecord,
   options: RecordOptions,
 ) {
@@ -26,12 +26,13 @@ export function useRecordSnapshot(
       },
     [record, options, snapshot, initial],
   );
+  const snapshotKey = useMemo(() => JSON.stringify(current), [current]);
   const capture = useCallback(() => {
     const form = holder.current?.querySelector("form");
     if (!form) return;
     const values = new FormData(form);
     const dirty =
-      fields[kind].some(
+      editableFields.some(
         (field) =>
           values.has(field.name) &&
           values.get(field.name) !== recordFieldValue(current.record, field),
@@ -40,10 +41,11 @@ export function useRecordSnapshot(
         (value) => value instanceof File && value.name !== "",
       );
     setSnapshot(dirty ? current : null);
-  }, [kind, current]);
+  }, [editableFields, current]);
   return {
     holder,
     current,
+    snapshotKey,
     capture,
     freeze: () => setSnapshot(current),
   };

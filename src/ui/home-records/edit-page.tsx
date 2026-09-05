@@ -1,19 +1,24 @@
+import {
+  normalizeRecordQuery,
+  type RawRecordQuery,
+} from "@/lib/home-records/query";
 import Link from "next/link";
 import type { RecordKind } from "@/domain/home-records/schema";
 import { safeRecordReturn } from "@/lib/home-records/config";
-import { readRecord, type RecordQuery } from "@/lib/home-records/read";
+import { readRecord } from "@/lib/home-records/read";
 import { recordOptions } from "@/lib/home-records/options";
 import { labels } from "./fields";
 import { RecordForm } from "./record-form.client";
 export async function RecordEditPage({
   kind,
   id,
-  query,
+  query: rawQuery,
 }: {
   kind: RecordKind;
   id?: string;
-  query: RecordQuery;
+  query: RawRecordQuery;
 }) {
+  const query = normalizeRecordQuery(rawQuery);
   const [record, options] = await Promise.all([
     id ? readRecord(kind, id) : Promise.resolve({ id: crypto.randomUUID() }),
     recordOptions(),

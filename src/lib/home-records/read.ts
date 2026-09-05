@@ -1,6 +1,4 @@
 import "server-only";
-import { needsAttention, noticeDeadline } from "@/domain/home-records/dates";
-import { zurichCivilDate } from "@/lib/ui/zurich-date";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
@@ -8,14 +6,8 @@ import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 import { recordTables } from "./config";
 
-export type RecordQuery = {
-  q?: string;
-  page?: string;
-  archived?: string;
-  back?: string;
-  saved?: string;
-  [key: string]: string | undefined;
-};
+import type { RecordQuery } from "./query";
+export type { RecordQuery } from "./query";
 export function listContext(kind: RecordKind, query: RecordQuery) {
   const params = new URLSearchParams();
   if (query.q) params.set("q", query.q.slice(0, 160));
@@ -126,41 +118,16 @@ async function attentionRecords(
   q: string | undefined,
   page: number,
 ) {
-  const member = await requireMemberContext();
-  const rows = await relatedRecords(
-    recordTables[kind],
-    "household_id",
-    member.householdId,
-  );
-  const today = zurichCivilDate();
-  const filtered = rows.filter(
-    (row) =>
-      !row.archived_at &&
-      (!q ||
-        String(row.title)
-          .toLocaleLowerCase()
-          .includes(q.slice(0, 160).toLocaleLowerCase())) &&
-      needsAttention(
-        {
-          warranty:
-            kind === "inventory" ? String(row.warranty_until ?? "") : null,
-          renewal: kind === "commitments" ? String(row.renewal_on ?? "") : null,
-          noticeDays: Number(row.notice_days ?? 0),
-          ended: row.status === "ended",
-        },
-        today,
-      ),
-  );
-  const date = (row: HomeRecord) =>
-    kind === "inventory"
-      ? String(row.warranty_until)
-      : noticeDeadline(String(row.renewal_on), Number(row.notice_days));
-  filtered.sort(
-    (a, b) => date(a).localeCompare(date(b)) || a.id.localeCompare(b.id),
-  );
-  return {
-    rows: filtered.slice(page * 20, page * 20 + 20),
-    count: filtered.length,
-    page,
-  };
+  await requireMemberContext();
+  const { data, error } = await (
+    await createClient()
+  ).rpc("list_home_attention_records", {
+    p_kind: kind,
+    p_query: q ?? "",
+    p_page: page,
+  });
+  if (error)
+    throw new Error("Couldn't load records needing attention. Try again.");
+  const result = data as { rows: HomeRecord[]; count: number };
+  return { ...result, page };
 }

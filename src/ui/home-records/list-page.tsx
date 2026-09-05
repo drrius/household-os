@@ -1,3 +1,7 @@
+import {
+  normalizeRecordQuery,
+  type RawRecordQuery,
+} from "@/lib/home-records/query";
 import Link from "next/link";
 import type { RecordKind } from "@/domain/home-records/schema";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,11 +15,12 @@ import { labels } from "./fields";
 import { recordSummary } from "./summary";
 export async function RecordListPage({
   kind,
-  query,
+  query: rawQuery,
 }: {
   kind: RecordKind;
-  query: RecordQuery;
+  query: RawRecordQuery;
 }) {
+  const query = normalizeRecordQuery(rawQuery);
   const { rows, page, count } = await listRecords(kind, query);
   const context = listContext(kind, query);
   const copy = labels[kind];

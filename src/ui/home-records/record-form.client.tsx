@@ -7,7 +7,7 @@ import {
 } from "./use-record-snapshot.client";
 import type { RecordOptions } from "@/lib/home-records/options";
 import type { FormAction } from "@/lib/forms/action-state";
-import { recordAction } from "@/app/(product)/home/inventory/actions";
+import { recordAction } from "@/app/(product)/home/record-actions";
 import { AttachmentField } from "@/ui/attachments/attachment-field.client";
 import {
   FormFields,
@@ -171,8 +171,8 @@ function RecordFormSession({
   parent,
   action = recordAction,
 }: RecordFormProps) {
-  const { holder, current, capture, freeze } = useRecordSnapshot(
-    kind,
+  const { holder, current, snapshotKey, capture, freeze } = useRecordSnapshot(
+    visibleFields(kind, parent),
     incomingRecord,
     incomingOptions,
   );
@@ -185,7 +185,7 @@ function RecordFormSession({
       onSubmitCapture={freeze}
     >
       <FormFields
-        key={JSON.stringify(current)}
+        key={snapshotKey}
         action={action}
         submitLabel={
           record.updated_at ? "Save changes" : `Add ${labels[kind].singular}`

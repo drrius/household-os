@@ -100,10 +100,14 @@ it("uses atomic commands for choices, option lifecycle, status and conversion", 
     p_decision_id: id,
     p_option_id: id,
   });
-  expect(mock.rpc).toHaveBeenCalledWith("archive_household_decision_option", {
-    p_option_id: id,
-    p_archived: true,
-  });
+  expect(mock.rpc).toHaveBeenCalledWith(
+    "archive_household_decision_option_versioned",
+    {
+      p_option_id: id,
+      p_archived: true,
+      p_version: "version",
+    },
+  );
   expect(mock.rpc).toHaveBeenCalledWith("set_household_decision_status", {
     p_decision_id: id,
     p_status: "dismissed",
@@ -205,5 +209,20 @@ it("explains how to recover a choice or status blocked by an archived decision",
   );
   await expect(setDecisionStatus(id, "considering")).rejects.toThrow(
     "Restore this decision before changing its status.",
+  );
+});
+
+it("passes the opened option version and reports stale archive attempts", async () => {
+  mock.rpc.mockResolvedValue({ error: { code: "40001" } });
+  await expect(
+    archiveRecord("options", id, "2026-09-05T12:00:00.123456Z", true),
+  ).rejects.toThrow("Reload and try again");
+  expect(mock.rpc).toHaveBeenCalledWith(
+    "archive_household_decision_option_versioned",
+    {
+      p_option_id: id,
+      p_archived: false,
+      p_version: "2026-09-05T12:00:00.123456Z",
+    },
   );
 });

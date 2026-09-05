@@ -1,4 +1,5 @@
 "use server";
+import { requireMemberContext } from "@/lib/auth/member-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { safeRecordReturn } from "@/lib/home-records/config";
@@ -19,12 +20,17 @@ export async function recordAction(
   previous: FormActionState,
   form: FormData,
 ): Promise<FormActionState> {
-  let target = safeRecordReturn(
-    String(form.get("returnTo") ?? ""),
-    "/home/inventory",
-  );
+  await requireMemberContext();
+  const kind = form.get("kind");
+  const section =
+    kind === "options"
+      ? "decisions"
+      : kind === "maintenance" || kind === "routines"
+        ? "inventory"
+        : kind;
+  const fallback = isRecordKind(kind) ? `/home/${section}` : "/home";
+  let target = safeRecordReturn(String(form.get("returnTo") ?? ""), fallback);
   const rejected = await settleFormAction(previous, form, async () => {
-    const kind = form.get("kind");
     if (!isRecordKind(kind)) throw new Error("Unknown record type.");
     const intent = form.get("intent") ?? "save";
     const id = String(form.get("id") ?? "");

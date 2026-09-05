@@ -22,15 +22,21 @@ export async function fixtureRecordAction(
   const existing = JSON.parse(jar.get(`home-records-${kind}`)?.value ?? "{}");
   const rejected = await settleFormAction(previous, form, async () => {
     const intent = form.get("intent") ?? "save";
+    const editing = Boolean(form.get("version"));
     const record =
       intent === "save"
         ? {
+            ...(editing ? existing : {}),
             ...parseRecord(kind, Object.fromEntries(form)),
             id: form.get("id"),
             updated_at: "2026-09-05T12:00:00Z",
-            archived_at: null,
-            ...(kind === "decisions" ? { status: "considering" } : {}),
-            ...(kind === "options" ? { chosen: false } : {}),
+            ...(!editing
+              ? {
+                  archived_at: null,
+                  ...(kind === "decisions" ? { status: "considering" } : {}),
+                  ...(kind === "options" ? { chosen: false } : {}),
+                }
+              : {}),
           }
         : {
             ...existing,

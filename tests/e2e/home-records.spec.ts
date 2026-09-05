@@ -122,3 +122,21 @@ for (const [kind, label, value, button] of [
     }));
     expect(width.content).toBeLessThanOrEqual(width.viewport + 1);
   });
+
+test("editing an archived fixture preserves archive state and details", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/home-records/inventory");
+  await page.getByLabel("Item", { exact: true }).fill("Archived dishwasher");
+  await page.getByRole("button", { name: "Add item", exact: true }).click();
+  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await page.getByRole("link", { name: "Edit details" }).click();
+  await page.getByLabel("Brand & model").fill("Model after archive");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(
+    page.getByText("Archived record", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Model after archive", { exact: true }),
+  ).toBeVisible();
+});

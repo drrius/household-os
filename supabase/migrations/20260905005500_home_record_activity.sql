@@ -1,3 +1,5 @@
+-- The old validated checks allowed subsets of these values. New writes are
+-- checked immediately; a later migration validates without an exclusive scan.
 -- ADR0028 extends ADR0017's meaningful 90-day activity to saved Home records.
 alter table public.activity_events
   drop constraint activity_events_kind_check;
@@ -29,7 +31,7 @@ alter table public.activity_events
       'recurring_drafts_generated',
       'household_record_changed'
     )
-  );
+  ) not valid;
 
 alter table public.activity_events
   drop constraint activity_events_entity_type_check;
@@ -47,7 +49,7 @@ alter table public.activity_events
       'expense_category',
       'household_record'
     )
-  );
+  ) not valid;
 
 create function private.record_household_record_activity()
 returns trigger language plpgsql security definer set search_path = '' as $$

@@ -24,6 +24,7 @@ export async function recordOptions(): Promise<RecordOptions> {
             .from(table)
             .select(`${id},${label}`)
             .eq("household_id", member.householdId)
+            .order(label)
             .order(id)
             .range(start, start + 499);
           if (error) throw new Error("Couldn't load record choices.");

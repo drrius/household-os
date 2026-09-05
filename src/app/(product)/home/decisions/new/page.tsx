@@ -1,9 +1,9 @@
 import { RecordEditPage } from "@/ui/home-records/edit-page";
-import type { RecordQuery } from "@/lib/home-records/read";
+import type { RawRecordQuery } from "@/lib/home-records/query";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<RecordQuery>;
+  searchParams: Promise<RawRecordQuery>;
 }) {
   return <RecordEditPage kind="decisions" query={await searchParams} />;
 }

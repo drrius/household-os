@@ -1,7 +1,7 @@
 "use client";
 import { useActionState } from "react";
 import type { FormAction } from "@/lib/forms/action-state";
-import { recordAction } from "@/app/(product)/home/inventory/actions";
+import { recordAction } from "@/app/(product)/home/record-actions";
 import { buttonVariants } from "@/components/ui/button";
 export function RecordChange({
   values,

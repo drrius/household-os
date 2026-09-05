@@ -1,9 +1,13 @@
+import {
+  normalizeRecordQuery,
+  type RawRecordQuery,
+} from "@/lib/home-records/query";
 import Link from "next/link";
 import type { RecordKind } from "@/domain/home-records/schema";
 import { buttonVariants } from "@/components/ui/button";
 import { safeRecordReturn } from "@/lib/home-records/config";
 import { recordOptions } from "@/lib/home-records/options";
-import { readRecord, type RecordQuery } from "@/lib/home-records/read";
+import { readRecord } from "@/lib/home-records/read";
 import { RecordChange } from "./change-form.client";
 import { RecordDetails } from "./details";
 import { RecordRelations } from "./relations";
@@ -11,12 +15,13 @@ import { labels } from "./fields";
 export async function RecordDetailPage({
   kind,
   id,
-  query,
+  query: rawQuery,
 }: {
   kind: RecordKind;
   id: string;
-  query: RecordQuery;
+  query: RawRecordQuery;
 }) {
+  const query = normalizeRecordQuery(rawQuery);
   const [record, options] = await Promise.all([
     readRecord(kind, id),
     recordOptions(),
