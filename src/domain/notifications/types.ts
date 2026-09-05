@@ -31,6 +31,8 @@ export function asMemberId(value: string): MemberId {
 }
 
 export type ActivityKind =
+  | "project_record_changed"
+  | "project_task_assigned"
   | "routine_created"
   | "routine_updated"
   | "occurrence_completed"

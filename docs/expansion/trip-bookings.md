@@ -1,0 +1,33 @@
+# Trip bookings and itinerary
+
+This slice adds manual flight, stay, transport, activity and other bookings to trips. Each booking has considering/booked/cancelled state, optional local start/end times with independent named time zones, locations, a booking reference, safe external link, exact CHF estimate and notes. Estimates never post financial events. Archiving preserves the record and does not cancel an external reservation. Active trips can restore archived bookings.
+
+Trip detail shows a chronological, paginated itinerary, with undated ideas after timed bookings and a separate archive view. Booking detail, edit, save and archive flows preserve validated itinerary paging/archive context. Ordinary projects do not receive bookings. The migration locks the parent, rejects changes beneath archived trips, preserves parent identity, prevents converting a trip with bookings into an ordinary project, rejects invalid time zones and advances edit versions monotonically. Composite household relationships and RLS remain authoritative.
+
+Times use the existing Temporal dependency directly. Skipped local times are rejected; repeated local times require the first or second occurrence, and edits preserve the stored occurrence and sub-second precision when the displayed value is unchanged. The booking-specific code is written on this branch; the blocked calendar helper was not imported. [Temporal's time-zone rules](https://tc39.es/proposal-temporal/docs/timezone.html) describe the ambiguity behavior used here.
+
+Phone forms use the existing form system, comfortably sized controls, optional detail sections that reopen after errors, retained drafts, stable creation identities and explicit stale-edit recovery. Pristine partner refreshes remain visible; dirty fields keep their matching version. Links reject executable or credentialed URLs, authentication redirects escape form-error handling, and retries compare timestamp instants rather than their differing PostgreSQL/JavaScript string encodings.
+
+Validation: all 398 tests and the production build pass. All 24 browser cases pass across Chromium, desktop WebKit and mobile Safari, including cross-zone flights, clock ambiguity, archive recovery, itinerary navigation and concurrent edits. The browser checks caught and corrected whole-minute datetime normalization in dirty-field detection. Desktop/mobile itinerary, booking detail and form screenshots were inspected. Evidence: `/tmp/trip-bookings-verified.log`, `/tmp/trip-bookings-fixed-e2e.log`, `/tmp/trips-mobile-itinerary.png`, `/tmp/trips-mobile-details.png`, `/tmp/trips-desktop-concurrent.png`. SQL036 covers parent/lifecycle/tenant/version invariants and passed in hosted CI on both `77940c0` and `f79e657`. Local PostgreSQL is unavailable. The overall database job remains red because SQL011’s older areas fixture omits its required sort order; SQL036’s pass does not imply the entire suite passed. The slice is [PR #60](https://github.com/drrius/household-os/pull/60), based on PR #52. Contextual paid expenses, document attachments and shared calendar links still require the pending dependency integration, followed by assembled-product verification. This slice is not a completion claim for vacation planning or the household-wide goal.
+
+## City search and controlled fields
+
+Time zones now suggest matching cities, accept spaces in searches such as New York, support pointer and keyboard selection, and retain named-zone server validation. The suggestions reuse Base UI already installed in the app. Dirty-field tracking runs after child input/change handlers, preventing controlled fields from losing their first edit. Choosing a suggestion also notifies draft tracking; reverting it releases a waiting partner refresh. New selected values survive rejected submissions.
+
+Full verification passed with 398 tests/build in an isolated checkout of this exact change. Browser verification also covers the existing project, task and starter forms affected by event timing. Mobile visual inspection confirmed 16px input text, a 44px control, scale 1 and no horizontal overflow with the picker open. Evidence: `/tmp/trip-city-full-verify.log`, `/tmp/trip-city-mobile-search.png`.
+
+The final combined run passed all 75 project/task/starter/booking browser cases (`/tmp/trip-city-final-e2e.log`). The city-search tests tap the field before typing, so mobile Safari positions suggestions around an on-screen input as in actual use.
+
+## CodeRabbit partner-zone review
+
+The proposed stale controlled-zone bug was not reproduced. `BookingFields` is keyed by the booking edit version: a pristine partner refresh remounts its controls with matching fields and version, while an actual local draft retains its original snapshot. No synchronization effect was added to the production picker.
+
+An additional fixture changes both partner zones, verifies two successive pristine refreshes (so the first cannot silently freeze the form), submits the form, and checks both received zone values and rejected-submission retention. All 18 booking refresh cases pass across desktop Chromium, desktop WebKit and mobile Safari; full verification still passes with 398 tests/build. Evidence: `/tmp/trip-zone-refresh-e2e.log` and `/tmp/trip-review-followup-verify.log`.
+
+The ADR now repeats the exact requirement for explicit positive CodeRabbit review. Direct CI workflow dispatch can verify a feature head even when its PR conflicts with the target; it does not prove the pending combined integration.
+
+## Global creation shortcuts
+
+The shared Add menu now links directly to trip and project creation. Its mobile sheet scrolls within the available screen height, keeping the additional actions and Cancel reachable on short phones. Both destination routes already exist on this branch. This closes the trip/project portion of the app-wide discovery gap; other modules and the global search entry still depend on assembly.
+
+Focused verification: five existing destination tests, targeted lint and TypeScript checking passed. One Chromium flow at 390 × 568 verifies scrolling to both shortcuts, reaching Cancel, and restoring trigger focus. Broader browser verification remains with CI.
