@@ -9,3 +9,9 @@ The routine and subsequent occurrence locks use NOWAIT. This matters when closur
 Evidence: `/tmp/routine-lock-review-verify.log`, `/tmp/routine-lock-review-db.log`.
 
 Codex finding3939745524 corrected the new SQL fixture to use the supported `assigned` policy. The earlier `fixed` value would have failed validation before reaching the intended rebuild. Production code is unchanged by this correction; database execution remains blocked by unavailable local PostgreSQL and the Home base conflicts.
+
+## Two-session regression
+
+SQL040 adds independent database sessions with random committed fixtures. It holds the routine lock before an ordinary edit, checks SQLSTATE 55P03 and unchanged records/activity/receipts, then runs actual window maintenance and retries the exact request and key. It repeats the failure and retry with a held preview lock. Finally, it overlaps actual completion and an ordinary edit, observes the editor waiting in PostgreSQL, and verifies successful continuation with retained completion history and one current/preview window. The five-second statement timeout makes accidental waiting or deadlocks fail the expected SQLSTATE assertions.
+
+Main was independently integrated into this branch at `72f6cde`, bringing in the attachment lifecycle; its hosted verify and database jobs passed. SQL040 was added afterward. Its focused local execution could not connect to PostgreSQL on port 54322; hosted execution is required before claiming this new regression passes. Per the current main AGENTS.md, no full local suite or build was rerun for this database-test addition.
