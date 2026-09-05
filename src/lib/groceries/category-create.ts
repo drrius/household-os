@@ -10,14 +10,12 @@ export async function createGroceryCategory(
   const { householdId } = await requireMemberContext();
   const db = await createClient();
   const id = creationId ? z.uuid().parse(creationId) : undefined;
-  const { error } = await db
-    .from("grocery_categories")
-    .insert({
-      name,
-      sort_order: sortOrder,
-      household_id: householdId,
-      ...(id ? { id } : {}),
-    });
+  const { error } = await db.from("grocery_categories").insert({
+    name,
+    sort_order: sortOrder,
+    household_id: householdId,
+    ...(id ? { id } : {}),
+  });
   if (error?.code === "23505" && id) {
     const existing = await db
       .from("grocery_categories")
