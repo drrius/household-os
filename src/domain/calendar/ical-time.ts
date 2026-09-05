@@ -2,7 +2,7 @@ import ICAL from "ical.js";
 import { Temporal } from "@js-temporal/polyfill";
 import { isTimeZone } from "./date-time";
 
-class IanaTimezone extends ICAL.Timezone {
+export class IanaTimezone extends ICAL.Timezone {
   constructor(tzid: string) {
     super({ tzid });
   }
