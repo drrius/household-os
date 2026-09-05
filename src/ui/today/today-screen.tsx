@@ -1,3 +1,4 @@
+import { AgendaUnavailable } from "./agenda-unavailable.client";
 import Link from "next/link";
 import { BalanceStatus } from "./balance-status";
 import type { HouseholdAgendaModel } from "@/lib/read-models/household-agenda";
@@ -245,7 +246,7 @@ export function TodayScreen({
   agenda,
 }: {
   view: TodayViewModel;
-  agenda?: HouseholdAgendaModel;
+  agenda?: HouseholdAgendaModel | null;
 }) {
   const summary = progressLabel(view.progress);
   return (
@@ -270,7 +271,11 @@ export function TodayScreen({
           valueText={summary}
         />
       ) : null}
-      {agenda ? <HouseholdAgenda model={agenda} /> : null}
+      {agenda === null ? (
+        <AgendaUnavailable />
+      ) : agenda ? (
+        <HouseholdAgenda model={agenda} />
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
         <RoutineSections view={view} />
         <div className="flex flex-col gap-4">

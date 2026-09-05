@@ -59,3 +59,21 @@ test("a refreshed agenda removes work completed by the partner", async ({
     page.getByText("Flight to Tokyo", { exact: true }),
   ).toBeVisible();
 });
+
+test("an unavailable agenda keeps daily activities accessible and offers retry", async ({
+  page,
+}) => {
+  await page.goto("/m6-fixture/today?agendaError=1");
+  const agenda = page.getByRole("region", { name: "Our plans & deadlines" });
+  await expect(agenda.getByRole("status")).toContainText("couldn’t load");
+  await expect(
+    page.getByRole("region", { name: "Shopping", exact: true }),
+  ).toBeVisible();
+  await agenda.getByRole("button", { name: "Retry plans & deadlines" }).click();
+  await expect(
+    agenda.getByRole("button", { name: "Retry plans & deadlines" }),
+  ).toBeEnabled();
+  await expect(
+    agenda.getByText("No other plans or deadlines today."),
+  ).toHaveCount(0);
+});
