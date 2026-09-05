@@ -9,7 +9,7 @@ insert into public.households(id,name) values ('47000100-0000-4000-8000-00000000
 insert into public.household_members(household_id,user_id,display_name) values
  ('47000100-0000-4000-8000-000000000001','47000000-0000-4000-8000-000000000001','A'),
  ('47000100-0000-4000-8000-000000000001','47000000-0000-4000-8000-000000000002','B');
-insert into public.areas(id,household_id,name) values ('47000200-0000-4000-8000-000000000001','47000100-0000-4000-8000-000000000001','Kitchen');
+insert into public.areas(id,household_id,name) values ('47000200-0000-4000-8000-000000000001','47000100-0000-4000-8000-000000000001','Routine retry test area');
 select set_config('test.create.payload',jsonb_build_object('title','Feed cat','areaId','47000200-0000-4000-8000-000000000001','assignmentPolicy','shared','scheduleKind','one_off','scheduleRule',jsonb_build_object('kind','one_off','date',(current_date+1)::text))::text,true);
 create function pg_temp.create_once(key text, patch jsonb default '{}'::jsonb) returns jsonb language sql as $$
  select public.create_routine_once('47000100-0000-4000-8000-000000000001',key,current_setting('test.create.payload')::jsonb || patch)
