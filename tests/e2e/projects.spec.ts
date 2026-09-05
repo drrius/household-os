@@ -75,3 +75,30 @@ test("a rejected checklist completion remains visible and recoverable", async ({
     page.getByRole("button", { name: "Done", exact: true }),
   ).toBeEnabled();
 });
+
+for (const kind of ["project", "task"]) {
+  test(`${kind} edits keep their original version after a partner refresh`, async ({
+    page,
+  }) => {
+    await page.goto(`/m7-fixture/projects?view=concurrent-${kind}`);
+    const title = page.getByRole("textbox", {
+      name: kind === "project" ? "Trip name" : "What needs doing?",
+      exact: true,
+    });
+    await title.fill("My unsaved change");
+    await page
+      .getByRole("button", { name: "Simulate partner refresh" })
+      .click();
+    await expect(title).toHaveValue("My unsaved change");
+    await page
+      .getByRole("button", {
+        name: kind === "project" ? "Save changes" : "Save task",
+        exact: true,
+      })
+      .click();
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(
+      "This changed since you opened it",
+    );
+    await expect(title).toHaveValue("My unsaved change");
+  });
+}

@@ -117,3 +117,18 @@ it("does not treat an inaccessible colliding ID as a successful retry", async ()
     ),
   ).rejects.toThrow("Couldn't create");
 });
+
+it.each([null, "previous-version"])(
+  "explains an archived parent rejected atomically during task save (%s)",
+  async (version) => {
+    database({ data: null, error: { code: "55000" } });
+    await expect(
+      saveHouseholdRecord(
+        "project_tasks",
+        "task",
+        { title: "Late edit" },
+        version,
+      ),
+    ).rejects.toThrow("Restore this plan");
+  },
+);

@@ -70,6 +70,7 @@ export async function loadProjectWork(
     : taskQuery.is("archived_at", null);
   const [tasks, members] = await Promise.all([
     taskQuery
+      .order("completed_at", { ascending: true, nullsFirst: true })
       .order("sort_order")
       .order("created_at")
       .order("id")

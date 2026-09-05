@@ -36,6 +36,8 @@ export async function saveHouseholdRecord(
       .eq("updated_at", expectedUpdatedAt)
       .select("id")
       .maybeSingle();
+    if (table === "project_tasks" && error?.code === "55000")
+      throw new Error("Restore this plan before changing its tasks.");
     if (error)
       throw new Error("Couldn't save. Check the details and try again.");
     if (!data)
@@ -51,6 +53,8 @@ export async function saveHouseholdRecord(
     created_by: member.userId,
   });
   if (!error) return;
+  if (table === "project_tasks" && error.code === "55000")
+    throw new Error("Restore this plan before changing its tasks.");
   if (error.code === "23505") {
     const prior = await client
       .from(table)

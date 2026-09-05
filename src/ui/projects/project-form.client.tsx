@@ -1,22 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import type { HouseholdProject, ProjectKind } from "@/domain/projects/types";
 import { formatCentimesField } from "@/domain/money/chf";
 import type { FormAction } from "@/lib/forms/action-state";
 import { FormFields } from "@/ui/forms/form-fields.client";
 import { RecordField, RecordSelect } from "@/ui/projects/record-field.client";
 
-export function ProjectForm({
-  id,
-  kind,
-  project,
-  action,
-}: {
+type ProjectFormProps = {
   id: string;
   kind: ProjectKind;
   project?: HouseholdProject;
   action: FormAction;
-}) {
+};
+
+export function ProjectForm(props: ProjectFormProps) {
+  return <ProjectEditor key={props.project?.id ?? "new"} {...props} />;
+}
+
+function ProjectEditor(props: ProjectFormProps) {
+  // Keep the version and the values from the same snapshot through realtime refreshes.
+  const [{ id, kind, project }] = useState(() => props);
+  const { action } = props;
   return (
     <FormFields
       action={action}

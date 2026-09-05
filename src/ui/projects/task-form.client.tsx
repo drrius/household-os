@@ -1,23 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import type { ProjectMember, ProjectTask } from "@/domain/projects/types";
 import type { FormAction } from "@/lib/forms/action-state";
 import { FormFields } from "@/ui/forms/form-fields.client";
 import { RecordField, RecordSelect } from "@/ui/projects/record-field.client";
 
-export function ProjectTaskForm({
-  id,
-  projectId,
-  task,
-  members,
-  action,
-}: {
+type TaskFormProps = {
   id: string;
   projectId: string;
   task?: ProjectTask;
   members: ProjectMember[];
   action: FormAction;
-}) {
+};
+
+export function ProjectTaskForm(props: TaskFormProps) {
+  return <TaskEditor key={props.task?.id ?? props.projectId} {...props} />;
+}
+
+function TaskEditor(props: TaskFormProps) {
+  const [{ id, projectId, task }] = useState(() => props);
+  const { members, action } = props;
   return (
     <FormFields action={action} submitLabel={task ? "Save task" : "Add task"}>
       <input type="hidden" name="id" value={id} />

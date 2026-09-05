@@ -1,3 +1,4 @@
+import { ConcurrentFormFixture } from "./concurrent-form.client";
 import { notFound } from "next/navigation";
 import type { FormActionState } from "@/lib/forms/action-state";
 import { settleFormAction } from "@/lib/forms/action-state";
@@ -54,7 +55,18 @@ export default async function ProjectFixture({
   const { view } = await searchParams;
   return (
     <AppShell>
-      {view === "list" ? (
+      {view === "concurrent-project" || view === "concurrent-task" ? (
+        <FormPage
+          title="Edit plan"
+          description="Concurrent edit fixture"
+          backHref="/plan"
+        >
+          <ConcurrentFormFixture
+            project={project}
+            taskMode={view === "concurrent-task"}
+          />
+        </FormPage>
+      ) : view === "list" ? (
         <ProjectList
           kind="trip"
           projects={[project]}
