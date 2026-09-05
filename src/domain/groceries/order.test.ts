@@ -6,9 +6,9 @@ import {
   nextGroceryPosition,
 } from "./order";
 const categories = [
-  { id: "bakery", name: "Bakery", sort_order: 2 },
-  { id: "produce", name: "Produce", sort_order: 1 },
-  { id: "other", name: "Other", sort_order: 3 },
+  { id: "bakery", name: "Bakery", sort_order: 2, is_fallback: false },
+  { id: "produce", name: "Produce", sort_order: 1, is_fallback: false },
+  { id: "other", name: "Other", sort_order: 3, is_fallback: true },
 ];
 describe("shared grocery order", () => {
   it("applies category order before local item order with stable ID ties", () => {
@@ -39,13 +39,54 @@ describe("shared grocery order", () => {
     ];
     expect(
       groupGroceries(
-        [{ id: "other", name: "Other", sort_order: 0 }, categories[1]!],
+        [
+          { id: "other", name: "Other", sort_order: 0, is_fallback: true },
+          categories[1]!,
+        ],
         items,
       ).map((group) => group.id),
     ).toEqual(["other", "produce"]);
     expect(
       groupGroceries([categories[1]!], items).map((group) => group.id),
     ).toEqual(["produce", "uncategorized"]);
+  });
+  it("keeps uncategorized items attached to a renamed and reordered fallback", () => {
+    const items = [{ id: "x", category_id: null, sort_order: 0 }];
+    fc.assert(
+      fc.property(
+        fc.string({ minLength: 1, maxLength: 80 }),
+        fc.nat({ max: 100 }),
+        (name, position) => {
+          expect(
+            groupGroceries(
+              [
+                {
+                  id: "fallback",
+                  name,
+                  sort_order: position,
+                  is_fallback: true,
+                },
+                {
+                  id: "imposter",
+                  name: "Other",
+                  sort_order: 0,
+                  is_fallback: false,
+                },
+              ],
+              items,
+            ),
+          ).toEqual([{ id: "fallback", name, sortOrder: position, items }]);
+        },
+      ),
+    );
+  });
+  it("does not make a category named Other the fallback without its identity", () => {
+    expect(
+      groupGroceries(
+        [{ id: "custom", name: "Other", sort_order: 0, is_fallback: false }],
+        [{ id: "x", category_id: null, sort_order: 0 }],
+      )[0]?.id,
+    ).toBe("uncategorized");
   });
 });
 

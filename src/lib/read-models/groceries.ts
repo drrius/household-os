@@ -7,7 +7,12 @@ import { groupGroceries } from "@/domain/groceries/order";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
-type CategoryRow = { id: string; name: string; sort_order: number };
+type CategoryRow = {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_fallback: boolean;
+};
 type ItemRow = {
   id: string;
   name: string;
@@ -149,7 +154,7 @@ export async function loadGroceriesViewModel(): Promise<GroceriesViewModel> {
     await Promise.all([
       supabase
         .from("grocery_categories")
-        .select("id, name, sort_order")
+        .select("id, name, sort_order, is_fallback")
         .eq("household_id", member.householdId)
         .is("archived_at", null)
         .order("sort_order")

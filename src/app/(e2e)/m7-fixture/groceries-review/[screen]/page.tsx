@@ -31,8 +31,8 @@ const history: ShoppingHistory = {
   shopperName: "Alex",
 };
 const categories = [
-  { id: "produce", name: "Produce", sort_order: 1 },
-  { id: "bakery", name: "Bakery", sort_order: 2 },
+  { id: "produce", name: "Produce", sort_order: 1, is_fallback: false },
+  { id: "bakery", name: "Bakery", sort_order: 2, is_fallback: false },
 ];
 const cart = [
   {

@@ -1,8 +1,8 @@
-import { normalizeGroceryName } from "./duplicates";
 export type GroceryCategoryOrder = {
   id: string;
   name: string;
   sort_order: number;
+  is_fallback: boolean;
 };
 export type OrderedGrocery = {
   id: string;
@@ -35,9 +35,7 @@ export function groupGroceries<T extends OrderedGrocery>(
       },
     ]),
   );
-  const other = orderedCategories.find(
-    (category) => normalizeGroceryName(category.name) === "other",
-  );
+  const other = orderedCategories.find((category) => category.is_fallback);
   const fallback: GroceryCategoryGroup<T> = {
     id: other?.id ?? "uncategorized",
     name: other?.name ?? "Other",

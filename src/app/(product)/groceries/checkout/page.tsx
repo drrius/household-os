@@ -42,7 +42,7 @@ export default async function ShoppingCheckoutPage() {
       .order("sort_order"),
     supabase
       .from("grocery_categories")
-      .select("id, name, sort_order")
+      .select("id, name, sort_order, is_fallback")
       .eq("household_id", member.householdId)
       .is("archived_at", null),
   ]);

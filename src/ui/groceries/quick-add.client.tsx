@@ -46,6 +46,8 @@ export function QuickAdd({
         <Input
           aria-label="Add grocery item"
           autoComplete="off"
+          readOnly={pending}
+          aria-busy={pending}
           className="min-h-12 min-w-0 flex-1 text-base"
           maxLength={120}
           name="name"

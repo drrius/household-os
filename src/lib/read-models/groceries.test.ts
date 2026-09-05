@@ -32,11 +32,13 @@ describe("mapGroceriesViewModel", () => {
           {
             id: "dairy",
             name: "Dairy & Eggs",
+            is_fallback: false,
             sort_order: 3,
           },
           {
             id: "produce",
             name: "Produce",
+            is_fallback: false,
             sort_order: 1,
           },
         ],
@@ -152,6 +154,7 @@ describe("mapGroceriesViewModel", () => {
           {
             id: "produce",
             name: "Produce",
+            is_fallback: false,
             sort_order: 1,
           },
         ],
