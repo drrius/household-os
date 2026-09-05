@@ -15,7 +15,7 @@ type TaskFormProps = {
 };
 
 export function ProjectTaskForm(props: TaskFormProps) {
-  return <TaskEditor key={props.task?.id ?? props.projectId} {...props} />;
+  return <TaskEditor key={props.task?.id ?? props.id} {...props} />;
 }
 
 function TaskEditor(props: TaskFormProps) {
