@@ -59,6 +59,17 @@ test("commitments show notice deadline, responsibility and a separate expected c
   await expect(
     page.getByText(/Expected costs are planning information/),
   ).toBeVisible();
+  await page.getByRole("link", { name: "Edit details" }).click();
+  await page
+    .getByLabel("Status", { exact: true })
+    .selectOption("cancel_requested");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Check cancellation before renewal" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Decide before/ }),
+  ).toHaveCount(0);
 });
 test("documents use a required private upload and retain its attachment", async ({
   page,
