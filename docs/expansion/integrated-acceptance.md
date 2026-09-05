@@ -105,3 +105,9 @@ The first extended attempt `7483ae3` stopped before correction because its captu
 - Added connected Home acceptance for contact → inventory → maintenance, renewal → Today → original record, expected costs leaving the financial balance unchanged, and decision → one shared project. These steps remain unverified until the preceding journey and these steps execute successfully.
 - PR68 head 62db608 has passing verify and browser job 101314437920, positive review comment 5552193368, and no review threads. It is ready after its grocery dependency PR47. Its Vercel preview is rate-limited, not a successful deployment.
 - CodeRabbit positively reviewed assembly dc4bcc9 in comment 5552212262. Combined verify and database jobs passed; authenticated acceptance remains failing and PR66 remains draft.
+
+### Diagnostic follow-up (c03c072)
+
+Member job 101316726962 again confirmed persisted task completion but failed the partner refresh assertion. Browser websocket creation was observed; the first metadata parser expected object frames, whereas the installed realtime SDK uses Phoenix array frames. The next revision handles both shapes, distinguishes socket creation from successful connection, and records socket errors plus fixed error-category labels without printing error payloads. The stale-partner assertion remains a CI failure but becomes a soft assertion so independent search/shopping/Home journeys can continue. Warranty-date persistence is added to the Home path.
+
+All 15 expansion PRs had zero unresolved review threads in a fresh paginated-boundary audit. CodeRabbit explicitly approved search head 8317481 in comment 5552253899; its browser job remains running. PR69 browser job 101315258645 passed. CodeRabbit's requested c03c072 review returned a service error (5552254633), which is not approval. Main remains 700cf39d13318a14973e536a28300425bacb384a.

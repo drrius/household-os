@@ -35,7 +35,8 @@ export async function exerciseProjectHandoff(
     sam.getByRole("region", { name: "Checklists", exact: true }),
   ).toContainText("0 to do · 1 done");
   // No reload: this checks the other member's subscribed project view.
-  await expect(checklist).toContainText("0 to do · 1 done", {
+  // Keep CI failing on stale partner state while exercising independent journeys.
+  await expect.soft(checklist).toContainText("0 to do · 1 done", {
     timeout: 30_000,
   });
 }

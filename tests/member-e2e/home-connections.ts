@@ -13,6 +13,10 @@ async function exerciseInventory(alex: Page, sam: Page) {
 
   await alex.goto("/home/inventory/new");
   await alex.getByLabel("Item", { exact: true }).fill("CI dishwasher");
+  const warranty = Temporal.Now.plainDateISO("Europe/Zurich")
+    .add({ years: 1 })
+    .toString();
+  await alex.getByLabel(/^Warranty ends/).fill(warranty);
   await alex.getByLabel(/^Repair or supplier contact/).selectOption({
     label: "CI repair contact",
   });
@@ -34,6 +38,9 @@ async function exerciseInventory(alex: Page, sam: Page) {
   ).toBeVisible();
 
   await sam.goto(inventoryUrl);
+  await expect(
+    sam.getByText("Warranty ends", { exact: true }).locator(".."),
+  ).toContainText(warranty);
   await expect(
     sam.getByRole("heading", { name: "CI filter cleaned", exact: true }),
   ).toBeVisible();
