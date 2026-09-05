@@ -15,10 +15,21 @@ async function enroll(page: Page, link: string) {
   }
 }
 
+async function enterHousehold(page: Page) {
+  await page.goto("/");
+  const welcome = page.getByRole("dialog", {
+    name: "Welcome to your household",
+  });
+  await welcome
+    .getByRole("button", { name: "Explore first", exact: true })
+    .click();
+  await expect(welcome).toBeHidden();
+}
+
 async function createTripAndBooking(page: Page) {
   await page.goto("/plan/trips/new");
   await page.getByLabel("Trip name", { exact: true }).fill("CI holiday");
-  await page.getByLabel("Destination", { exact: true }).fill("Lisbon");
+  await page.getByLabel(/^Destination/).fill("Lisbon");
   await page.getByRole("button", { name: "Create trip", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "CI holiday", exact: true }),
@@ -56,6 +67,8 @@ test("two members share a persisted trip, booking and authoritative paid expense
     const sam = await memberB.newPage();
     await enroll(alex, links[0]!);
     await enroll(sam, links[1]!);
+    await enterHousehold(alex);
+    await enterHousehold(sam);
     await alex.goto("/money");
     await expect(
       alex.getByRole("heading", { name: "Settled up" }),
