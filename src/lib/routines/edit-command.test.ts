@@ -56,3 +56,17 @@ it("keeps conflicts visible instead of reporting success", async () => {
     updateRoutineDefinition({ ...baseline, title: "My title" }),
   ).rejects.toThrow("This routine changed. Reopen it before saving.");
 });
+
+it("keeps lock contention retryable without falsely declaring a stale form", async () => {
+  mocks.rpc.mockResolvedValueOnce({
+    data: null,
+    error: { code: "55P03", message: "private lock detail" },
+  });
+  const input = { ...baseline, title: "My title" };
+  await expect(updateRoutineDefinition(input)).rejects.toThrow(
+    "This routine is being updated. Wait a moment and try saving again.",
+  );
+  mocks.rpc.mockResolvedValueOnce({ data: { ok: true }, error: null });
+  await expect(updateRoutineDefinition(input)).resolves.toEqual({ ok: true });
+  expect(mocks.rpc.mock.calls[0]).toEqual(mocks.rpc.mock.calls[1]);
+});

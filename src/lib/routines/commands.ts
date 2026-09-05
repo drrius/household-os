@@ -211,6 +211,10 @@ export async function updateRoutineDefinition(input: {
     p_idempotency_key: input.idempotencyKey,
     p_patch: patch,
   });
+  if (error?.code === "55P03")
+    throw new Error(
+      "This routine is being updated. Wait a moment and try saving again.",
+    );
   if (error?.code === "40001")
     throw new Error("This routine changed. Reopen it before saving.");
   if (error)

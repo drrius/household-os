@@ -106,10 +106,19 @@ begin
   return receipt.result;
  end if;
 
- -- Keep PR45's occurrence-before-routine lock order for linked preparation.
+ -- Closure locks current -> routine -> preview. Ordinary edits must do so too.
+ -- A closure may replace the current row while this SELECT waits; a background
+ -- window rebuild may already hold the routine. Never wait on those later locks
+ -- while holding the earlier occurrence: return a retryable conflict instead.
  perform 1 from public.routine_occurrences
- where routine_id=p_routine_id and meal_plan_entry_id is not null order by id for update;
- select * into routine from public.routines where id=p_routine_id for update;
+ where routine_id=p_routine_id and status='open' and role='current' for update;
+ select * into routine from public.routines where id=p_routine_id for update nowait;
+ -- Claim a newly replaced current and the preview without reversing a concurrent
+ -- closure's blocking order. Also cover the linked-preparation primitive's rows.
+ perform 1 from public.routine_occurrences
+ where routine_id=p_routine_id and (status='open' or meal_plan_entry_id is not null)
+ order by case when role='current' then 0 when role='preview' then 1 else 2 end,id
+ for update nowait;
  if routine.updated_at is distinct from p_expected_updated_at then
   raise exception 'This routine changed. Reopen it before saving.' using errcode='40001';
  end if;

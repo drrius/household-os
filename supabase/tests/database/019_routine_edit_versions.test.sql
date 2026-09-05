@@ -101,5 +101,24 @@ select is((select count(*)::integer from public.routines),0,'RLS hides routines 
 reset role;
 select is((select count(*)::integer from private.routine_edit_clear_intents),0,'successful edits leave no clear intent');
 select is((select count(*)::integer from private.routine_edit_receipts where household_id='10000000-0000-4000-8000-000000000191'),4,'only accepted logical edits have receipts');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000191',true);
+set local role authenticated;
+select public.create_routine(
+ p_household_id=>'10000000-0000-4000-8000-000000000191',p_title=>'Closure interaction',
+ p_area_id=>'20000000-0000-4000-8000-000000000191',p_assignment_policy=>'shared',
+ p_schedule_kind=>'after_completion',p_schedule_rule=>'{"kind":"after_completion","every":3,"unit":"days"}'::jsonb
+);
+select set_config('test.version_routine',(select id::text from public.routines where title='Closure interaction'),true);
+select set_config('test.current_before',(select id::text from public.routine_occurrences where routine_id=current_setting('test.version_routine')::uuid and status='open' and role='current'),true);
+select set_config('test.original_before',(select original_due_date::text from public.routine_occurrences where id=current_setting('test.current_before')::uuid),true);
+select public.reschedule_occurrence(current_setting('test.current_before')::uuid,current_date+7,'lock-order-reschedule');
+select lives_ok($$select pg_temp.edit_routine_version((select updated_at from public.routines where id=current_setting('test.version_routine')::uuid),'lock-order-assignment','{"assignment_policy":"fixed","assigned_member_id":"00000000-0000-4000-8000-000000000192"}')$$,'an ordinary current/preview window can be edited after rescheduling');
+select is((select due_date from public.routine_occurrences where routine_id=current_setting('test.version_routine')::uuid and status='open' and role='current'),current_date+7,'assignment rebuild preserves the rescheduled due date');
+select is((select original_due_date::text from public.routine_occurrences where routine_id=current_setting('test.version_routine')::uuid and status='open' and role='current'),current_setting('test.original_before'),'assignment rebuild preserves the original recurrence anchor');
+select public.skip_occurrence((select id from public.routine_occurrences where routine_id=current_setting('test.version_routine')::uuid and status='open' and role='current'),'lock-order-skip');
+select lives_ok($$select pg_temp.edit_routine_version((select updated_at from public.routines where id=current_setting('test.version_routine')::uuid),'lock-order-window',jsonb_build_object('active_until',current_date+30))$$,'a window edit works after closure has replaced the current occurrence');
+select is((select count(*)::integer from public.routine_occurrences where routine_id=current_setting('test.version_routine')::uuid and status='open' and role='current'),1,'the rebuilt window keeps one current occurrence');
+select is((select count(*)::integer from public.routine_occurrences where routine_id=current_setting('test.version_routine')::uuid and status='skipped'),1,'a subsequent edit preserves closure history');
+reset role;
 select * from finish();
 rollback;
