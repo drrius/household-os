@@ -1,5 +1,5 @@
 "use client";
-import { useId, type ComponentProps } from "react";
+import { useId, useState, type ComponentProps } from "react";
 import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
 import { formatCentimesField } from "@/domain/money/chf";
 import type { RecordOptions } from "@/lib/home-records/options";
@@ -135,21 +135,33 @@ function RecordIdentity({ record }: { record: HomeRecord }) {
     </>
   );
 }
-export function RecordForm({
-  kind,
-  record,
-  options,
-  returnTo,
-  parent,
-  action = recordAction,
-}: {
+type RecordFormProps = {
   kind: RecordKind;
   record: HomeRecord;
   options: RecordOptions;
   returnTo: string;
   parent?: { column: string; id: string };
   action?: FormAction;
-}) {
+};
+export function RecordForm(props: RecordFormProps) {
+  const identity = props.record.updated_at ? props.record.id : "new";
+  return (
+    <RecordFormSession
+      key={`${props.kind}:${identity}:${props.parent?.id ?? ""}`}
+      {...props}
+    />
+  );
+}
+function RecordFormSession({
+  kind,
+  record: initialRecord,
+  options,
+  returnTo,
+  parent,
+  action = recordAction,
+}: RecordFormProps) {
+  // Preserve both the edit version and generated new-record identity on refresh.
+  const [record] = useState(initialRecord);
   return (
     <FormFields
       action={action}
