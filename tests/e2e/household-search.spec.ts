@@ -176,3 +176,23 @@ test("record return links preserve search pagination through reload and authenti
   await expect(page).toHaveURL(/sign-in/);
   expect(new URL(page.url()).searchParams.get("returnTo")).toBe(context);
 });
+
+test("a valid absent cursor keeps keyset pagination instead of restarting", async ({
+  page,
+}) => {
+  await page.goto(
+    "/m7-fixture/search?q=Warranty&type=asset&archived=1&cursor=100.asset.00000000-0000-4000-8000-00000000012a",
+  );
+  await expect(
+    page.getByRole("list", { name: "Search results" }).getByRole("listitem"),
+  ).toHaveCount(2);
+  await expect(
+    page.getByRole("heading", { name: "Warranty record 31" }),
+  ).toBeVisible();
+  await page.goto(
+    "/m7-fixture/search?q=Warranty&type=asset&archived=1&cursor=100.asset.00000000-0000-4000-8000-000000000999",
+  );
+  await expect(page.getByRole("list", { name: "Search results" })).toHaveCount(
+    0,
+  );
+});
