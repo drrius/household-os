@@ -202,6 +202,7 @@ export type WatchedTable =
   | "meal_definitions"
   | "meal_grocery_templates"
   | "grocery_items"
+  | "grocery_categories"
   | "shopping_sessions"
   | "expense_drafts"
   | "financial_events"

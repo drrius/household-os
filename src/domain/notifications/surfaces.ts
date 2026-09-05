@@ -10,8 +10,9 @@ export const SURFACE_INVALIDATION_MAP = {
   meal_definitions: ["plan"],
   meal_grocery_templates: ["plan"],
   grocery_items: ["groceries", "today"],
+  grocery_categories: ["groceries", "plan"],
   shopping_sessions: ["groceries", "today"],
-  expense_drafts: ["money", "today"],
+  expense_drafts: ["money", "today", "groceries"],
   financial_events: ["money", "today"],
   activity_events: ["home"],
 } as const satisfies Readonly<Record<WatchedTable, readonly AppSurface[]>>;

@@ -18,7 +18,7 @@ Preserve tenant isolation, two equal members, passkeys, CHF integer-centime acco
 
 ## Delivery
 
-Use docs/expansion/goal.md as the persistent effective goal, including the user's explicit app-wide scope clarification. Record additional decisions and acceptance criteria as implementation proceeds. Deliver complete slices as independently reviewable or clearly dependency-ordered PRs. Verify every tenant invariant and financial change. Resolve substantiated Codex findings, explain disagreements, and request rereview until positive feedback. Document external credential and service blockers without claiming their live verification.
+Use docs/expansion/goal.md as the persistent effective goal, including the user's explicit app-wide scope clarification. Record additional decisions and acceptance criteria as implementation proceeds. Deliver complete slices as independently reviewable or clearly dependency-ordered PRs. Verify every tenant invariant and financial change. Resolve substantiated CodeRabbit findings, explain disagreements, and request rereview until explicit positive CodeRabbit review is received. Document external credential and service blockers without claiming their live verification.
 
 ## Attachment upload security clarification
 
