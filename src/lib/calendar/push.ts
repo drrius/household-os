@@ -8,7 +8,7 @@ import {
 import type { calendarContext } from "./context";
 import type { CaldavTransport } from "./transport";
 import type { CalendarRow } from "./rows";
-import { CalendarError } from "./errors";
+import { CalendarError, calendarErrorMessage } from "./errors";
 import { canonicalCalendar } from "./canonical";
 type Database = Awaited<ReturnType<typeof calendarContext>>["db"];
 function validateForPush(ical: string, uid: string) {
@@ -30,19 +30,52 @@ export async function pushCalendarEvent(
   row: CalendarRow,
   remoteObjects: readonly RemoteCalendarObject[],
 ) {
-  const remote = remoteObjects.find((item) => item.href === row.remote_href);
-  if (
-    (remote && remote.etag !== row.remote_etag) ||
-    (!remote && row.remote_etag)
-  )
-    throw new CalendarError(
-      "conflict",
-      "The Apple event version changed. Sync again before sending changes.",
+  try {
+    const remote = remoteObjects.find((item) => item.href === row.remote_href);
+    if (
+      (remote && remote.etag !== row.remote_etag) ||
+      (!remote && row.remote_etag)
+    )
+      throw new CalendarError(
+        "conflict",
+        "The Apple event version changed. Sync again before sending changes.",
+      );
+    // The REPORT response is trusted only as fresh remote data, never a stored RPC snapshot.
+    if (remote) validateForPush(remote.ical, row.ical_uid);
+    row = await prepareEventForPush(db, row);
+    validateForPush(row.ical_data!, row.ical_uid);
+    await sendPreparedEvent(
+      db,
+      transport,
+      connectionId,
+      calendarUrl,
+      token,
+      row,
     );
-  // The REPORT response is trusted only as fresh remote data, never a stored RPC snapshot.
-  if (remote) validateForPush(remote.ical, row.ical_uid);
-  row = await prepareEventForPush(db, row);
-  validateForPush(row.ical_data!, row.ical_uid);
+  } catch (error) {
+    // Use the post-preparation version, and never overwrite a partner's newer edit.
+    try {
+      await db
+        .from("calendar_events")
+        .update({ last_sync_error: calendarErrorMessage(error) })
+        .eq("id", row.id)
+        .eq("household_id", row.household_id)
+        .eq("updated_at", row.updated_at)
+        .eq("sync_state", "pending");
+    } catch {
+      /* The connection-level failure remains visible if recording fails. */
+    }
+    throw error;
+  }
+}
+async function sendPreparedEvent(
+  db: Database,
+  transport: CaldavTransport,
+  connectionId: string,
+  calendarUrl: string,
+  token: string,
+  row: CalendarRow,
+) {
   const href =
     row.remote_href ?? `${calendarUrl.replace(/\/$/, "")}/${row.id}.ics`;
   let etag: string | null = null;

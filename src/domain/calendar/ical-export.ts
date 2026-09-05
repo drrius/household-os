@@ -1,5 +1,6 @@
 import ICAL from "ical.js";
 import { readCalendar } from "./ical-read";
+import { validateRecurrences } from "./ical-occurrence";
 import { calendarEditingIssue } from "./ical-write";
 import { icalTimeToIso } from "./ical-time";
 
@@ -69,6 +70,7 @@ export function validateCalendarExport(ical: string, uid: string): void {
         );
     }
   }
+  validateRecurrences(event, [...recurrenceIds]);
 }
 
 function validateComponents(component: ICAL.Component): void {

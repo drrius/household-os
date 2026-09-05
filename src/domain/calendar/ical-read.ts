@@ -1,5 +1,6 @@
 import ICAL from "ical.js";
 import { overlapsInterval } from "./interval";
+import { resolveRecurrence } from "./ical-occurrence";
 import { attachIanaTimezones, icalTimeToIso } from "./ical-time";
 import type { CalendarMaster, CalendarOccurrence } from "./types";
 
@@ -100,7 +101,12 @@ export function expandCalendar(
   ical: string,
   window: { start: string; end: string },
 ): CalendarOccurrence[] {
-  const { event, calendar } = readCalendar(ical);
+  return expandParsedCalendar(readCalendar(ical), window);
+}
+export function expandParsedCalendar(
+  { event, calendar }: ReturnType<typeof readCalendar>,
+  window: { start: string; end: string },
+): CalendarOccurrence[] {
   if (event.component.getFirstPropertyValue("status") === "CANCELLED")
     return [];
   const zone = eventTimeZone(event);
@@ -174,7 +180,7 @@ export function calendarOccurrence(
   recurrenceId: string,
 ): CalendarOccurrence {
   const { event } = readCalendar(ical);
-  const time = ICAL.Time.fromString(recurrenceId, undefined);
+  const { time } = resolveRecurrence(event, recurrenceId);
   const occurrence = occurrenceDetails(event, time, eventTimeZone(event));
   if (!occurrence) throw new Error("This occurrence was cancelled.");
   return occurrence;

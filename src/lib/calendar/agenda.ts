@@ -1,6 +1,9 @@
 import "server-only";
 import { calendarWeek } from "@/domain/calendar/date-time";
-import { expandCalendar, readCalendar } from "@/domain/calendar/ical-read";
+import {
+  expandParsedCalendar,
+  readCalendar,
+} from "@/domain/calendar/ical-read";
 import { canonicalCalendar } from "./canonical";
 import type { CalendarOccurrence } from "@/domain/calendar/types";
 import { zurichCivilDate } from "@/lib/ui/zurich-date";
@@ -48,7 +51,9 @@ export async function loadAgenda(requested?: string) {
     if (row.cancelled_at) continue;
     try {
       const ical = canonicalCalendar(row);
-      for (const occurrence of expandCalendar(ical, window))
+      const parsed = readCalendar(ical);
+      const recurring = parsed.event.isRecurring();
+      for (const occurrence of expandParsedCalendar(parsed, window))
         items.push({
           ...occurrence,
           id: row.id,
@@ -58,7 +63,7 @@ export async function loadAgenda(requested?: string) {
             : null,
           syncState: row.sync_state,
           projectId: row.project_id,
-          recurring: readCalendar(ical).event.isRecurring(),
+          recurring,
         });
     } catch (error) {
       warnings.push({

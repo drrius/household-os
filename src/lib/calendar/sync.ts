@@ -42,25 +42,15 @@ async function runSync(
       "Could not load pending calendar changes.",
     );
   for (const row of (pending.data ?? []).slice(0, 20) as CalendarRow[]) {
-    try {
-      await pushCalendarEvent(
-        db,
-        transport,
-        connection.id,
-        connection.selected_calendar_url!,
-        token,
-        row,
-        remoteObjects,
-      );
-    } catch (error) {
-      await db
-        .from("calendar_events")
-        .update({ last_sync_error: calendarErrorMessage(error) })
-        .eq("id", row.id)
-        .eq("household_id", connection.household_id)
-        .eq("updated_at", row.updated_at);
-      throw error;
-    }
+    await pushCalendarEvent(
+      db,
+      transport,
+      connection.id,
+      connection.selected_calendar_url!,
+      token,
+      row,
+      remoteObjects,
+    );
   }
   if ((pending.data?.length ?? 0) > 20)
     throw new CalendarError(

@@ -1,5 +1,6 @@
 import ICAL from "ical.js";
 import { readCalendar } from "./ical-read";
+import { occurrenceComponent } from "./ical-occurrence";
 import { timeForInput } from "./ical-time";
 import type { CalendarEventInput } from "./types";
 
@@ -25,17 +26,7 @@ function applyFields(
   component.updatePropertyWithValue("summary", input.title);
   component.updatePropertyWithValue("location", input.location);
   component.updatePropertyWithValue("description", input.notes);
-  if (cancelled) component.updatePropertyWithValue("status", "CANCELLED");
-  else if (
-    (isNew && !component.hasProperty("status")) ||
-    component.getFirstPropertyValue("status") === "CANCELLED"
-  )
-    component.updatePropertyWithValue("status", "CONFIRMED");
-  component.updatePropertyWithValue("dtstamp", ICAL.Time.now());
-  component.updatePropertyWithValue(
-    "sequence",
-    Number(component.getFirstPropertyValue("sequence") ?? 0) + 1,
-  );
+  markRevision(component, cancelled, isNew);
   component.removeAllProperties("duration");
   setTime(component, "dtstart", input.startsAt, input);
   setTime(component, "dtend", input.endsAt, input);
@@ -50,9 +41,10 @@ export function writeCalendar(
     resetRecurrence?: boolean;
   },
 ): string {
-  const calendar = options.existing
-    ? readCalendar(options.existing).calendar
-    : new ICAL.Component("vcalendar");
+  const parsed = options.existing ? readCalendar(options.existing) : null;
+  if (parsed && parsed.event.uid !== options.uid)
+    throw new Error("The calendar event identity does not match.");
+  const calendar = parsed?.calendar ?? new ICAL.Component("vcalendar");
   if (!options.existing) {
     calendar.updatePropertyWithValue("version", "2.0");
     calendar.updatePropertyWithValue(
@@ -71,10 +63,17 @@ export function writeCalendar(
   ensureEditable(master);
   let target = master;
   if (options.recurrenceId) {
-    target = getOrCreateException(calendar, master, options.recurrenceId);
+    if (!parsed)
+      throw new Error("Choose an existing occurrence of this series.");
+    target = occurrenceComponent(
+      calendar,
+      parsed.event,
+      options.recurrenceId,
+      options.cancelled ?? false,
+    );
     ensureEditable(target);
   } else {
-    const old = options.existing ? readCalendar(options.existing).event : null;
+    const old = parsed?.event;
     const changesSchedule =
       old &&
       (old.startDate.isDate !== input.allDay ||
@@ -105,7 +104,10 @@ export function writeCalendar(
         ICAL.Recur.fromString(input.recurrenceRule),
       );
   }
-  applyFields(target, input, options.cancelled ?? false, !options.existing);
+  if (options.recurrenceId && options.cancelled)
+    markRevision(target, true, false);
+  else
+    applyFields(target, input, options.cancelled ?? false, !options.existing);
   return calendar.toString();
 }
 
@@ -138,31 +140,23 @@ export function calendarEditingIssue(ical: string): string | null {
   }
 }
 
-function getOrCreateException(
-  calendar: ICAL.Component,
-  master: ICAL.Component,
-  recurrenceId: string,
-): ICAL.Component {
-  const existing = calendar
-    .getAllSubcomponents("vevent")
-    .find(
-      (component) =>
-        component.getFirstPropertyValue("recurrence-id")?.toString() ===
-        recurrenceId,
-    );
-  if (existing) return existing;
-  const target = new ICAL.Component(
-    JSON.parse(JSON.stringify(master.toJSON())),
+function markRevision(
+  component: ICAL.Component,
+  cancelled: boolean,
+  isNew: boolean,
+) {
+  if (cancelled) component.updatePropertyWithValue("status", "CANCELLED");
+  else if (
+    (isNew && !component.hasProperty("status")) ||
+    component.getFirstPropertyValue("status") === "CANCELLED"
+  )
+    component.updatePropertyWithValue("status", "CONFIRMED");
+  component.updatePropertyWithValue(
+    "dtstamp",
+    ICAL.Time.fromJSDate(new Date(), true),
   );
-  for (const name of ["rrule", "rdate", "exdate", "recurrence-id"])
-    target.removeAllProperties(name);
-  const recurrence = ICAL.Time.fromString(recurrenceId, undefined);
-  const property = new ICAL.Property("recurrence-id");
-  property.setValue(recurrence);
-  const zone = master.getFirstProperty("dtstart")?.getParameter("tzid");
-  if (typeof zone === "string" && !recurrence.isDate)
-    property.setParameter("tzid", zone);
-  target.addProperty(property);
-  calendar.addSubcomponent(target);
-  return target;
+  component.updatePropertyWithValue(
+    "sequence",
+    Number(component.getFirstPropertyValue("sequence") ?? 0) + 1,
+  );
 }
