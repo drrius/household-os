@@ -16,7 +16,10 @@ vi.mock("@/lib/groceries/commands", () => ({
   finishShoppingSession: mocks.finish,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  redirect: mocks.redirect,
+}));
 import { finishShoppingCheckoutAction } from "@/app/(product)/_actions/groceries";
 
 const homeId = "10000000-0000-4000-8000-000000000001";
@@ -108,3 +111,21 @@ describe("finish shopping action", () => {
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });
 });
+
+it.each([0, 1, 3])(
+  "explains household setup when checkout sees %i members",
+  async (count) => {
+    mocks.options.mockResolvedValueOnce({
+      members: Array.from({ length: count }, () => ({ user_id: viewerId })),
+    });
+    const result = await finishShoppingCheckoutAction(
+      { submissionId: 0 },
+      checkout(),
+    );
+    expect(result.error).toBe(
+      "Shopping checkout needs both household members. Finish household setup, then try again.",
+    );
+    expect(result.values?.description).toBe("Coop groceries");
+    expect(mocks.finish).not.toHaveBeenCalled();
+  },
+);
