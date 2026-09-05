@@ -22,13 +22,16 @@ describe("sign out this device", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mocks.member.mockResolvedValue({ userId: "member" });
-    mocks.rpc.mockResolvedValue({ error: null });
+    mocks.rpc.mockResolvedValue({
+      data: { disabled: 1, paused: 0 },
+      error: null,
+    });
     mocks.signOut.mockResolvedValue({ error: null });
   });
   it("disables only the submitted device subscription before ending the local session and invalidating all product routes", async () => {
     expect(
       await signOutThisDevice("https://push.example.invalid/current-device"),
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, unsubscribe: true });
     expect(mocks.rpc).toHaveBeenCalledWith("unregister_push_subscription", {
       p_endpoint: "https://push.example.invalid/current-device",
     });
@@ -46,7 +49,10 @@ describe("sign out this device", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("pause_my_push_for_signout");
   });
   it("pauses the member's unidentified subscriptions before sign-out and reports the fallback", async () => {
-    mocks.rpc.mockResolvedValueOnce({ data: { disabled: 2 }, error: null });
+    mocks.rpc.mockResolvedValueOnce({
+      data: { disabled: 2, paused: 2 },
+      error: null,
+    });
     expect(await signOutThisDevice(null)).toEqual({
       ok: true,
       pushPaused: true,
@@ -92,6 +98,34 @@ describe("sign out this device", () => {
     });
     expect((await signOutThisDevice("device")).ok).toBe(false);
     expect(mocks.revalidate).not.toHaveBeenCalled();
-    expect(await signOutThisDevice("device")).toEqual({ ok: true });
+    expect(await signOutThisDevice("device")).toEqual({
+      ok: true,
+      unsubscribe: true,
+    });
+  });
+
+  it("retains fallback notice on retry after authentication failed", async () => {
+    mocks.rpc.mockResolvedValueOnce({
+      data: { disabled: 2, paused: 2 },
+      error: null,
+    });
+    mocks.signOut.mockResolvedValueOnce({ error: { message: "temporary" } });
+    expect((await signOutThisDevice(null)).ok).toBe(false);
+    mocks.rpc.mockResolvedValueOnce({
+      data: { disabled: 0, paused: 2 },
+      error: null,
+    });
+    mocks.signOut.mockResolvedValueOnce({ error: null });
+    expect(await signOutThisDevice(null)).toEqual({
+      ok: true,
+      pushPaused: true,
+    });
+  });
+  it("does not authorize browser cleanup when the endpoint was not owned", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: { disabled: 0 }, error: null });
+    mocks.signOut.mockResolvedValueOnce({ error: null });
+    expect(
+      await signOutThisDevice("https://push.example.invalid/partner"),
+    ).toEqual({ ok: true });
   });
 });

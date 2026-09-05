@@ -47,9 +47,10 @@ export function SignOutControl({
       if (!result.ok) throw new Error(result.error);
       // The server has ended the session and paused this endpoint or the member’s push fallback.
       // Browser cleanup must not hold sign-out hostage to a push-service failure.
-      void Promise.resolve()
-        .then(() => subscription?.unsubscribe())
-        .catch(() => undefined);
+      if (result.unsubscribe)
+        void Promise.resolve()
+          .then(() => subscription?.unsubscribe())
+          .catch(() => undefined);
       // A full navigation discards this tab's authenticated router state.
       window.location.replace(
         result.pushPaused ? "/sign-in?push=paused" : "/sign-in",

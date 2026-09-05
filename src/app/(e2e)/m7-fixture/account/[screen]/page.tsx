@@ -12,7 +12,15 @@ export default async function AccountFixturePage({
 }) {
   if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") notFound();
   const { screen } = await params;
-  if (!["sign-in", "cancel", "sign-out", "sign-out-fallback"].includes(screen))
+  if (
+    ![
+      "sign-in",
+      "cancel",
+      "sign-out",
+      "sign-out-fallback",
+      "sign-out-partner",
+    ].includes(screen)
+  )
     notFound();
   return (
     <GateShell

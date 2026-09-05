@@ -12,7 +12,11 @@ export function AccountFixture({
   returnTo: string;
 }) {
   const attempts = useRef(0);
-  if (screen === "sign-out" || screen === "sign-out-fallback")
+  if (
+    screen === "sign-out" ||
+    screen === "sign-out-fallback" ||
+    screen === "sign-out-partner"
+  )
     return (
       <SignOutControl
         action={async (endpoint) => {
@@ -29,6 +33,7 @@ export function AccountFixture({
             : {
                 ok: true,
                 pushPaused: screen === "sign-out-fallback" && endpoint === null,
+                unsubscribe: screen !== "sign-out-partner" && endpoint !== null,
               };
         }}
       />

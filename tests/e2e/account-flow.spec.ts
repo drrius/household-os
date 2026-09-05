@@ -218,3 +218,31 @@ for (const stage of ["registration", "subscription"]) {
     });
   }
 }
+
+test("sign-out preserves a partner-owned browser subscription", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.serviceWorker, "getRegistration", {
+      value: async () => ({
+        pushManager: {
+          getSubscription: async () => ({
+            endpoint: "https://push.example.invalid/partner",
+            unsubscribe: async () => {
+              sessionStorage.setItem("partner-push-removed", "yes");
+              return true;
+            },
+          }),
+        },
+      }),
+    });
+  });
+  await page.goto("/m7-fixture/account/sign-out-partner");
+  await page.getByRole("button", { name: "Sign out of this device" }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
+  await page.getByRole("button", { name: "Sign out of this device" }).click();
+  await expect(page).toHaveURL(/\/sign-in$/);
+  expect(
+    await page.evaluate(() => sessionStorage.getItem("partner-push-removed")),
+  ).toBeNull();
+});

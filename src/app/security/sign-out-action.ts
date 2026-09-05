@@ -5,7 +5,8 @@ import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
 export type SignOutResult =
-  { ok: true; pushPaused?: boolean } | { ok: false; error: string };
+  | { ok: true; pushPaused?: boolean; unsubscribe?: boolean }
+  | { ok: false; error: string };
 
 export async function signOutThisDevice(
   endpoint: string | null,
@@ -24,6 +25,7 @@ export async function signOutThisDevice(
   }
   const client = await createClient();
   let pushPaused = false;
+  let unsubscribe = false;
   {
     const { data, error } =
       endpoint === null
@@ -32,7 +34,9 @@ export async function signOutThisDevice(
             p_endpoint: endpoint,
           });
     pushPaused =
-      endpoint === null &&
+      endpoint === null && typeof data?.paused === "number" && data.paused > 0;
+    unsubscribe =
+      endpoint !== null &&
       typeof data?.disabled === "number" &&
       data.disabled > 0;
     if (error)
@@ -49,5 +53,9 @@ export async function signOutThisDevice(
       error: "Could not sign out. Check your connection and try again.",
     };
   revalidatePath("/", "layout");
-  return pushPaused ? { ok: true, pushPaused: true } : { ok: true };
+  return {
+    ok: true,
+    ...(pushPaused ? { pushPaused: true } : {}),
+    ...(unsubscribe ? { unsubscribe: true } : {}),
+  };
 }
