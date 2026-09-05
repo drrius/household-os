@@ -131,3 +131,11 @@ Search now retains a record-scoped origin across edit navigation, reload and sav
 The remaining category-sentinel suggestion was declined because positions permit deterministic ties and the proposed change does not establish a new invariant. The search-index observation is retained as a measured-tuning consideration: contextual text can need household-scoped scans, and no representative performance regression or safe index-removal evidence was supplied. Both discussions are resolved with reasoning, following the user's instruction to fix only agreed bugs.
 
 #67's completed E2E job recorded connection-refused errors and a delayed fixture response; its failed job in run 33962893153 was rerun. This is a verification retry, not a claimed product fix or a passing result. Current-head full CI, final CodeRabbit coverage and the final integrated household journeys remain open. The credential/deployment-dependent live checks remain separate.
+
+## Integrated agenda timing correction
+
+A fresh source audit found that Today coalesced explicitly linked bookings and calendar occurrences whenever their intervals overlapped. This incorrectly replaced a flight's departure time with a different calendar time and could pull a future flight into Today through an ongoing all-day trip event. Coalescing now requires the same timed interval; different intervals remain independently visible and retain their own dates. Both new regressions failed before the fix, including a property over shifted departure minutes. Fifteen affected agenda/recovery tests, targeted lint, formatting and domain typechecking pass. No financial or database behavior changed.
+
+At the preceding assembly head `4408a57`, hosted verification and database jobs passed; browser job `101301305870` was still running when checked. Planning job `101300601897` and search job `101299445391` were also live. These observations are not passing browser results. No unresolved review threads were present on #66, but final positive CodeRabbit review was still absent.
+
+Authenticated local member verification is unavailable: the Docker socket denies access and noninteractive sudo requires a password. No database was reset and no existing household was changed. Fixture proof remains explicitly separate from the outstanding real member journeys and credential/device-dependent checks.

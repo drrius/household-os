@@ -1,5 +1,5 @@
 import { Temporal } from "@js-temporal/polyfill";
-import { occursOnDay, overlapsInterval } from "@/domain/calendar/interval";
+import { occursOnDay } from "@/domain/calendar/interval";
 import { noticeDeadline } from "@/domain/home-records/dates";
 import type {
   AgendaProject,
@@ -146,14 +146,14 @@ function calendarEntries(
         !booking.archived_at &&
         booking.status !== "cancelled" &&
         booking.starts_at &&
-        overlapsInterval(
-          booking.starts_at,
+        !event.allDay &&
+        Temporal.Instant.compare(booking.starts_at, event.startsAt) === 0 &&
+        Temporal.Instant.compare(
           booking.ends_at ?? booking.starts_at,
-          event.startsAt,
           event.endsAt,
-        ),
+        ) === 0,
     );
-    // Never guess equivalence from titles; only explicit links coalesce entries.
+    // A link alone does not make an all-day trip and a timed flight equivalent.
     for (const booking of linked) representedBookings.add(booking.id);
     const common = {
       title: event.title,

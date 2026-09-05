@@ -89,7 +89,7 @@ it("includes overdue and upcoming responsibilities with exact destinations and b
     ],
   ]);
 });
-it("coalesces only explicitly linked overlapping bookings and calendar occurrences", () => {
+it("coalesces only explicitly linked bookings with the same timed interval", () => {
   const entries = buildHouseholdAgenda(
     input({
       bookings: [booking],
@@ -248,4 +248,53 @@ it("sorts dated work deterministically and never includes dates beyond the seven
       expect(entries.length).toBe(days.filter((day) => day <= 11).length);
     }),
   );
+});
+it("preserves the booking time when a linked calendar interval differs", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 1, max: 59 }), (minute) => {
+      const entries = buildHouseholdAgenda(
+        input({
+          bookings: [booking],
+          events: [
+            {
+              ...event,
+              startsAt: `2026-09-05T07:${String(minute).padStart(2, "0")}:00Z`,
+            },
+          ],
+        }),
+      );
+      expect(entries).toHaveLength(2);
+      expect(entries.find((entry) => entry.kind === "booking")).toMatchObject({
+        day: "2026-09-05",
+        time: "09:00",
+        ongoing: false,
+      });
+    }),
+  );
+});
+it("does not pull a future flight into Today through an ongoing all-day trip event", () => {
+  const entries = buildHouseholdAgenda(
+    input({
+      bookings: [
+        {
+          ...booking,
+          starts_at: "2026-09-15T07:00:00Z",
+          ends_at: "2026-09-15T09:00:00Z",
+        },
+      ],
+      events: [
+        {
+          ...event,
+          allDay: true,
+          startsAt: "2026-09-04T00:00:00Z",
+          endsAt: "2026-09-20T00:00:00Z",
+        },
+      ],
+    }),
+  );
+  expect(entries.map((entry) => entry.kind)).toEqual(["calendar"]);
+  expect(entries[0]).toMatchObject({
+    day: "2026-09-05",
+    ongoing: true,
+  });
 });
