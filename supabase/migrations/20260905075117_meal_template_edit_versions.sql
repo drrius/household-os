@@ -1,5 +1,8 @@
+-- A stable initial default avoids rewriting existing rows on PostgreSQL 17.
 alter table public.meal_grocery_templates
-  add column updated_at timestamptz not null default clock_timestamp();
+  add column updated_at timestamptz not null default transaction_timestamp();
+alter table public.meal_grocery_templates
+  alter column updated_at set default clock_timestamp();
 
 create function private.advance_meal_template_version()
 returns trigger language plpgsql security invoker set search_path = '' as $$

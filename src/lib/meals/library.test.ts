@@ -161,7 +161,12 @@ it("rejects a stale default-grocery edit without replacing the partner's data", 
   };
   const calls = database([{ data: { id: input.id } }, { data: null }]);
   await expect(saveMealTemplate(edit)).rejects.toThrow("Reload the saved meal");
-  expect(calls).toContainEqual(["eq", "updated_at", edit.version]);
-  expect(calls).toContainEqual(["eq", "household_id", "our-household"]);
-  expect(calls).toContainEqual(["eq", "meal_definition_id", input.id]);
+  const updateIndex = calls.findIndex(([method]) => method === "update");
+  expect(updateIndex).toBeGreaterThanOrEqual(0);
+  const updateCalls = calls.slice(updateIndex);
+  expect(updateCalls).toContainEqual(["eq", "updated_at", edit.version]);
+  expect(updateCalls).toContainEqual(["eq", "household_id", "our-household"]);
+  expect(updateCalls).toContainEqual(["eq", "meal_definition_id", input.id]);
+  expect(updateCalls).toContainEqual(["eq", "id", input.id]);
+  expect(updateCalls).toContainEqual(["is", "archived_at", null]);
 });
