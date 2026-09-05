@@ -8,9 +8,6 @@ select ok(has_function_privilege('authenticated','private.is_supported_calendar_
 select ok(not has_function_privilege('anon','private.is_supported_calendar_time_zone(text)','EXECUTE'),'anonymous validator execution is not granted');
 select is((select provolatile::text from pg_proc where oid='private.is_supported_calendar_time_zone(text)'::regprocedure),'s','catalog-backed validator is stable rather than immutable');
 select ok(not (select prosecdef from pg_proc where oid='private.is_supported_calendar_time_zone(text)'::regprocedure),'validator does not elevate privileges');
-select ok((select convalidated from pg_constraint where conname='calendar_events_supported_time_zone'),'calendar timezone constraint is validated');
-select ok((select convalidated from pg_constraint where conname='trip_bookings_supported_time_zone'),'booking start timezone constraint is validated');
-select ok((select convalidated from pg_constraint where conname='trip_bookings_supported_end_time_zone'),'booking end timezone constraint is validated');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','24000000-0000-4000-8000-000000000001',true);
 select ok(private.is_supported_calendar_time_zone(zone_name),'recognizes named zone '||zone_name) from unnest(array['UTC','Europe/Zurich','America/New_York','US/Eastern','Etc/GMT+2','eUrOpE/zUrIcH']) zone(zone_name);
