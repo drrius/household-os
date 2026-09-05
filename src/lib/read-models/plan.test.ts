@@ -116,3 +116,31 @@ describe("buildPlanViewModel", () => {
     expect(plan.weekEnd).toBe("2026-08-16");
   });
 });
+
+describe("weekly meal ideas", () => {
+  it("shows unscheduled entries without occupying a meal slot", () => {
+    const plan = buildPlanViewModel({
+      today: "2026-09-05",
+      entries: [
+        {
+          id: "idea",
+          date: "2026-08-31",
+          slot: null,
+          title_snapshot: "Pizza night",
+          notes: "Try the new dough",
+          leftover_of_entry_id: null,
+        },
+      ],
+      library: [],
+      prep: [],
+    });
+    expect(plan.ideas).toEqual([
+      { id: "idea", title: "Pizza night", notes: "Try the new dough" },
+    ]);
+    expect(
+      plan.days
+        .flatMap((day) => day.slots)
+        .every((slot) => slot.entry === null),
+    ).toBe(true);
+  });
+});

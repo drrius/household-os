@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -6,7 +7,7 @@ import { SECURITY_PATH } from "@/lib/auth/paths";
 import type { HomeViewModel } from "@/lib/read-models/home";
 
 type SettingsRowProps = {
-  hint: string;
+  hint: ReactNode;
   title: string;
 };
 
@@ -15,7 +16,7 @@ function SettingsRow({ hint, title }: SettingsRowProps) {
     <li className="flex min-h-11 items-center justify-between gap-3 border-t py-3 first:border-t-0">
       <div className="grid min-w-0 gap-1">
         <strong>{title}</strong>
-        <span className="text-sm text-muted-foreground">{hint}</span>
+        <div className="text-sm text-muted-foreground">{hint}</div>
       </div>
     </li>
   );
@@ -47,11 +48,12 @@ function SettingsLinkRow({
 
 export function SettingsList({
   storageUsedLabel,
-}: Pick<HomeViewModel, "storageUsedLabel">) {
+  storageUsage,
+}: Pick<HomeViewModel, "storageUsedLabel"> & { storageUsage?: ReactNode }) {
   const storageHint =
     storageUsedLabel === null
-      ? "Images only · Warning at 500 MB"
-      : `${storageUsedLabel} used · Warning at 500 MB`;
+      ? "Private photos & PDFs · Up to 4 MB each"
+      : `${storageUsedLabel} used · Up to 4 MB each`;
 
   return (
     <Card>
@@ -77,7 +79,10 @@ export function SettingsList({
             href="/home/setup"
             title="Household settings"
           />
-          <SettingsRow hint={storageHint} title="Attachment storage" />
+          <SettingsRow
+            hint={storageUsage ?? storageHint}
+            title="Attachment storage"
+          />
         </ul>
       </CardContent>
     </Card>

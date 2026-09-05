@@ -1,4 +1,7 @@
 import "server-only";
+import { moneyCommandError } from "@/lib/money/command-error";
+
+import { shoppingDraftReceipt, validateReceiptPath } from "@/lib/money/receipt";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
@@ -38,7 +41,7 @@ export type FinancialEventReplacement = {
   description: string;
   amountCents: number;
   payerMemberId: string;
-  allocations: readonly MoneyAllocationInput[];
+  allocations: readonly MoneyAllocationInput[] | null;
   occurredOn: string;
   categoryId?: string | null;
   note?: string | null;
@@ -104,7 +107,7 @@ export async function postManualExpense(input: {
     p_idempotency_key: input.idempotencyKey,
     p_category_id: input.categoryId ?? null,
     p_note: input.note ?? null,
-    p_receipt_path: input.receiptPath ?? null,
+    p_receipt_path: validateReceiptPath(input.receiptPath, member.householdId),
   });
 
   if (error) {
@@ -136,7 +139,7 @@ export async function postRefund(input: {
   });
 
   if (error) {
-    throw new Error(`post_refund failed: ${error.message}`);
+    throw moneyCommandError("post_refund", error);
   }
 
   return asRecord(data);
@@ -177,7 +180,7 @@ export async function correctFinancialEvent(input: {
   idempotencyKey: string;
   replacement?: FinancialEventReplacement | null;
 }): Promise<Record<string, unknown>> {
-  await requireMemberContext();
+  const member = await requireMemberContext();
   const supabase = await createClient();
   const replacement = input.replacement;
   const { data, error } = await supabase.rpc("correct_financial_event", {
@@ -192,13 +195,16 @@ export async function correctFinancialEvent(input: {
           occurred_on: replacement.occurredOn,
           category_id: replacement.categoryId ?? null,
           note: replacement.note ?? null,
-          receipt_path: replacement.receiptPath ?? null,
+          receipt_path: validateReceiptPath(
+            replacement.receiptPath,
+            member.householdId,
+          ),
         }
       : null,
   });
 
   if (error) {
-    throw new Error(`correct_financial_event failed: ${error.message}`);
+    throw moneyCommandError("correct_financial_event", error);
   }
 
   return asRecord(data);
@@ -207,7 +213,11 @@ export async function correctFinancialEvent(input: {
 export async function confirmExpenseDraft(
   input: ConfirmExpenseDraftInput,
 ): Promise<Record<string, unknown>> {
-  await requireMemberContext();
+  const member = await requireMemberContext();
+  const receiptPath =
+    input.receiptPath === undefined
+      ? await shoppingDraftReceipt(input.draftId, member.householdId)
+      : validateReceiptPath(input.receiptPath, member.householdId);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("confirm_expense_draft", {
     p_draft_id: input.draftId,
@@ -218,7 +228,7 @@ export async function confirmExpenseDraft(
     p_occurred_on: input.occurredOn ?? null,
     p_category_id: input.categoryId ?? null,
     p_note: input.note ?? null,
-    p_receipt_path: input.receiptPath ?? null,
+    p_receipt_path: receiptPath,
   });
 
   if (error) {

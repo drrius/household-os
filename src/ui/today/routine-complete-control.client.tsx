@@ -1,61 +1,91 @@
 "use client";
 
-import { Check } from "lucide-react";
-import { useOptimistic } from "react";
+import { Check, LoaderCircle } from "lucide-react";
+import Link from "next/link";
+import { useOptimistic, useState, useTransition } from "react";
 
 import { completeRoutineOccurrence } from "@/app/(product)/_actions/routines";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { RoutineRow } from "@/ui/today/today-view-model";
 
-type RoutineCompleteControlProps = {
-  row: RoutineRow;
-};
-
-export function RoutineCompleteControl({ row }: RoutineCompleteControlProps) {
+export function RoutineCompleteControl({ row }: { row: RoutineRow }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const [isCompleted, markCompleted] = useOptimistic(
     row.tone === "completed",
     () => true,
   );
-
-  async function completeAction(): Promise<void> {
-    markCompleted(true);
-    await completeRoutineOccurrence(row.occurrenceId);
+  function complete() {
+    setError(null);
+    startTransition(async () => {
+      markCompleted(true);
+      try {
+        await completeRoutineOccurrence(row.occurrenceId);
+      } catch {
+        setError("That didn't save. Your routine is still here — try again.");
+      }
+    });
   }
-
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-2">
-        <span
-          className="flex h-lh w-4 shrink-0 items-center justify-center"
-          aria-hidden="true"
+    <div className="grid gap-2">
+      <div className="flex min-w-0 items-center gap-3">
+        <Button
+          aria-label={
+            isCompleted ? `${row.title} completed` : `Mark ${row.title} done`
+          }
+          aria-busy={pending}
+          className={cn(
+            "size-11 rounded-full",
+            isCompleted && "bg-success-soft text-success",
+          )}
+          disabled={pending || !row.canComplete || isCompleted}
+          onClick={complete}
+          size="icon"
+          type="button"
+          variant="outline"
         >
-          {isCompleted ? (
-            <Check className="size-4 shrink-0 stroke-success" />
-          ) : null}
-        </span>
-        <span className="grid min-w-0">
-          <strong
+          {pending ? (
+            <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
+          ) : (
+            <Check className="size-4" />
+          )}
+        </Button>
+        <div className="min-w-0 flex-1">
+          <Link
             className={cn(
-              "wrap-anywhere",
-              isCompleted && "text-muted-foreground line-through",
+              "grid min-h-11 content-center gap-1 rounded-md no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isCompleted && "text-muted-foreground",
             )}
+            href={`/home/occurrences/${row.occurrenceId}`}
           >
-            {row.title}
-          </strong>
-          <small className="text-sm text-muted-foreground">{row.meta}</small>
-        </span>
+            <p
+              className={cn(
+                "font-medium wrap-anywhere",
+                isCompleted && "line-through",
+              )}
+            >
+              {row.title}
+            </p>
+            <p
+              className={cn(
+                "text-base sm:text-sm",
+                row.tone === "overdue" && !isCompleted
+                  ? "text-destructive-strong"
+                  : "text-muted-foreground",
+              )}
+            >
+              {row.meta}
+            </p>
+          </Link>
+        </div>
       </div>
-      {row.canComplete && !isCompleted ? (
-        <form action={completeAction}>
-          <Button type="submit" variant="outline">
-            Mark done
-          </Button>
-        </form>
-      ) : (
-        <Badge variant="success">Done</Badge>
-      )}
+      <div
+        aria-live="polite"
+        className="text-base text-destructive-strong sm:text-sm"
+      >
+        {error}
+      </div>
     </div>
   );
 }

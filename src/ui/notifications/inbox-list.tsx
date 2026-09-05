@@ -1,101 +1,95 @@
 import Link from "next/link";
-
-import { markInboxReadFormAction } from "@/app/(product)/_actions/notifications";
+import { emptyInboxCopy } from "@/domain/notifications/inbox-presentation";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import type { InboxFeed, InboxItemView } from "@/lib/read-models/notifications";
-import { cn } from "@/lib/utils";
-
-function MarkReadButton({
-  notificationIds,
-  label,
+import type {
+  InboxPageFeed,
+  InboxItemView,
+} from "@/lib/read-models/notifications";
+import type { InboxContext } from "@/domain/notifications/inbox";
+import type { FormAction } from "@/lib/forms/action-state";
+import { InboxReadControl } from "./inbox-read-control.client";
+function InboxItemRow({
+  item,
+  context,
+  action,
 }: {
-  notificationIds: readonly string[];
-  label: string;
+  item: InboxItemView;
+  context: InboxContext;
+  action?: FormAction;
 }) {
   return (
-    <form action={markInboxReadFormAction}>
-      {notificationIds.map((id) => (
-        <input key={id} name="notificationId" type="hidden" value={id} />
-      ))}
-      <button
-        className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
-        type="submit"
-      >
-        {label}
-      </button>
-    </form>
-  );
-}
-
-function InboxItemRow({ item }: { item: InboxItemView }) {
-  return (
-    <li className="grid gap-2 border-t py-3 first:border-t-0">
+    <li className="grid gap-3 border-t py-5 first:border-t-0">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={item.read ? "outline" : "default"}>
-          {item.kindLabel}
-        </Badge>
-        <span className="text-xs text-muted-foreground">
+        <Badge variant="outline">{item.kindLabel}</Badge>
+        <span className="text-sm text-muted-foreground">
           {item.createdLabel}
         </span>
         {!item.read ? (
-          <span className="text-xs font-medium text-primary">Unread</span>
+          <span className="text-sm font-medium text-primary">Unread</span>
         ) : null}
       </div>
-      <Link className="no-underline" href={item.href}>
-        <strong className="font-heading">{item.title}</strong>
-        <p className="text-sm text-muted-foreground">{item.body}</p>
+      <Link
+        className="grid min-h-11 gap-1 no-underline hover:underline"
+        href={item.href}
+      >
+        <h2 className="font-heading text-lg font-semibold">{item.title}</h2>
+        <p className="text-base text-muted-foreground sm:text-sm">
+          {item.body}
+        </p>
       </Link>
-      <div className="flex flex-wrap gap-2">
-        <Link
-          className={cn(
-            buttonVariants({ size: "sm", variant: "ghost" }),
-            "no-underline",
-          )}
-          href={item.href}
-        >
-          Open
-        </Link>
-        {!item.read ? (
-          <MarkReadButton label="Mark read" notificationIds={[item.id]} />
-        ) : null}
-      </div>
+      {!item.read ? (
+        <InboxReadControl
+          ids={[item.id]}
+          label="Mark read"
+          context={context}
+          action={action}
+        />
+      ) : null}
     </li>
   );
 }
-
-export function InboxList({ feed }: { feed: InboxFeed }) {
-  if (feed.items.length === 0) {
+export function InboxList({
+  feed,
+  action,
+}: {
+  feed: InboxPageFeed;
+  action?: FormAction;
+}) {
+  const context: InboxContext = { filter: feed.filter, cursor: feed.cursor };
+  if (!feed.items.length) {
+    const copy = emptyInboxCopy({
+      older: feed.cursor !== null,
+      unreadOnly: feed.filter === "unread",
+      totalCount: feed.totalCount,
+      unreadCount: feed.unreadCount,
+    });
     return (
-      <Card>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No notifications yet. Partner updates, reminders, and digests will
-            land here even if push is off.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="grid gap-2 rounded-xl border p-5">
+        <h2 className="font-heading text-lg font-semibold">{copy.title}</h2>
+        <p className="text-muted-foreground">{copy.body}</p>
+      </div>
     );
   }
-
   return (
     <div className="grid gap-4">
-      {feed.unreadIds.length > 0 ? (
-        <MarkReadButton
-          label="Mark all read"
-          notificationIds={feed.unreadIds}
+      {feed.unreadIds.length ? (
+        <InboxReadControl
+          ids={feed.unreadIds}
+          label="Mark this page read"
+          context={context}
+          action={action}
         />
       ) : null}
-      <Card>
-        <CardContent>
-          <ul className="list-none" aria-label="Inbox notifications">
-            {feed.items.map((item) => (
-              <InboxItemRow item={item} key={item.id} />
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <ul aria-label="Inbox notifications" className="grid list-none">
+        {feed.items.map((item) => (
+          <InboxItemRow
+            item={item}
+            key={item.id}
+            context={context}
+            action={action}
+          />
+        ))}
+      </ul>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default async function EditProjectPage({
 }) {
   const { projectId } = await params;
   const project = await loadProject(projectId);
-  if (!project) notFound();
+  if (!project || project.archived_at) notFound();
   return (
     <FormPage
       backHref={`/plan/projects/${projectId}`}

@@ -9,7 +9,7 @@ insert into public.households (id,name) values ('00000100-0000-4000-8000-0000000
 insert into public.household_members (household_id,user_id,display_name) values ('00000100-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000101','Member');
 insert into public.household_members (household_id,user_id,display_name) values ('00000100-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000102','Member');
 insert into public.household_members (household_id,user_id,display_name) values ('00000100-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000103','Member');
-insert into public.areas (id,household_id,name,sort_order) values ('00000200-0000-4000-8000-000000000001','00000100-0000-4000-8000-000000000001','Home',1);
+insert into public.areas (id,household_id,name,sort_order) values ('00000200-0000-4000-8000-000000000001','00000100-0000-4000-8000-000000000001','Home',10);
 insert into public.routines (id,household_id,title,area_id,assignment_policy,schedule_kind,schedule_rule)
  values ('00000200-0000-4000-8000-000000000001','00000100-0000-4000-8000-000000000001','Clean filter','00000200-0000-4000-8000-000000000001','shared','one_off','{"kind":"one_off","date":"2026-10-01"}');
 insert into public.financial_events (id,household_id,type,occurred_on,created_by_member_id,payer_member_id,description,amount_cents) values ('00000200-0000-4000-8000-000000000001','00000100-0000-4000-8000-000000000001','expense','2026-09-01','00000000-0000-4000-8000-000000000101','00000000-0000-4000-8000-000000000101','Flight',10000);
@@ -25,8 +25,12 @@ insert into public.decision_options (id, household_id, created_by, decision_id, 
 insert into public.household_financial_links (id, household_id, created_by, financial_event_id, project_id, booking_id) values ('00000200-0000-4000-8000-000000000001', '00000100-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', '00000200-0000-4000-8000-000000000001', '00000200-0000-4000-8000-000000000001', '00000200-0000-4000-8000-000000000001');
 insert into public.asset_maintenance (id, household_id, created_by, asset_id, title, performed_on, routine_id) values ('00000200-0000-4000-8000-000000000001', '00000100-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', '00000200-0000-4000-8000-000000000001', 'Filter cleaned', '2026-09-01', '00000200-0000-4000-8000-000000000001');
 insert into public.asset_routines (id, household_id, created_by, asset_id, routine_id) values ('00000200-0000-4000-8000-000000000001', '00000100-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', '00000200-0000-4000-8000-000000000001', '00000200-0000-4000-8000-000000000001');
+insert into public.household_attachment_uploads(path,household_id,uploaded_by,content_type) values ('00000100-0000-4000-8000-000000000001/documents/00000200-0000-4000-8000-000000000001.pdf','00000100-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000101','application/pdf');
+insert into storage.objects(bucket_id,name,metadata) values ('household-files','00000100-0000-4000-8000-000000000001/documents/00000200-0000-4000-8000-000000000001.pdf','{"mimetype":"application/pdf"}');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000101',true);
 insert into public.household_documents (id, household_id, created_by, title, file_path, asset_id) values ('00000200-0000-4000-8000-000000000001', '00000100-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', 'Manual', '00000100-0000-4000-8000-000000000001/documents/00000200-0000-4000-8000-000000000001.pdf', '00000200-0000-4000-8000-000000000001');
-insert into public.areas (id,household_id,name,sort_order) values ('00000200-0000-4000-8000-000000000002','00000100-0000-4000-8000-000000000002','Home',1);
+select set_config('request.jwt.claim.sub','',true);
+insert into public.areas (id,household_id,name,sort_order) values ('00000200-0000-4000-8000-000000000002','00000100-0000-4000-8000-000000000002','Home',10);
 insert into public.routines (id,household_id,title,area_id,assignment_policy,schedule_kind,schedule_rule)
  values ('00000200-0000-4000-8000-000000000002','00000100-0000-4000-8000-000000000002','Clean filter','00000200-0000-4000-8000-000000000002','shared','one_off','{"kind":"one_off","date":"2026-10-01"}');
 insert into public.financial_events (id,household_id,type,occurred_on,created_by_member_id,payer_member_id,description,amount_cents) values ('00000200-0000-4000-8000-000000000002','00000100-0000-4000-8000-000000000002','expense','2026-09-01','00000000-0000-4000-8000-000000000103','00000000-0000-4000-8000-000000000103','Flight',10000);
@@ -42,7 +46,11 @@ insert into public.decision_options (id, household_id, created_by, decision_id, 
 insert into public.household_financial_links (id, household_id, created_by, financial_event_id, project_id, booking_id) values ('00000200-0000-4000-8000-000000000002', '00000100-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000103', '00000200-0000-4000-8000-000000000002', '00000200-0000-4000-8000-000000000002', '00000200-0000-4000-8000-000000000002');
 insert into public.asset_maintenance (id, household_id, created_by, asset_id, title, performed_on, routine_id) values ('00000200-0000-4000-8000-000000000002', '00000100-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000103', '00000200-0000-4000-8000-000000000002', 'Filter cleaned', '2026-09-01', '00000200-0000-4000-8000-000000000002');
 insert into public.asset_routines (id, household_id, created_by, asset_id, routine_id) values ('00000200-0000-4000-8000-000000000002', '00000100-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000103', '00000200-0000-4000-8000-000000000002', '00000200-0000-4000-8000-000000000002');
+insert into public.household_attachment_uploads(path,household_id,uploaded_by,content_type) values ('00000100-0000-4000-8000-000000000002/documents/00000200-0000-4000-8000-000000000002.pdf','00000100-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000103','application/pdf');
+insert into storage.objects(bucket_id,name,metadata) values ('household-files','00000100-0000-4000-8000-000000000002/documents/00000200-0000-4000-8000-000000000002.pdf','{"mimetype":"application/pdf"}');
+select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000103',true);
 insert into public.household_documents (id, household_id, created_by, title, file_path, asset_id) values ('00000200-0000-4000-8000-000000000002', '00000100-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000103', 'Manual', '00000100-0000-4000-8000-000000000002/documents/00000200-0000-4000-8000-000000000002.pdf', '00000200-0000-4000-8000-000000000002');
+select set_config('request.jwt.claim.sub','',true);
 set local role authenticated;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000101',true);
 select is((select count(*) from public.household_projects),1::bigint,'household_projects: own household only');
@@ -223,6 +231,28 @@ select is((select status from public.household_decisions),'decided','choice mark
 select lives_ok($$select public.convert_household_decision('00000200-0000-4000-8000-000000000001','trip')$$,'convert decision to trip');
 select is(public.convert_household_decision('00000200-0000-4000-8000-000000000001','trip'),(select converted_project_id from public.household_decisions),'conversion is repeat safe');
 select throws_ok($$select public.convert_household_decision('00000200-0000-4000-8000-000000000002','trip')$$,'42501',null,'cannot convert foreign decision');
+select throws_ok($$update public.household_decisions set status = 'decided'$$,'42501',null,'decision status requires command');
+select throws_ok($$update public.household_decisions set converted_project_id = '00000200-0000-4000-8000-000000000001'$$,'42501',null,'conversion target requires command');
+select throws_ok($$update public.decision_options set chosen = true$$,'42501',null,'choice requires command');
+select throws_ok($$update public.household_projects set kind = 'project' where id = '00000200-0000-4000-8000-000000000001'$$,'23503',null,'cannot turn booked trip into ordinary project');
+select lives_ok($$select public.set_household_decision_status('00000200-0000-4000-8000-000000000001','dismissed')$$,'can dismiss a decision');
+select is((select count(*) from public.decision_options where chosen),0::bigint,'dismiss clears choice atomically');
+reset role;
+insert into public.household_projects(id,household_id,created_by,kind,title) values('00000200-0000-4000-8000-000000000003','00000100-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000101','project','Ordinary project');
+insert into public.financial_events(id,household_id,type,occurred_on,created_by_member_id,payer_member_id,description,amount_cents)
+select '00000200-0000-4000-8000-000000000003', household_id, 'settlement', occurred_on, created_by_member_id, payer_member_id, 'Settlement', 100 from public.financial_events where id='00000200-0000-4000-8000-000000000001';
+insert into public.financial_events(id,household_id,type,occurred_on,created_by_member_id,payer_member_id,description,amount_cents)
+select '00000200-0000-4000-8000-000000000004', household_id, 'opening_balance', occurred_on, created_by_member_id, payer_member_id, 'Opening balance', 100 from public.financial_events where id='00000200-0000-4000-8000-000000000001';
+set local role authenticated;
+select throws_ok($$update public.trip_bookings set project_id = '00000200-0000-4000-8000-000000000003'$$,'23503',null,'bookings require a trip parent');
+select throws_ok($$update public.household_financial_links set financial_event_id = '00000200-0000-4000-8000-000000000003'$$,'23514',null,'settlement is not spending');
+select throws_ok($$update public.household_financial_links set financial_event_id = '00000200-0000-4000-8000-000000000004'$$,'23514',null,'opening balance is not spending');
+select lives_ok($$select public.choose_household_decision_option('00000200-0000-4000-8000-000000000001','00000200-0000-4000-8000-000000000001')$$,'choose before archiving');
+select lives_ok($$select public.archive_household_decision_option('00000200-0000-4000-8000-000000000001',true)$$,'archive chosen option atomically');
+select is((select status from public.household_decisions where id='00000200-0000-4000-8000-000000000001'),'considering','archived choice reopens decision');
+select lives_ok($$select public.archive_household_decision_option('00000200-0000-4000-8000-000000000001',false)$$,'restore option');
+select is((select chosen from public.decision_options where id='00000200-0000-4000-8000-000000000001'),false,'restored option does not reclaim choice');
+select throws_ok($$update public.decision_options set archived_at=now()$$,'42501',null,'archive requires command');
 set local role anon;
 select throws_ok($$select * from public.household_projects$$,'42501',null,'household_projects: anonymous denied');
 select throws_ok($$select * from public.household_contacts$$,'42501',null,'household_contacts: anonymous denied');

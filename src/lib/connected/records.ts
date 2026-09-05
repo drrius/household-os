@@ -36,6 +36,8 @@ export async function saveHouseholdRecord(
       .eq("updated_at", expectedUpdatedAt)
       .select("id")
       .maybeSingle();
+    if (table === "household_projects" && error?.code === "55000")
+      throw new Error("Restore this plan before editing its details.");
     if (table === "project_tasks" && error?.code === "55000")
       throw new Error("Restore this plan before changing its tasks.");
     if (error)

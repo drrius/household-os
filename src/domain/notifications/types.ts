@@ -31,6 +31,8 @@ export function asMemberId(value: string): MemberId {
 }
 
 export type ActivityKind =
+  | "project_record_changed"
+  | "project_task_assigned"
   | "routine_created"
   | "routine_updated"
   | "occurrence_completed"
@@ -193,10 +195,14 @@ export type AppSurface =
   "today" | "plan" | "groceries" | "money" | "home" | "inbox";
 
 export type WatchedTable =
+  | "areas"
+  | "pets"
   | "inbox_notifications"
   | "routine_occurrences"
   | "routines"
   | "meal_plan_entries"
+  | "meal_definitions"
+  | "meal_grocery_templates"
   | "grocery_items"
   | "shopping_sessions"
   | "expense_drafts"

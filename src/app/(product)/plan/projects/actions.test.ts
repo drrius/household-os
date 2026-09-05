@@ -45,3 +45,18 @@ it.each([
     expect(mocks.load).not.toHaveBeenCalled();
   },
 );
+
+it("rejects edits to an archived project before issuing a write", async () => {
+  vi.clearAllMocks();
+  mocks.member.mockResolvedValue({});
+  mocks.load.mockResolvedValue({ archived_at: "2026-09-05T12:00:00Z" });
+  const form = new FormData();
+  form.set("id", "39000000-0000-4000-8000-000000000001");
+  form.set("updatedAt", "2026-09-05T12:00:00Z");
+  form.set("kind", "project");
+  form.set("title", "Changed title");
+  const result = await saveProjectAction({ submissionId: 0 }, form);
+  expect(result.error).toBe("Restore this plan before editing its details.");
+  expect(result.values?.title).toBe("Changed title");
+  expect(mocks.save).not.toHaveBeenCalled();
+});

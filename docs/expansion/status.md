@@ -75,3 +75,7 @@ PR #52 now includes project/task assignment notifications and visible recovery h
 PR #65 (9bfe6f0) adds the release/recovery guide and corrects the README's stale UI freeze and local-verification instructions. Its documentation checks pass; review remains pending. It records manual calendar sync and unperformed live checks honestly.
 
 Home and search still require their assembled dependencies and route-level verification. Global completion, live iCloud/device checks and the replacement trial remain outstanding; neither the review cleanup nor the release guide closes those gates.
+
+## Authorized integration checkpoint
+
+The user explicitly approved feature-branch integration on September 5. The previous automatic-approval blocker is cleared. The connected foundation now incorporates main through 700cf39, including the merged routine/Money work, attachment security and recovery, push setup, release guide and updated CI policy. Attachment conflicts retain main’s reviewed implementation; calendar parser dependencies remain pinned alongside jpeg-js. Nineteen directly affected attachment/invalidation tests and TypeScript checking passed locally. Hosted integration checks remain required.

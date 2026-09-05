@@ -4,10 +4,14 @@ import { SURFACE_INVALIDATION_MAP, surfacesForTableChange } from "./surfaces";
 import type { WatchedTable } from "./types";
 
 const WATCHED_TABLES = [
+  "areas",
+  "pets",
   "inbox_notifications",
   "routine_occurrences",
   "routines",
   "meal_plan_entries",
+  "meal_definitions",
+  "meal_grocery_templates",
   "grocery_items",
   "shopping_sessions",
   "expense_drafts",
@@ -37,16 +41,29 @@ describe("SURFACE_INVALIDATION_MAP", () => {
   });
 
   it.each([
+    ["areas", ["home", "today"]],
+    ["pets", ["home", "today"]],
     ["inbox_notifications", ["inbox", "today"]],
     ["routine_occurrences", ["today", "home", "plan"]],
     ["routines", ["today", "home", "plan"]],
     ["meal_plan_entries", ["plan", "today"]],
+    ["meal_definitions", ["plan"]],
+    ["meal_grocery_templates", ["plan"]],
     ["grocery_items", ["groceries", "today"]],
     ["shopping_sessions", ["groceries", "today"]],
     ["expense_drafts", ["money", "today"]],
-    ["financial_events", ["money", "today"]],
+    ["financial_events", ["money", "today", "plan", "home"]],
     ["activity_events", ["home"]],
   ] as const)("maps %s changes to the expected surfaces", (table, surfaces) => {
     expect(surfacesForTableChange(table)).toEqual(surfaces);
   });
+});
+
+it("refunds and corrections refresh every surface that displays inherited costs", () => {
+  const explicitCostSurfaces = surfacesForTableChange(
+    "household_financial_links",
+  );
+  const ledgerSurfaces = surfacesForTableChange("financial_events");
+  for (const surface of explicitCostSurfaces)
+    expect(ledgerSurfaces).toContain(surface);
 });

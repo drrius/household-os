@@ -15,7 +15,7 @@ type ProjectFormProps = {
 };
 
 export function ProjectForm(props: ProjectFormProps) {
-  return <ProjectEditor key={props.project?.id ?? "new"} {...props} />;
+  return <ProjectEditor key={props.project?.id ?? props.id} {...props} />;
 }
 
 function ProjectEditor(props: ProjectFormProps) {
