@@ -35,3 +35,9 @@ The routine regression exposed missing label/control association during React Se
 Final verification: `pnpm verify` passed 273 tests in 47 files, formatting, lint, type checks and production build. A fixture-enabled production build passed 54 Playwright cases across Chromium, WebKit and mobile Safari, including the existing full routine scheduling and exact-split expense flows. The pending-state case holds its network request until assertions finish, avoiding a short timer race. A development-server run had two timing/reload failures; the trace showed a full development reload resetting the error fixture. The final production run passed the same recovery assertions. Ordinary production builds still exclude fixtures.
 
 Evidence: `/tmp/discard-final-verify.log`, `/tmp/discard-production-e2e.log` and `/tmp/discard-fixture-build.log`. Codex's review quota remains exhausted; no new positive review is claimed.
+
+## Codex review follow-up
+
+Findings 3939657986 and 3939657987 are addressed. Protected form fields are disabled while their submitted request is pending, so a successful response cannot silently mark newer, unsubmitted edits saved. Calendar selection dispatches an input event before changing its controlled value, retaining the original comparison baseline; a calendar already open also refuses selections while its field is disabled. Calendar-only edits prompt, and restoring the original date leaves without a prompt.
+
+Verification: full `pnpm verify` passed all 273 tests and build. A fixture-enabled production build passed all 60 browser cases across Chromium, WebKit and mobile Safari, including both expense and routine calendar-only edit/revert regressions and the held-request disabled-controls assertions. Evidence: `/tmp/discard-review-fixes-verify.log`, `/tmp/discard-review-fixture-build.log`, `/tmp/discard-review-e2e.log`. Codex review is available again; the fixed head requires rereview.

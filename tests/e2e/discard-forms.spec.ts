@@ -243,6 +243,8 @@ test("pending disabled controls do not manufacture unsaved edits", async ({
   });
   await page.getByRole("button", { name: "Save fixture", exact: true }).click();
   await expect(page.getByLabel("Stable value", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("Note", { exact: true })).toBeDisabled();
+  await expect(page.getByRole("combobox")).toBeDisabled();
   expect(
     await page.evaluate(
       () =>
@@ -254,3 +256,29 @@ test("pending disabled controls do not manufacture unsaved edits", async ({
     page.getByRole("button", { name: "Save fixture", exact: true }),
   ).toBeEnabled();
 });
+
+for (const kind of ["expense", "routine"] as const) {
+  test(`${kind} calendar-only edits prompt and reverted dates leave cleanly`, async ({
+    page,
+  }) => {
+    await openFixture(page, `?kind=${kind}`);
+    await page.getByLabel("Date", { exact: true }).click();
+    await page.locator('button[data-day="9/6/2026"]').click();
+    await page.keyboard.press("Escape");
+    let count = 0;
+    page.on("dialog", async (dialog) => {
+      count += 1;
+      await dialog.dismiss();
+    });
+    await page.getByRole("link", { name: "Cancel", exact: true }).click();
+    expect(count).toBe(1);
+    await page.getByLabel("Date", { exact: true }).click();
+    await page.locator('button[data-day="9/5/2026"]').click();
+    await page.keyboard.press("Escape");
+    await page.getByRole("link", { name: "Cancel", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Discard destination" }),
+    ).toBeVisible();
+    expect(count).toBe(1);
+  });
+}

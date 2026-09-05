@@ -193,9 +193,13 @@ export function FormFields({
     >
       <FormRejectionLiveRegion error={error} liveRegionRef={alertRef} />
       <FormFieldsContext value={state}>
-        <div className="grid gap-5" key={submissionId}>
+        <fieldset
+          className="grid min-w-0 gap-5"
+          disabled={protectChanges && pending}
+          key={submissionId}
+        >
           {children}
-        </div>
+        </fieldset>
       </FormFieldsContext>
       <SubmitButton label={submitLabel} />
     </form>
