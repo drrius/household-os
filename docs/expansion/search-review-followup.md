@@ -17,3 +17,9 @@ Evidence: `/tmp/search-review-verify.log`, `/tmp/search-review-fixture-build.log
 Finding 3939721071 is addressed: option rows are vectorized independently, then matches select the best result once per parent decision. Equal scores choose a stable excerpt. No unbounded aggregate is passed to PostgreSQL's text-vector constructor. SQL regression adds 500 options containing more than 1 MiB of distinct cumulative text, checks a term in the final option, and checks deduplicated parent and household-wide results.
 
 Full verification again passes 407 tests/build. Application rendering is unchanged from the 15 passing browser cases. Local database execution was attempted again but PostgreSQL remains unavailable. Search's missing product entry point (finding3939721069) and absent result destinations remain explicit dependency/integration work; they are not marked resolved.
+
+## Search discovery
+
+Finding 3939721069 is now addressed independently of result-destination assembly. The shared shell offers a labeled Search household link above mobile content and in the desktop sidebar, including an accessible name when the sidebar collapses. The existing five mobile primary destinations remain available. Both entry points target the authenticated search route without prefetching household queries.
+
+Latest main-branch AGENTS.md was imported. Targeted lint and TypeScript checking passed; two focused Chromium navigation cases at 390 px and 1280 px passed, including the authentication gate and browser Back. No full suite or build ran locally for this change. Finding 3938766027 remains open until the other modules' detail routes are integrated and verified.
