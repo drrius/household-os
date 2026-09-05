@@ -17,6 +17,7 @@ export function readFixture(id: string) {
 }
 export function writeFixture(id: string, state: FixtureState) {
   const records = store();
-  if (records.size > 100) records.delete(records.keys().next().value!);
+  if (!records.has(id) && records.size >= 100)
+    records.delete(records.keys().next().value!);
   records.set(id, state);
 }
