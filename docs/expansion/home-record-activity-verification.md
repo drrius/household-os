@@ -32,7 +32,7 @@ real storage objects and register them when the pending-upload registry exists.
   and mobile Safari. Mobile screenshot inspected: labels wrap inside the card,
   all four operations are visible, and no horizontal overflow or page errors.
 - `pnpm db:test` attempted; the local stack refused connection on 127.0.0.1:54322.
-  Database behavior remains a combined CI gate, including PR48 migration027.
+  Database behavior remains a combined CI gate, including PR #48 migration 027.
 - Read-only review corrected pgTAP expected VALUES queries to cursor-compatible
   SELECT queries. Tests also cover a late decision activity failure rolling back
   an option update and its earlier activity in the same command.
