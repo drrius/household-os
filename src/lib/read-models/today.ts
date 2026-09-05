@@ -61,6 +61,8 @@ async function loadRoutines(
       .eq("household_id", householdId)
       .eq("status", "open")
       .eq("role", "current")
+      .is("routine.paused_at", null)
+      .is("routine.archived_at", null)
       .lte("due_date", openThrough),
     supabase
       .from("routine_completions")

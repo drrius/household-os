@@ -33,7 +33,7 @@ function optionalUuid(formData: FormData, name: string): string | null {
   return value === null ? null : uuidSchema.parse(value);
 }
 
-function parseChfField(formData: FormData, name: string): number {
+export function parseChfField(formData: FormData, name: string): number {
   const raw = formData.get(name);
   const value = typeof raw === "string" ? raw.trim() : "";
   try {
@@ -181,7 +181,11 @@ export function parseExpenseForm(
     allocations,
     occurredOn: dateSchema.parse(requiredString(formData, "occurredOn")),
     categoryId: optionalUuid(formData, "categoryId"),
-    note: optionalText(formData.get("note")),
+    note: z
+      .string()
+      .max(4000)
+      .nullable()
+      .parse(optionalText(formData.get("note"))),
     idempotencyKey: uuidSchema.parse(
       requiredString(formData, "idempotencyKey"),
     ),
@@ -202,7 +206,11 @@ export function parseOpeningBalanceForm(formData: FormData) {
     ),
     amountCents,
     occurredOn: dateSchema.parse(requiredString(formData, "occurredOn")),
-    note: optionalText(formData.get("note")),
+    note: z
+      .string()
+      .max(4000)
+      .nullable()
+      .parse(optionalText(formData.get("note"))),
     idempotencyKey: uuidSchema.parse(
       requiredString(formData, "idempotencyKey"),
     ),
@@ -225,7 +233,11 @@ export function parseSettlementForm(formData: FormData) {
     mode,
     amountCents,
     occurredOn: dateSchema.parse(requiredString(formData, "occurredOn")),
-    note: optionalText(formData.get("note")),
+    note: z
+      .string()
+      .max(4000)
+      .nullable()
+      .parse(optionalText(formData.get("note"))),
     idempotencyKey: uuidSchema.parse(
       requiredString(formData, "idempotencyKey"),
     ),

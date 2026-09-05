@@ -28,6 +28,7 @@ const WATCHED_TABLES = [
   "asset_routines",
   "grocery_categories",
   "meal_definitions",
+  "meal_grocery_templates",
   "areas",
   "pets",
   "routine_completions",
@@ -49,7 +50,7 @@ describe("SURFACE_INVALIDATION_MAP", () => {
     ["grocery_items", ["groceries", "today", "search"]],
     ["shopping_sessions", ["groceries", "today"]],
     ["expense_drafts", ["money", "today"]],
-    ["financial_events", ["money", "today", "search"]],
+    ["financial_events", ["money", "today", "plan", "home", "search"]],
     ["activity_events", ["home"]],
   ] as const)("maps %s changes to the expected surfaces", (table, surfaces) => {
     expect(surfacesForTableChange(table)).toEqual(surfaces);
@@ -80,4 +81,16 @@ it.each([
   "expense_categories",
 ])("refreshes search when %s changes", (table) => {
   expect(surfacesForTableChange(table as WatchedTable)).toContain("search");
+});
+
+it("refunds and corrections refresh every surface that displays inherited costs", () => {
+  const explicitCostSurfaces = surfacesForTableChange(
+    "household_financial_links",
+  );
+  const ledgerSurfaces = surfacesForTableChange("financial_events");
+  for (const surface of explicitCostSurfaces)
+    expect(ledgerSurfaces).toContain(surface);
+});
+it("meal template changes refresh the planning library", () => {
+  expect(surfacesForTableChange("meal_grocery_templates")).toContain("plan");
 });

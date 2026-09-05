@@ -193,10 +193,14 @@ export type AppSurface =
   "today" | "plan" | "groceries" | "money" | "home" | "inbox" | "search";
 
 export type WatchedTable =
+  | "areas"
+  | "pets"
   | "inbox_notifications"
   | "routine_occurrences"
   | "routines"
   | "meal_plan_entries"
+  | "meal_definitions"
+  | "meal_grocery_templates"
   | "grocery_items"
   | "shopping_sessions"
   | "expense_drafts"

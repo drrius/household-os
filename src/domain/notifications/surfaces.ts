@@ -2,6 +2,7 @@ import type { AppSurface, WatchedTable } from "./types";
 
 export const SURFACE_INVALIDATION_MAP = {
   meal_definitions: ["plan", "search"],
+  meal_grocery_templates: ["plan"],
   areas: ["home", "today", "search"],
   pets: ["home", "today", "search"],
   routine_completions: ["home", "today", "search"],
@@ -13,7 +14,7 @@ export const SURFACE_INVALIDATION_MAP = {
   grocery_items: ["groceries", "today", "search"],
   shopping_sessions: ["groceries", "today"],
   expense_drafts: ["money", "today"],
-  financial_events: ["money", "today", "search"],
+  financial_events: ["money", "today", "plan", "home", "search"],
   activity_events: ["home"],
   household_projects: ["plan", "today", "home", "search"],
   project_tasks: ["plan", "today", "search"],
