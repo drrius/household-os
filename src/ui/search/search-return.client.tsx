@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { searchReturnHref } from "@/domain/search/return-context";
+import { searchReturnHref } from "@/lib/search/return-context";
 
 export function SearchReturn() {
   const pathname = usePathname();

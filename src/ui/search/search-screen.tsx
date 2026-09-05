@@ -1,4 +1,4 @@
-import { searchResultWithContext } from "@/domain/search/return-context";
+import { searchResultWithContext } from "@/lib/search/return-context";
 import { searchCharacterCount } from "@/domain/search/query";
 import Link from "next/link";
 import { ArrowRight, SearchX } from "lucide-react";

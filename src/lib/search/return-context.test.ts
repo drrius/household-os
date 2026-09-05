@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import fc from "fast-check";
-import { parseSearchRequest, searchHref } from "./query";
+import { parseSearchRequest, searchHref } from "@/domain/search/query";
 import { searchResultWithContext, searchReturnHref } from "./return-context";
 const id = "00000000-0000-4000-8000-000000000001";
 it("retains search filters and continuation cursor through a booking destination", () => {

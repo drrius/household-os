@@ -4,8 +4,8 @@ import {
   searchHref,
   searchResultHref,
   type SearchRequest,
-} from "./query";
-import type { SearchResult } from "./results";
+} from "@/domain/search/query";
+import type { SearchResult } from "@/domain/search/results";
 
 export function searchResultWithContext(
   result: Pick<SearchResult, "kind" | "id" | "parent_id">,
