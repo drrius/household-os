@@ -565,6 +565,21 @@ select lives_ok(
   'a member can record an external settlement'
 );
 
+select throws_ok(
+  $$select public.correct_financial_event(
+    (select id from public.financial_events where description = 'Odd-cent groceries'),
+    'money-correction-with-active-refund')$$,
+  '55000',
+  'Reverse the active refunds before correcting this expense.',
+  'corrections require active refunds to be reversed first'
+);
+select lives_ok(
+  $$select public.correct_financial_event(
+    (select id from public.financial_events where description = 'Grocery refund'),
+    'money-refund-reversal-before-correction')$$,
+  'reverse the refund before correcting its source expense'
+);
+
 select lives_ok(
   $$
     select public.correct_financial_event(

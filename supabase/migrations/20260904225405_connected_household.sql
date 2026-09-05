@@ -16,7 +16,7 @@ revoke all on function private.guard_household_record_identity() from public, an
 
 create table public.household_projects (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -49,7 +49,7 @@ create trigger household_projects_identity before update on public.household_pro
 
 create table public.household_contacts (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -79,7 +79,7 @@ create trigger household_contacts_identity before update on public.household_con
 
 create table public.household_assets (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -113,7 +113,7 @@ create trigger household_assets_identity before update on public.household_asset
 
 create table public.household_commitments (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -152,7 +152,7 @@ create trigger household_commitments_identity before update on public.household_
 
 create table public.project_tasks (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -189,7 +189,7 @@ create trigger project_tasks_identity before update on public.project_tasks
 
 create table public.calendar_events (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -228,7 +228,7 @@ create trigger calendar_events_identity before update on public.calendar_events
 
 create table public.trip_bookings (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -270,7 +270,7 @@ create trigger trip_bookings_identity before update on public.trip_bookings
 
 create table public.household_decisions (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -301,7 +301,7 @@ create trigger household_decisions_identity before update on public.household_de
 
 create table public.decision_options (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -332,7 +332,7 @@ create trigger decision_options_identity before update on public.decision_option
 
 create table public.household_financial_links (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -369,7 +369,7 @@ create trigger household_financial_links_identity before update on public.househ
 
 create table public.asset_maintenance (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -400,7 +400,7 @@ create trigger asset_maintenance_identity before update on public.asset_maintena
 
 create table public.asset_routines (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -429,7 +429,7 @@ create trigger asset_routines_identity before update on public.asset_routines
 
 create table public.household_documents (
   id uuid primary key default extensions.gen_random_uuid(),
-  household_id uuid not null references public.households(id),
+  household_id uuid not null references public.households(id) on delete cascade,
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -497,10 +497,10 @@ create trigger project_tasks_completion before insert or update on public.projec
   for each row execute function private.stamp_project_task_completion();
 
 create function public.choose_household_decision_option(p_decision_id uuid, p_option_id uuid)
-returns void language plpgsql security invoker set search_path = '' as $$
+returns void language plpgsql security definer set search_path = '' as $$
 declare v_decision public.household_decisions%rowtype;
 begin
-  select * into v_decision from public.household_decisions where id = p_decision_id for update;
+  select * into v_decision from public.household_decisions where id = p_decision_id and private.is_household_member(household_id) for update;
   if not found then raise exception 'Decision not found' using errcode = '42501'; end if;
   if p_option_id is not null and not exists (
     select 1 from public.decision_options where id = p_option_id and decision_id = p_decision_id
@@ -516,15 +516,15 @@ revoke all on function public.choose_household_decision_option(uuid, uuid) from 
 grant execute on function public.choose_household_decision_option(uuid, uuid) to authenticated;
 
 create function public.convert_household_decision(p_decision_id uuid, p_kind text)
-returns uuid language plpgsql security invoker set search_path = '' as $$
+returns uuid language plpgsql security definer set search_path = '' as $$
 declare v_decision public.household_decisions%rowtype; v_project_id uuid;
 begin
-  select * into v_decision from public.household_decisions where id = p_decision_id for update;
+  select * into v_decision from public.household_decisions where id = p_decision_id and private.is_household_member(household_id) for update;
   if not found then raise exception 'Decision not found' using errcode = '42501'; end if;
   if v_decision.converted_project_id is not null then return v_decision.converted_project_id; end if;
   if p_kind not in ('trip', 'project') then raise exception 'Invalid project kind' using errcode = '23514'; end if;
   insert into public.household_projects (household_id, kind, title, description)
-    values (v_decision.household_id, p_kind, left(v_decision.title, 160), v_decision.notes)
+    values (v_decision.household_id, p_kind, left(trim(v_decision.title), 160), v_decision.notes)
     returning id into v_project_id;
   update public.household_decisions set converted_project_id = v_project_id, status = 'decided'
     where id = p_decision_id;
@@ -548,3 +548,95 @@ begin
   end loop;
 end;
 $$;
+
+-- Choice and conversion state have one transactional writer.
+revoke insert, update on public.household_decisions from authenticated;
+grant insert (id, household_id, created_by, created_at, updated_at, title, notes, project_id, archived_at),
+  update (id, household_id, created_by, created_at, updated_at, title, notes, project_id, archived_at)
+  on public.household_decisions to authenticated;
+revoke insert, update on public.decision_options from authenticated;
+grant insert (id, household_id, created_by, created_at, updated_at, decision_id, title, website, estimated_amount_cents, notes, archived_at),
+  update (id, household_id, created_by, created_at, updated_at, decision_id, title, website, estimated_amount_cents, notes, archived_at)
+  on public.decision_options to authenticated;
+
+create function public.set_household_decision_status(p_decision_id uuid, p_status text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if p_status is null or p_status not in ('considering', 'decided', 'dismissed') then
+    raise exception 'Invalid decision status' using errcode = '23514';
+  end if;
+  perform 1 from public.household_decisions where id = p_decision_id
+    and private.is_household_member(household_id) for update;
+  if not found then raise exception 'Decision not found' using errcode = '42501'; end if;
+  if p_status <> 'decided' then
+    update public.decision_options set chosen = false where decision_id = p_decision_id and chosen;
+  end if;
+  update public.household_decisions set status = p_status where id = p_decision_id;
+end;
+$$;
+revoke all on function public.set_household_decision_status(uuid, text) from public, anon;
+grant execute on function public.set_household_decision_status(uuid, text) to authenticated;
+
+-- Composite FK also serializes a concurrent parent-kind change with booking creation.
+alter table public.household_projects add unique(household_id, id, kind);
+alter table public.trip_bookings add column project_kind text generated always as ('trip'::text) stored;
+alter table public.trip_bookings add foreign key(household_id, project_id, project_kind)
+  references public.household_projects(household_id, id, kind);
+
+create function private.guard_paid_cost_link()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if auth.uid() is not null and not private.is_household_member(new.household_id) then
+    raise exception 'Not a household member' using errcode = '42501';
+  end if;
+  if not exists(select 1 from public.financial_events e where e.id = new.financial_event_id
+    and e.household_id = new.household_id and e.type in ('expense', 'replacement')) then
+    raise exception 'Link a posted expense. Refunds and corrections follow their original expense.' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.guard_paid_cost_link() from public, anon, authenticated;
+create trigger zz_household_financial_links_expense before insert or update on public.household_financial_links
+  for each row execute function private.guard_paid_cost_link();
+
+revoke update (archived_at) on public.decision_options from authenticated;
+create function private.guard_decision_option_parent()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.decision_id <> old.decision_id then
+    raise exception 'An option belongs to its original decision' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.guard_decision_option_parent() from public, anon, authenticated;
+create trigger decision_options_parent before update on public.decision_options
+  for each row execute function private.guard_decision_option_parent();
+
+create function public.archive_household_decision_option(p_option_id uuid, p_archived boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_decision_id uuid; v_chosen boolean;
+begin
+  if p_archived is null then raise exception 'Choose an archive state' using errcode = '23514'; end if;
+  select decision_id into v_decision_id from public.decision_options
+    where id = p_option_id and private.is_household_member(household_id);
+  if not found then raise exception 'Option not found' using errcode = '42501'; end if;
+  perform 1 from public.household_decisions where id = v_decision_id for update;
+  select chosen into v_chosen from public.decision_options where id = p_option_id for update;
+  update public.decision_options set archived_at = case when p_archived then now() else null end,
+    chosen = false where id = p_option_id;
+  if v_chosen then
+    update public.household_decisions set status = 'considering' where id = v_decision_id;
+  end if;
+end;
+$$;
+revoke all on function public.archive_household_decision_option(uuid, boolean) from public, anon;
+grant execute on function public.archive_household_decision_option(uuid, boolean) to authenticated;
+
+-- The composite FK also protects against concurrent edits to either parent.
+alter table public.calendar_events add constraint calendar_events_project_identity
+  unique (household_id, id, project_id);
+alter table public.trip_bookings add constraint trip_bookings_calendar_project
+  foreign key (household_id, calendar_event_id, project_id)
+  references public.calendar_events(household_id, id, project_id);

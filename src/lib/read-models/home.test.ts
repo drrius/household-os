@@ -1,41 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  buildHomeViewModel,
-  parseHomeReadRows,
-  type BuildHomeViewModelInput,
-} from "./home";
+import { buildHomeViewModel, parseHomeReadRows } from "./home";
 
 vi.mock("server-only", () => ({}));
 
-const viewerId = "user-1";
-const partnerId = "user-2";
-
-function homeInput(
-  overrides: Partial<BuildHomeViewModelInput> = {},
-): BuildHomeViewModelInput {
-  return {
-    viewerId,
-    households: [{ id: "household-1", name: "Sam & Leah" }],
-    members: [
-      {
-        user_id: viewerId,
-        display_name: "Sam",
-        joined_at: "2026-08-02T10:00:00.000Z",
-      },
-      {
-        user_id: partnerId,
-        display_name: "Leah",
-        joined_at: "2026-08-01T10:00:00.000Z",
-      },
-    ],
-    pets: [],
-    areas: [],
-    routines: [],
-    activityEvents: [],
-    ...overrides,
-  };
-}
+import { homeInput, viewerId, partnerId } from "./home.test-fixtures";
 
 describe("buildHomeViewModel", () => {
   it("maps household members, routine counts, pets, and recent activity", () => {
@@ -121,6 +90,7 @@ describe("buildHomeViewModel", () => {
           areaName: "Kitchen",
         },
       ],
+      archivedRoutines: [{ id: "routine-archived", title: "Old flea check" }],
       activity: [
         {
           id: "activity-today",
@@ -208,6 +178,53 @@ describe("buildHomeViewModel", () => {
     expect(home.activity[0]?.title).toBe("Sam updated a household record");
   });
 
+  it("keeps archived routines in stable title and identity order across refreshes", () => {
+    const rows = [
+      {
+        id: "z",
+        title: "Window care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "b",
+        title: "Annual care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "a",
+        title: "Annual care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: "2026-09-01T00:00:00Z",
+      },
+      {
+        id: "active",
+        title: "Active care",
+        area_id: "area",
+        pet_id: null,
+        archived_at: null,
+      },
+    ];
+    const original = [...rows];
+    const expected = [
+      { id: "a", title: "Annual care" },
+      { id: "b", title: "Annual care" },
+      { id: "z", title: "Window care" },
+    ];
+    expect(
+      buildHomeViewModel(homeInput({ routines: rows })).archivedRoutines,
+    ).toEqual(expected);
+    expect(
+      buildHomeViewModel(homeInput({ routines: [...rows].reverse() }))
+        .archivedRoutines,
+    ).toEqual(expected);
+    expect(rows).toEqual(original);
+  });
+
   it("keeps optional home sections empty when no rows exist", () => {
     expect(buildHomeViewModel(homeInput())).toEqual({
       householdLabel: "Sam & Leah",
@@ -218,6 +235,7 @@ describe("buildHomeViewModel", () => {
       pets: [],
       areas: [],
       routines: [],
+      archivedRoutines: [],
       activity: [],
       storageUsedLabel: null,
     });

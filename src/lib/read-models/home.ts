@@ -1,3 +1,4 @@
+import { mapArchivedRoutines } from "./home-archived-routines";
 import { z } from "zod";
 
 import { householdRecordActivity } from "@/domain/home-records/activity";
@@ -53,6 +54,7 @@ const routineRowSchema = z.object({
   area_id: z.string().min(1),
   pet_id: z.string().min(1).nullable(),
   archived_at: timestampSchema.nullable(),
+  paused_at: timestampSchema.nullable().optional(),
 });
 const activityRowSchema = z.object({
   id: z.string().min(1),
@@ -77,7 +79,13 @@ export type HomeViewModel = {
   members: Array<{ userId: string; displayName: string; isSelf: boolean }>;
   pets: Array<{ id: string; name: string; meta: string }>;
   areas: Array<{ id: string; name: string; routineCount: number }>;
-  routines: Array<{ id: string; title: string; areaName: string }>;
+  routines: Array<{
+    id: string;
+    title: string;
+    areaName: string;
+    paused?: boolean;
+  }>;
+  archivedRoutines?: Array<{ id: string; title: string }>;
   activity: Array<{ id: string; title: string; whenLabel: string }>;
   storageUsedLabel: string | null;
 };
@@ -157,6 +165,7 @@ function mapRoutines(
       id: routine.id,
       title: routine.title,
       areaName: areaNameById.get(routine.area_id) ?? "Household",
+      ...(routine.paused_at ? { paused: true } : {}),
     }))
     .sort(
       (left, right) =>
@@ -299,6 +308,7 @@ export function buildHomeViewModel(
     pets,
     areas,
     routines,
+    archivedRoutines: mapArchivedRoutines(input.routines),
     activity,
     storageUsedLabel,
   };

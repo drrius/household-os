@@ -4,12 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { parseHomeItem } from "@/lib/forms/routine-home-settings";
 import { FormFieldError } from "@/lib/forms/field-error";
 import {
   settleFormAction,
   type FormActionState,
 } from "@/lib/forms/action-state";
 import {
+  updateArea,
+  reorderAreas,
+  updatePet,
   createArea,
   createPet,
   updateHouseholdName,
@@ -76,4 +80,45 @@ export async function updateHouseholdNameAction(
     updateHouseholdName,
     "household",
   );
+}
+
+export async function updateAreaAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
+    await updateArea(parseHomeItem(formData));
+  });
+  if (rejected) return rejected;
+  revalidatePath("/home");
+  revalidatePath("/home/setup");
+  redirect("/home/setup?saved=area-updated#areas");
+}
+
+export async function updatePetAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
+    await updatePet(parseHomeItem(formData));
+  });
+  if (rejected) return rejected;
+  revalidatePath("/home");
+  revalidatePath("/home/setup");
+  redirect("/home/setup?saved=pet-updated#pets");
+}
+
+export async function reorderAreasAction(
+  ids: string[],
+): Promise<{ error?: string }> {
+  try {
+    await reorderAreas(z.array(z.string().uuid()).max(1000).parse(ids));
+  } catch {
+    return {
+      error: "Couldn't change the order. Refresh the list and try again.",
+    };
+  }
+  revalidatePath("/home");
+  revalidatePath("/home/setup");
+  return {};
 }
