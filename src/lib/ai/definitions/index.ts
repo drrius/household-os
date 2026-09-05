@@ -1,3 +1,6 @@
+import { GROCERY_DETAIL_TOOLS } from "./grocery-detail-tools";
+import { LIBRARY_TOOLS } from "./library-tools";
+import { RECURRING_TOOLS } from "./recurring-tools";
 import { PROJECT_DETAIL_TOOLS } from "./project-detail-tools";
 import { COST_TOOLS } from "./cost-tools";
 import { CALENDAR_TOOLS } from "./calendar-tools";
@@ -38,9 +41,12 @@ export const AI_TOOL_DEFINITIONS = [
   ...CALENDAR_TOOLS,
   ...ROUTINE_TOOLS,
   ...GROCERY_TOOLS,
+  ...GROCERY_DETAIL_TOOLS,
   ...MEAL_TOOLS,
+  ...LIBRARY_TOOLS,
   ...HOUSEHOLD_TOOLS,
   ...MONEY_DRAFT_TOOLS,
+  ...RECURRING_TOOLS,
   ...FINANCIAL_TOOLS,
   ...COST_TOOLS,
 ] as const;

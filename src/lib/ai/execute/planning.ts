@@ -1,4 +1,5 @@
 import "server-only";
+import { invocationRecordId } from "./connected-input";
 
 import { revalidatePath } from "next/cache";
 
@@ -75,16 +76,20 @@ type MealSource =
   | { kind: "leftover"; leftoverOfEntryId: string };
 
 export const GROCERY_HANDLERS: Record<string, AiWriteHandler> = {
-  add_grocery_item: (input) =>
-    createGroceryItem(
-      input as {
-        name: string;
-        quantity?: string | null;
-        unit?: string | null;
-        categoryId?: string | null;
-        note?: string | null;
-      },
-    ),
+  add_grocery_item: async (input, { idempotencyKey }) => {
+    const { householdId } = await requireMemberContext();
+    const value = input as {
+      name: string;
+      quantity?: string | null;
+      unit?: string | null;
+      categoryId?: string | null;
+      note?: string | null;
+    };
+    return createGroceryItem({
+      ...value,
+      creationId: invocationRecordId(`${householdId}:${idempotencyKey}`),
+    });
+  },
   remove_grocery_item: (input) =>
     removeGroceryItem((input as { groceryItemId: string }).groceryItemId),
   start_shopping_session: () => startShoppingSession(),

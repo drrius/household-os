@@ -21,10 +21,10 @@ export const GROCERY_TOOLS: readonly AiToolDefinition[] = [
       "Add one item to the grocery list. Call once per item; check get_grocery_list first to avoid duplicates.",
     inputSchema: z.object({
       name: z.string().trim().min(1).max(120),
-      quantity: z.string().max(30).nullish().describe('e.g. "2" or "500"'),
-      unit: z.string().max(30).nullish().describe('e.g. "g", "pack"'),
+      quantity: z.string().max(80).nullish().describe('e.g. "2" or "500"'),
+      unit: z.string().max(80).nullish().describe('e.g. "g", "pack"'),
       categoryId: uuid.nullish(),
-      note: z.string().max(280).nullish(),
+      note: z.string().max(1000).nullish(),
     }),
   },
   {

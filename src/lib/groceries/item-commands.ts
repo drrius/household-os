@@ -38,7 +38,7 @@ export async function updateGroceryItem(
   }
 }
 
-export async function buyGroceryAgain(itemId: string) {
+export async function buyGroceryAgain(itemId: string, creationId?: string) {
   const member = await requireMemberContext();
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -64,7 +64,8 @@ export async function buyGroceryAgain(itemId: string) {
       );
     categoryId = category.data?.id ?? null;
   }
-  await createGroceryItem({
+  return createGroceryItem({
+    ...(creationId ? { creationId } : {}),
     name: data.name,
     quantity: data.quantity,
     unit: data.unit,

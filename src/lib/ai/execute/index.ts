@@ -1,4 +1,7 @@
 import "server-only";
+import { GROCERY_DETAIL_HANDLERS } from "./grocery-details";
+import { LIBRARY_HANDLERS } from "./library";
+import { RECURRING_HANDLERS } from "./recurring";
 import { PROJECT_STARTER_HANDLERS } from "./project-starters";
 import { COST_HANDLERS } from "./costs";
 import { CALENDAR_HANDLERS } from "./calendar";
@@ -27,9 +30,12 @@ const WRITE_HANDLERS = {
   ...CALENDAR_HANDLERS,
   ...ROUTINE_HANDLERS,
   ...GROCERY_HANDLERS,
+  ...GROCERY_DETAIL_HANDLERS,
   ...MEAL_HANDLERS,
+  ...LIBRARY_HANDLERS,
   ...HOUSEHOLD_HANDLERS,
   ...MONEY_DRAFT_HANDLERS,
+  ...RECURRING_HANDLERS,
   ...FINANCIAL_HANDLERS,
 };
 

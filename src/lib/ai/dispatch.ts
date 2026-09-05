@@ -1,4 +1,9 @@
 import "server-only";
+import { groceryDetailSchemas } from "./definitions/grocery-detail-tools";
+import { readGroceryHistory } from "./reads-grocery-history";
+import { librarySchemas } from "./definitions/library-tools";
+import { readLibraryTool } from "./reads-library";
+import { loadRecurringRules } from "@/lib/read-models/money-recurring";
 import { projectDetailSchemas } from "./definitions/project-detail-tools";
 import { readProjectDetail } from "./reads-project-details";
 import { costReadSchemas } from "./definitions/cost-tools";
@@ -35,6 +40,9 @@ export async function executeAiTool(
     return executeAiWrite(name, rawInput, invocationId);
   }
   const input = definition.inputSchema.parse(rawInput ?? {});
+  if (Object.hasOwn(groceryDetailSchemas, name))
+    return readGroceryHistory(name, input);
+  if (Object.hasOwn(librarySchemas, name)) return readLibraryTool(name, input);
   if (Object.hasOwn(projectDetailSchemas, name))
     return readProjectDetail(name, input);
   if (Object.hasOwn(costReadSchemas, name)) return readCostTool(name, input);
@@ -51,6 +59,8 @@ export async function executeAiTool(
       return readWeekPlan(input as { weekOf?: string; librarySearch?: string });
     case "get_grocery_list":
       return readGroceryList();
+    case "get_recurring_expense_rules":
+      return { rules: await loadRecurringRules() };
     case "get_money_overview":
       return readMoneyOverview(input as { eventsBefore?: string });
     case "get_household":
