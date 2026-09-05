@@ -67,7 +67,7 @@ it("maps every result kind to an existing internal destination", () => {
     expect(href).not.toContain("?");
   }
   expect(searchResultHref({ kind: "booking", id, parent_id: parent })).toBe(
-    `/plan/projects/${parent}`,
+    `/plan/projects/${parent}/bookings/${id}`,
   );
   expect(searchResultHref({ kind: "task", id, parent_id: parent })).toBe(
     `/plan/projects/${parent}/tasks/${id}`,
