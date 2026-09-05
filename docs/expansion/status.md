@@ -147,3 +147,13 @@ Authenticated local member verification is unavailable: the Docker socket denies
 ## Exact notification destinations
 
 The integrated audit found that financial-event and shopping-session partner notifications still opened only their broad sections despite existing detail routes. Inbox resolution now checks the referenced record within the authenticated household and opens its exact ledger event or shopping history. Missing records and optional lookup failures keep the section fallback. No ledger mutation, balance rule, notification payload or push content changed. Twelve affected notification tests pass, covering accessible, missing and failed lookups, household constraints, pagination and project assignment links; targeted lint, formatting and TypeScript also pass. Hosted browser verification remains required.
+
+## Authorized merge checkpoint — September 5, 2026
+
+The user subsequently authorized completing and merging the expansion PRs, followed by a separate AI parity PR. Earlier statements in this historical log that merges were not authorized describe the earlier scope, not the current authorization. PR #40 remains excluded.
+
+The current merge sequence has completed #52, #70, #68, #58, #51, and #71. Main at `071fb99` includes the readable record dates and cancellation status. Bookings #60, planning integration #67, search #55, and final integration #66 remain open at this checkpoint. Fixed review threads are resolved; no rereview requests are required by the user's current direction.
+
+The combined booking/contextual-expense database fixture now archives its booking before the parent trip. Hosted database CI passes at booking head `92d11dc`; the production lifecycle guard is unchanged. Main E2E runs are still live, so this checkpoint does not establish final browser acceptance. Vercel preview deployments are currently rate limited; no paid service or limit bypass was requested.
+
+AI parity remains unimplemented and is the explicitly authorized next PR after expansion merges. Live Apple-account connection/sync, device push, and passkey checks remain distinct from fixture verification. The configured encryption key enables credential storage, but does not itself connect the shared Apple calendar; connection and calendar selection happen in the app.
