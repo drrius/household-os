@@ -141,7 +141,7 @@ export function GlobalAddSheet({ placement = "mobile" }: GlobalAddSheetProps) {
             aria-label="Add something"
             className={cn(
               placement === "mobile" &&
-                "fixed right-5 bottom-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom)))] z-20 size-12 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.24)] ring-1 ring-primary transition-transform duration-200 motion-reduce:transition-none md:size-12 lg:hidden",
+                "pointer-events-auto absolute right-5 bottom-[calc(5.75rem+max(0.75rem,env(safe-area-inset-bottom)))] z-20 size-12 rounded-full shadow-[0_6px_20px_rgba(226,80,60,0.24)] ring-1 ring-primary transition-transform duration-200 motion-reduce:transition-none md:size-12 lg:hidden",
               placement === "sidebar" &&
                 "w-full justify-center rounded-xl shadow-none group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:px-0!",
               // Never `display: none` while the trigger is only temporarily out
