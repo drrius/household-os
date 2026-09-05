@@ -6,6 +6,7 @@ describe("post-authentication destination", () => {
   it.each([
     "/",
     "/security",
+    "/search?q=Lisbon&type=trip&archived=1",
     "/home/inbox?unread=1",
     "/plan?week=2026-09-07&day=2026-09-09",
     "/money/events/123#history",
@@ -33,6 +34,7 @@ describe("post-authentication destination", () => {
     "/home/%255cevil",
     "/sign-in?returnTo=/home",
     "/auth/consume",
+    "/search/anything",
     "/api/attachments?path=private",
     "/_next/static/file",
     "/home?x=%0d%0aLocation:evil",
@@ -58,7 +60,7 @@ describe("post-authentication destination", () => {
         expect(destination.origin).toBe("https://household.invalid");
         expect(result.startsWith("//")).toBe(false);
         expect(destination.pathname).toMatch(
-          /^(?:\/(?:plan|groceries|money|home)(?:\/|$)|\/security\/?$|\/$)/u,
+          /^(?:\/(?:plan|groceries|money|home)(?:\/|$)|\/(?:security|search)\/?$|\/$)/u,
         );
       }),
     );

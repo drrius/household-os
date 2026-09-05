@@ -1,6 +1,6 @@
 const RETURN_ORIGIN = "https://household.invalid";
 const MEMBER_DESTINATION =
-  /^(?:\/(?:plan|groceries|money|home)(?:\/|$)|\/security\/?$|\/$)/u;
+  /^(?:\/(?:plan|groceries|money|home)(?:\/|$)|\/(?:security|search)\/?$|\/$)/u;
 const CONTROL_OR_BACKSLASH = /[\u0000-\u001f\u007f\\]/u;
 
 /** Only product pages can be a post-authentication destination. Never APIs or auth routes. */
