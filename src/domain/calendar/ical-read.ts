@@ -1,3 +1,7 @@
+import {
+  createOccurrenceResolver,
+  seriesRecurrenceTime,
+} from "./ical-exception-details";
 import ICAL from "ical.js";
 import { overlapsInterval } from "./interval";
 import { resolveRecurrence } from "./ical-occurrence";
@@ -68,14 +72,15 @@ function occurrenceDetails(
   event: ICAL.Event,
   time: ICAL.Time,
   zone: string,
+  resolve = createOccurrenceResolver(event),
 ): CalendarOccurrence | null {
-  const details = event.getOccurrenceDetails(time);
+  const details = resolve(time);
   const occurrence = details.item;
   if (occurrence.component.getFirstPropertyValue("status") === "CANCELLED")
     return null;
   try {
     return {
-      recurrenceId: time.toString(),
+      recurrenceId: seriesRecurrenceTime(time, event.startDate.zone).toString(),
       title: occurrence.summary || "Untitled event",
       startsAt: icalTimeToIso(
         details.startDate,
@@ -110,6 +115,7 @@ export function expandParsedCalendar(
   if (event.component.getFirstPropertyValue("status") === "CANCELLED")
     return [];
   const zone = eventTimeZone(event);
+  const resolve = createOccurrenceResolver(event);
   const end = Date.parse(window.end);
   const nominalEnd = end - minimumFutureShift(calendar, zone);
   const found: CalendarOccurrence[] = [];
@@ -121,7 +127,7 @@ export function expandParsedCalendar(
       complete = true;
       break;
     }
-    const occurrence = occurrenceDetails(event, time, zone);
+    const occurrence = occurrenceDetails(event, time, zone, resolve);
     if (
       occurrence &&
       overlapsInterval(
@@ -159,7 +165,7 @@ export function expandParsedCalendar(
   for (const component of calendar.getAllSubcomponents("vevent")) {
     const recurrence = component.getFirstPropertyValue("recurrence-id");
     if (!(recurrence instanceof ICAL.Time)) continue;
-    const occurrence = occurrenceDetails(event, recurrence, zone);
+    const occurrence = occurrenceDetails(event, recurrence, zone, resolve);
     if (
       occurrence &&
       overlapsInterval(
