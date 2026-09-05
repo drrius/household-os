@@ -59,3 +59,12 @@ it("refunds and corrections refresh every surface that displays inherited costs"
   for (const surface of explicitCostSurfaces)
     expect(ledgerSurfaces).toContain(surface);
 });
+
+it.each([
+  "household_projects",
+  "household_assets",
+  "household_commitments",
+  "trip_bookings",
+] as const)("refreshes visible paid-cost context after %s changes", (table) => {
+  expect(surfacesForTableChange(table)).toContain("money");
+});
