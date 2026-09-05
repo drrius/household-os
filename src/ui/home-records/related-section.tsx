@@ -23,6 +23,7 @@ function RelatedRow({
   parent,
   returnTo,
   options,
+  parentArchived,
 }: RelatedProps & { row: HomeRecord }) {
   const title =
     kind === "routines"
@@ -43,7 +44,10 @@ function RelatedRow({
           {row.chosen ? " · Chosen" : ""}
           {row.archived_at ? " · Archived" : ""}
         </h3>
-        {kind === "options" && !row.archived_at && !row.chosen ? (
+        {kind === "options" &&
+        !parentArchived &&
+        !row.archived_at &&
+        !row.chosen ? (
           <RecordChange
             label="Choose this option"
             values={{

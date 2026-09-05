@@ -197,3 +197,13 @@ it.each([false, true])(
     expect(mock.update).not.toHaveBeenCalled();
   },
 );
+
+it("explains how to recover a choice or status blocked by an archived decision", async () => {
+  mock.rpc.mockResolvedValue({ error: { code: "55000" } });
+  await expect(chooseOption(id, id)).rejects.toThrow(
+    "Restore this decision before changing its choice.",
+  );
+  await expect(setDecisionStatus(id, "considering")).rejects.toThrow(
+    "Restore this decision before changing its status.",
+  );
+});

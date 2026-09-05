@@ -141,6 +141,8 @@ export async function chooseOption(
     p_decision_id: decisionId,
     p_option_id: optionId,
   });
+  if (error?.code === "55000")
+    throw new Error("Restore this decision before changing its choice.");
   if (error)
     throw new Error("Couldn't update the choice. Reload and try again.");
 }
@@ -169,5 +171,7 @@ export async function setDecisionStatus(decisionId: string, status: string) {
     p_decision_id: decisionId,
     p_status: status,
   });
+  if (error?.code === "55000")
+    throw new Error("Restore this decision before changing its status.");
   if (error) throw new Error("Couldn't update this decision. Try again.");
 }
