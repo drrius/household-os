@@ -28,8 +28,9 @@ $$;
 select ok(not has_function_privilege('authenticated','private.record_project_change()','EXECUTE'),'members cannot call the privileged trigger directly');
 select set_config('request.jwt.claim.sub','41000000-0000-4000-8000-000000000001',true);
 set local role authenticated;
-insert into public.household_projects(id,household_id,kind,title,description) values
- ('41000200-0000-4000-8000-000000000001','41000100-0000-4000-8000-000000000001','trip','Summer trip','Original plan');
+select lives_ok($$insert into public.household_projects(id,household_id,kind,title,description,destination,starts_on,ends_on) values
+ ('41000200-0000-4000-8000-000000000001','41000100-0000-4000-8000-000000000001','trip','Spooky Szn ‘Murica','Original plan','USA','2026-10-24','2026-11-07')$$,
+ 'a trip with dates saves together with its creation activity');
 select is(pg_temp.project_activity_count(),1,'project creation records one activity');
 insert into public.project_tasks(id,household_id,project_id,title,assigned_member_id) values
  ('41000300-0000-4000-8000-000000000001','41000100-0000-4000-8000-000000000001','41000200-0000-4000-8000-000000000001','Book the hotel','41000000-0000-4000-8000-000000000002');
