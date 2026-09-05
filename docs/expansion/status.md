@@ -79,3 +79,16 @@ Home and search still require their assembled dependencies and route-level verif
 ## Authorized integration checkpoint
 
 The user explicitly approved feature-branch integration on September 5. The previous automatic-approval blocker is cleared. The connected foundation now incorporates main through 700cf39, including the merged routine/Money work, attachment security and recovery, push setup, release guide and updated CI policy. Attachment conflicts retain main’s reviewed implementation; calendar parser dependencies remain pinned alongside jpeg-js. Nineteen directly affected attachment/invalidation tests and TypeScript checking passed locally. Hosted integration checks remain required.
+
+
+## Combined integration checkpoint — September 5, 2026
+
+The explicit branch-integration authorization has been carried out: all eleven feature PR branches now include current main or their updated parent dependency. Draft [PR #66](https://github.com/drrius/household-os/pull/66) assembles them on `codex/household-integration`; it does not authorize or perform a merge into main. Main remains at the externally merged `700cf39` snapshot used for integration.
+
+- Hosted full CI passed for foundation #48 (`29a21df`), calendar #50 (`c0282cd`) and meals #59 (`b5b41c0`). These CI results alone are not current CodeRabbit approval.
+- Household records #51 passed verification and database CI at `ae95f56`, including document release test 023. The six original fixed review findings are replied to and resolved. The existing release migration already handles replaced uploads; no duplicate migration was needed. Two prose typos were corrected in `c0785ac`, and that comment is resolved too.
+- Account #53's browser failures came from an outage fixture that recovered on the second effect invocation. `b4c5073` keeps the outage active until explicit fixture recovery. All three directly affected Chromium flows and targeted lint pass; hosted browser CI must validate the full branch.
+- The first assembled run exposed incomplete `next/navigation` mocks and two database fixtures incompatible with archive guards. `8fe3375` preserves the real navigation exports and follows the valid restore/archive order in fixtures. All 17 affected unit tests and targeted lint pass. Database execution remains a hosted CI gate. These fixes are included in the pushed assembled head `2152c85`.
+- Requested CodeRabbit rereview on #51, #53 and draft #66 after pushing. Fixed threads are resolved; a request or green skipped check is not approval.
+
+Still required: combined CI and final CodeRabbit review, Today integration for dated tasks/bookings/calendar/renewals (A1), the full linked trip/cost/document journey, search return context, substantial-form discard coverage, and the final two-member browser audit. Live iCloud/push configuration and the four-week household trial remain separately unverified. No production migration, deployment, paid service or PR merge was performed.
