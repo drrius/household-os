@@ -28,6 +28,7 @@ export function isHouseholdAttachment(
   );
 }
 
+/** Header detection for browser preparation and routing; never proves image validity. */
 export function attachmentFileType(
   bytes: Uint8Array,
 ): { extension: string; mime: string } | null {

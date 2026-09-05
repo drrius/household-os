@@ -16,7 +16,12 @@ export async function prepareAttachment(file: File): Promise<File> {
   }
   if (!detected?.mime.startsWith("image/") && !file.type.startsWith("image/"))
     throw new Error("Choose a photo or PDF.");
-  const image = await createImageBitmap(file);
+  let image: ImageBitmap;
+  try {
+    image = await createImageBitmap(file);
+  } catch {
+    throw new Error("Couldn't decode this photo. Choose another image.");
+  }
   try {
     const scale = Math.min(1, 2000 / Math.max(image.width, image.height));
     const canvas = document.createElement("canvas");

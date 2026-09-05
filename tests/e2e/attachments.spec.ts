@@ -149,3 +149,120 @@ test("an expired upload offers a fresh file selection instead of an impossible r
   expect(ids).toHaveLength(2);
   expect(ids[1]).not.toBe(ids[0]);
 });
+
+for (const invalid of [
+  {
+    name: "unsupported.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("not a photo or PDF"),
+    message: "Choose a photo or PDF",
+  },
+  {
+    name: "broken.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.from([255, 216, 255, 0, 0, 0, 0, 0, 0, 0, 255, 217]),
+    message: "Choose another image",
+  },
+  {
+    name: "large.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.concat([
+      Buffer.from("%PDF-1.7\n"),
+      Buffer.alloc(4 * 1024 * 1024),
+    ]),
+    message: "smaller than 4 MB",
+  },
+]) {
+  test(`local preparation failure for ${invalid.name} requires a new selection`, async ({
+    page,
+  }) => {
+    let uploads = 0;
+    await page.route("**/api/attachments", async (route) => {
+      uploads += 1;
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({ path }),
+      });
+    });
+    await page.goto("/m7-fixture/attachment");
+    const input = page.getByLabel("Receipt (optional)");
+    await input.setInputFiles(invalid);
+    await expect(page.getByRole("status")).toContainText(invalid.message);
+    await expect(
+      page.getByRole("button", { name: "Retry upload" }),
+    ).toHaveCount(0);
+    await expect(input).toHaveValue("");
+    expect(
+      await input.evaluate((element: HTMLInputElement) =>
+        element.checkValidity(),
+      ),
+    ).toBe(false);
+    expect(uploads).toBe(0);
+    await input.setInputFiles(file);
+    await expect(page.getByRole("status")).toHaveText("Attachment ready.");
+    expect(uploads).toBe(1);
+  });
+}
+
+test("a temporary reservation outage retries with the same upload identity", async ({
+  page,
+}) => {
+  const ids: string[] = [];
+  await page.route("**/api/attachments", async (route) => {
+    ids.push(
+      (route.request().postData() ?? "").match(
+        /name="uploadId"\r\n\r\n([^\r]+)/,
+      )?.[1] ?? "",
+    );
+    await route.fulfill({
+      status: ids.length === 1 ? 503 : 201,
+      contentType: "application/json",
+      body: JSON.stringify(
+        ids.length === 1
+          ? { error: "Couldn't reserve the upload. Please retry." }
+          : { path },
+      ),
+    });
+  });
+  await page.goto("/m7-fixture/attachment");
+  await page.getByLabel("Receipt (optional)").setInputFiles(file);
+  await expect(
+    page.getByRole("button", { name: "Retry upload" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Retry upload" }).click();
+  await expect(page.getByRole("status")).toHaveText("Attachment ready.");
+  expect(ids).toHaveLength(2);
+  expect(ids[0]).not.toBe("");
+  expect(ids[1]).toBe(ids[0]);
+});
+
+test("a PNG photo is prepared as JPEG before upload", async ({ page }) => {
+  const bodies: string[] = [];
+  await page.route("**/api/attachments", async (route) => {
+    bodies.push(route.request().postData() ?? "");
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({ path: path.replace(".pdf", ".jpg") }),
+    });
+  });
+  await page.goto("/m7-fixture/attachment");
+  const encoded = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 16;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = "#247e62";
+    context.fillRect(0, 0, 16, 16);
+    return canvas.toDataURL("image/png").split(",")[1]!;
+  });
+  await page.getByLabel("Receipt (optional)").setInputFiles({
+    name: "photo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(encoded, "base64"),
+  });
+  await expect(page.getByRole("status")).toHaveText("Attachment ready.");
+  expect(bodies).toHaveLength(1);
+  expect(bodies[0]).toContain('filename="photo.jpg"');
+  expect(bodies[0]).toContain("Content-Type: image/jpeg");
+});

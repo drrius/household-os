@@ -1,6 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
-import { attachmentFileType } from "../../../src/domain/attachments/files.ts";
-import { handleAttachmentUpload } from "./handler.ts";
+import jpeg from "npm:jpeg-js@0.4.4";
+import { inspectAttachment } from "./inspect.ts";
+import {
+  AttachmentAuthorizationFailure,
+  handleAttachmentUpload,
+} from "./handler.ts";
 
 Deno.serve(async (request) => {
   const url = Deno.env.get("SUPABASE_URL");
@@ -18,16 +22,33 @@ Deno.serve(async (request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return handleAttachmentUpload(request, {
-    inspect: attachmentFileType,
+    inspect: (bytes) => inspectAttachment(bytes, jpeg.decode),
     authorize: async (token) => {
       const { data, error } = await user.auth.getUser(token);
-      if (error || !data.user) return null;
+      if (error)
+        throw new AttachmentAuthorizationFailure(
+          error.status &&
+            error.status >= 400 &&
+            error.status < 500 &&
+            error.status !== 429
+            ? 401
+            : 503,
+        );
+      if (!data.user) throw new AttachmentAuthorizationFailure(401);
       const member = await user
         .from("household_members")
         .select("household_id")
         .eq("user_id", data.user.id)
         .maybeSingle();
-      return member.error ? null : (member.data?.household_id ?? null);
+      if (member.error)
+        throw new AttachmentAuthorizationFailure(
+          ["PGRST301", "PGRST302", "PGRST303"].includes(member.error.code)
+            ? 401
+            : member.error.code === "42501"
+              ? 403
+              : 503,
+        );
+      return member.data?.household_id ?? null;
     },
     reserve: async (path, mime) =>
       user.rpc("reserve_household_attachment", {

@@ -1,3 +1,14 @@
+export class AttachmentAuthorizationFailure extends Error {
+  constructor(readonly status: 401 | 403 | 503) {
+    super(
+      status === 401
+        ? "Sign in again to upload a file."
+        : status === 403
+          ? "Join a household to upload a file."
+          : "Couldn't verify your account. Please retry.",
+    );
+  }
+}
 export type UploadServices = {
   authorize: (token: string) => Promise<string | null>;
   inspect: (bytes: Uint8Array) => { extension: string; mime: string } | null;
@@ -49,13 +60,15 @@ async function store(
   mime: string,
 ) {
   const reservation = await services.reserve(path, mime);
-  if (reservation.error)
-    return reply(409, { error: "This upload expired. Choose the file again." });
+  if (reservation.error) return reservationFailure(reservation.error);
+  if (typeof reservation.data !== "boolean")
+    return reply(503, { error: "Couldn't confirm this upload. Please retry." });
   if (reservation.data !== true) {
     const uploaded = await services.upload(path, bytes, mime);
     if (uploaded.error) {
       const recovered = await services.reserve(path, mime);
-      if (recovered.error || recovered.data !== true)
+      if (recovered.error) return reservationFailure(recovered.error);
+      if (recovered.data !== true)
         return reply(502, {
           error: "Couldn't upload the file. Please try again.",
         });
@@ -94,7 +107,23 @@ export async function handleAttachmentUpload(
       });
     const path = `${household}/${purpose}/${uploadId}.${type.extension}`;
     return await store(services, path, bytes, type.mime);
-  } catch {
+  } catch (error) {
+    if (error instanceof AttachmentAuthorizationFailure)
+      return reply(error.status, { error: error.message });
     return reply(502, { error: "Couldn't upload the file. Please try again." });
   }
+}
+
+function reservationFailure(error: unknown) {
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String(error.code)
+      : "";
+  if (code === "22023")
+    return reply(409, { error: "This upload expired. Choose the file again." });
+  if (["PGRST301", "PGRST302", "PGRST303"].includes(code))
+    return reply(401, { error: "Sign in again to upload a file." });
+  if (code === "42501" || code.startsWith("28"))
+    return reply(403, { error: "This account cannot upload this attachment." });
+  return reply(503, { error: "Couldn't confirm this upload. Please retry." });
 }

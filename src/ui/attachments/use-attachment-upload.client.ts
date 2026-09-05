@@ -34,7 +34,12 @@ async function sendUpload(
   purpose: AttachmentPurpose,
   id: string,
 ): Promise<string> {
-  const prepared = await prepareAttachment(file);
+  let prepared: File;
+  try {
+    prepared = await prepareAttachment(file);
+  } catch (failure) {
+    throw new UploadRejection(uploadError(failure), false);
+  }
   const form = new FormData();
   form.set("file", prepared);
   form.set("purpose", purpose);
@@ -107,7 +112,10 @@ export function useAttachmentUpload(
       const retryable =
         !(failure instanceof UploadRejection) || failure.retryable;
       setCanRetry(retryable);
-      if (!retryable) attempt.current = null;
+      if (!retryable) {
+        attempt.current = null;
+        if (input.current) input.current.value = "";
+      }
       rejectValidity(input, retryable);
     } finally {
       setPending(false);
