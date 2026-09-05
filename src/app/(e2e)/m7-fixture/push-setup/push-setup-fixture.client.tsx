@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { reconnectFixture } from "./reconnect-fixture";
 import type {
   PushSetupEnrollment,
   PushSetupOperations,
@@ -10,6 +11,10 @@ function fixtureOperations(
   state: string,
   log: (text: string) => void,
 ): PushSetupOperations & { restoreConnection: () => void } {
+  const recovery =
+    state.startsWith("ownership-") || state === "uncertain"
+      ? reconnectFixture(state, log)
+      : null;
   let current: PushSetupEnrollment = {
     status:
       state === "enabled" || state === "test-error" || state === "test-failed"
@@ -28,12 +33,13 @@ function fixtureOperations(
     async current() {
       if (!connectionAvailable) throw new Error("Connection lost. Try again.");
       if (state === "denied") return { status: "denied" };
-      return current;
+      return recovery?.current() ?? current;
     },
     async enable() {
       log("enable");
       await pause();
       enableAttempts += 1;
+      if (recovery) return recovery.enable();
       if (state === "enable-error" && enableAttempts === 1)
         throw new Error("Registration failed. Try again.");
       current = {

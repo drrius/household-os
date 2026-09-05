@@ -20,6 +20,8 @@ import type {
   PushTestStatus,
 } from "@/lib/notifications/push-status-contract";
 
+import { registerDeviceForMember } from "./push-registration-recovery";
+
 export type PushSetupEnrollment =
   | PushEnrollment
   | { status: "unregistered"; endpoint: string }
@@ -61,14 +63,15 @@ async function current(): Promise<PushSetupEnrollment> {
 
 async function enable(): Promise<PushSetupEnrollment> {
   const registration = await registerHouseholdServiceWorker();
-  const keys = await subscribeDevicePush(registration);
-  const result = await registerPushSubscriptionAction({
-    ...keys,
-    userAgent: navigator.userAgent,
-  });
-  // Preserve the browser subscription on a lost response: registration may have
-  // succeeded. Reconciliation and explicit reconnect safely recover either case.
-  if (!result.ok) throw new Error(result.error);
+  await registerDeviceForMember(
+    registration,
+    () => subscribeDevicePush(registration),
+    (keys) =>
+      registerPushSubscriptionAction({
+        ...keys,
+        userAgent: navigator.userAgent,
+      }),
+  );
   return current();
 }
 

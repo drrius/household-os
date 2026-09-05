@@ -20,3 +20,6 @@ export const pushTestStatusSchema = z.object({
 export type PushTestStatus = z.infer<typeof pushTestStatusSchema>;
 export type PushStatusResult<T> =
   { ok: true; value: T } | { ok: false; error: string };
+
+export type PushRegistrationResult =
+  { ok: true } | { ok: false; error: string; reason?: "endpoint_owned" };

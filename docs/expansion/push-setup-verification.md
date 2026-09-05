@@ -24,3 +24,27 @@ Deploy the updated `push-dispatch` Edge function before applying the new migrati
 - Database test021 covers RLS/privileges, foreign endpoints and UUID collisions, no Inbox side effect, exact-target claims/finalization, rolling limits and deletion/re-enrollment protection. Local execution is blocked because the local Supabase database refuses connections at port54322; CI must run this suite before integration.
 
 All delivery validation uses fixture data. Missing live push credentials and unavailable local database prevent claiming an end-to-end real notification delivery test.
+
+## Account-switch reconnect follow-up
+
+The registration command preserves a typed ownership rejection only when the
+existing RPC returns SQLSTATE42501 and its exact endpoint-owner message. Other
+authentication, permission, and connection errors leave the subscription intact.
+After an explicit enable/reconnect press, confirmed ownership rejection releases
+only the exact rejected browser endpoint and subscribes once to a fresh endpoint.
+A false, rejected, or stalled cleanup returns browser-settings recovery guidance;
+it never claims enabled or retries automatically. Lookup and unsubscribe each
+have a two-second deadline. Confirmed browser recovery failures retain the
+unregistered state without immediately repeating the stalled discovery.
+
+A changed concurrent endpoint is preserved. A lost fresh-registration response
+also preserves the new endpoint for reconciliation. No server subscription owned
+by another member is unregistered, and no worker or database behavior changes.
+
+- Full `pnpm verify` passes: 51 test files / 293 tests and production build.
+- Twenty Chromium/mobile Safari fixture cases pass, including account switching,
+  false/rejected/stalled unsubscribe, stalled lookup, recovery on the next explicit
+  press, and preservation after an uncertain response.
+- Error classification tests distinguish ownership from generic authorization and
+  infrastructure failures. No live notification or permission prompt was issued
+  by verification tools; no new deployment, migration, or credential is needed.

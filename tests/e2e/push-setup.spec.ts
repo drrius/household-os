@@ -91,3 +91,66 @@ test("failed tests retain recovery controls", async ({ page }) => {
     page.getByRole("button", { name: "Send test to this device" }),
   ).toBeVisible();
 });
+
+test("explicit reconnect replaces a subscription owned by the previous account", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/push-setup?state=ownership-success");
+  await expect(page.getByTestId("fixture-calls")).toHaveText("");
+  await page.getByRole("button", { name: "Reconnect this device" }).click();
+  await expect(
+    page.getByText(/Push is enabled for your account/),
+  ).toBeVisible();
+  await expect(page.getByTestId("fixture-calls")).toHaveText(
+    [
+      "enable",
+      "subscribe:https://push.example/old",
+      "register:https://push.example/old",
+      "unsubscribe:old",
+      "subscribe:https://push.example/fresh",
+      "register:https://push.example/fresh",
+    ].join("\n"),
+  );
+});
+for (const failure of ["false", "reject", "pending", "lookup-pending"]) {
+  test(`ownership reconnect recovers when browser cleanup ${failure}`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`/m7-fixture/push-setup?state=ownership-${failure}`);
+    await page.getByRole("button", { name: "Reconnect this device" }).click();
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(
+      "notification settings",
+    );
+    await expect(page.getByText(/not enabled for your account/)).toBeVisible();
+    await expect(page.getByTestId("fixture-calls")).not.toContainText(
+      "subscribe:https://push.example/fresh",
+    );
+    await expect(
+      page.getByRole("button", { name: "Send test to this device" }),
+    ).toHaveCount(0);
+    await page.getByRole("button", { name: "Reconnect this device" }).click();
+    await expect(
+      page.getByText(/Push is enabled for your account/),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+}
+test("uncertain registration preserves the endpoint for a safe retry", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/push-setup?state=uncertain");
+  await page.getByRole("button", { name: "Reconnect this device" }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
+    "Connection lost",
+  );
+  await page.getByRole("button", { name: "Reconnect this device" }).click();
+  await expect(
+    page.getByText(/Push is enabled for your account/),
+  ).toBeVisible();
+  await expect(page.getByTestId("fixture-calls")).not.toContainText(
+    "unsubscribe",
+  );
+  await expect(page.getByTestId("fixture-calls")).not.toContainText("/fresh");
+});

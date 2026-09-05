@@ -6,6 +6,7 @@ import {
   type PushSetupEnrollment,
   type PushSetupOperations,
 } from "@/lib/notifications/push-status-browser";
+import { PushReconnectError } from "@/lib/notifications/push-registration-recovery";
 import type { PushTestStatus } from "@/lib/notifications/push-status-contract";
 
 function message(error: unknown) {
@@ -50,10 +51,14 @@ export function usePushEnrollment(
       setEnrollment(await operation());
     } catch (failure) {
       setError(message(failure));
-      try {
-        setEnrollment(await operations.current());
-      } catch {
-        setEnrollment({ status: "unavailable" });
+      // Ownership was conclusively rejected; repeating the stalled browser
+      // lookup here would hide the recovery error behind an endless spinner.
+      if (!(failure instanceof PushReconnectError)) {
+        try {
+          setEnrollment(await operations.current());
+        } catch {
+          setEnrollment({ status: "unavailable" });
+        }
       }
     } finally {
       busy.current = false;
