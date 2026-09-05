@@ -2,7 +2,7 @@
 
 Unknown browser push discovery invokes `pause_my_push_for_signout` before ending the authenticated session. The command pauses active subscriptions belonging to the authenticated member, verifies household membership, and leaves partner and foreign-household rows unchanged. Already-disabled timestamps are preserved. Cleanup failure leaves sign-out incomplete and retryable.
 
-Known endpoints use the existing ownership-scoped unregister command. Browser unsubscribe is authorized only when that command confirms a changed owned row. A surviving partner-owned endpoint is left alone. Discovery is bounded to 500ms; browser unsubscribe is best effort after server cleanup and local sign-out. The security screen explains the fallback before signing out, and the resulting sign-in notice explains reconnection through Home → Notifications. Other auth sessions and passkeys remain available.
+Known endpoints use the existing ownership-scoped unregister command. Browser unsubscribe is authorized only when that command confirms a changed owned row. A surviving partner-owned endpoint is left alone. Discovery is bounded to 500 ms; browser unsubscribe is best-effort after server cleanup and local sign-out. The security screen explains the fallback before signing out, and the resulting sign-in notice explains reconnection through Home → Notifications. Other auth sessions and passkeys remain available.
 
 ## Retry notices
 
