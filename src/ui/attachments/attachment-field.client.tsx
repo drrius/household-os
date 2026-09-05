@@ -58,7 +58,7 @@ export function AttachmentField({
           : (error ??
             (path
               ? "Attachment ready."
-              : "Photos are resized. Maximum file size: 4 MB."))}
+              : "Photos are resized. Maximum file size: 4 MiB."))}
       </p>
       {(path || error) && !pending ? (
         <div className="flex items-center gap-4">

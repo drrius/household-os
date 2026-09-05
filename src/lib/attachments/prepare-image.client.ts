@@ -5,7 +5,7 @@ import { MAX_ATTACHMENT_BYTES } from "@/domain/attachments/files";
 export async function prepareAttachment(file: File): Promise<File> {
   if (file.type === "application/pdf") {
     if (file.size > MAX_ATTACHMENT_BYTES)
-      throw new Error("Choose a PDF smaller than 4 MB.");
+      throw new Error("Choose a PDF smaller than 4 MiB.");
     return file;
   }
   if (!file.type.startsWith("image/"))

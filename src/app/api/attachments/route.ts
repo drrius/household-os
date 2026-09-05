@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const form = await readUploadForm(request);
     if (!form)
       return Response.json(
-        { error: "Choose a file smaller than 4 MB." },
+        { error: "Choose a file smaller than 4 MiB." },
         { status: 413, headers },
       );
     const file = form.get("file");
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       (purpose === "completions" && type.mime === "application/pdf")
     ) {
       return Response.json(
-        { error: "Choose a supported photo or PDF smaller than 4 MB." },
+        { error: "Choose a supported photo or PDF smaller than 4 MiB." },
         { status: 400, headers },
       );
     }

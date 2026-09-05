@@ -1,30 +1,9 @@
-# Implementation status
+# Routine implementation status
 
-Effective goal: [goal.md](goal.md). Scope includes the whole app and additional worthwhile functionality discovered during implementation.
+This is the routine branch checkpoint. The integration branch tracks the application-wide goal, PR matrix and remaining acceptance work. The former 339-test main result was a historical baseline, not verification of the routine expansion.
 
-Base: latest main `39f9363`, including the assistant and recurrence fixes. Existing PR #40 (MCP bridge) is not owned by this effort.
+PR46 implements routine details, exceptions, editing, setup and maintenance controls. Its `5f9fe07` cohort passed 371 tests and the production build. SQL019 covers routine edit versions and lifecycle sequences; hosted execution still needs to be recorded. The new CodeRabbit follow-up sorts archived routines consistently and uses the precise 4 MiB attachment limit in user-facing messages.
 
-| Slice                                                        | Owner / branch                          | State                                              | PR / review |
-| ------------------------------------------------------------ | --------------------------------------- | -------------------------------------------------- | ----------- |
-| Product decision, private attachments                        | integration / codex/household-expansion | Implementing; unit/API coverage; RLS tests written | Pending     |
-| Meals: details, week context, move, library, leftovers, prep | meals / codex/meals-complete            | Implementing                                       | Pending     |
-| Groceries: quick entry, editing, checkout, history           | groceries / codex/groceries-complete    | Implementing                                       | Pending     |
-| Routines, Today, onboarding, home maintenance controls       | routines / codex/routines-complete      | Implementing                                       | Pending     |
-| Money detail/correction/refund and recurring rules           | integration next lane                   | Planned                                            | Pending     |
-| Trips and projects with linked work and paid expenses        | integration                             | Schema/design next                                 | Pending     |
-| Shared calendar and private iCloud sync                      | integration                             | Planned                                            | Pending     |
-| Inventory, commitments, decisions/wishlists                  | integration                             | Planned                                            | Pending     |
-| App-wide completeness and UX/accessibility audit             | integration                             | Continuous; final independent pass required        | Pending     |
+CodeRabbit replaced Codex as reviewer at the user’s request. This follow-up removes the stale statement that the user is asleep while retaining authorization for this expansion. The actual two-session contention test requested in review remains outstanding work; the sequential SQL019 scenarios are not claimed as that proof.
 
-## Verification
-
-- Latest-main baseline: `pnpm --config.verify-deps-before-run=false verify` passed (55 test files, 339 tests plus format/lint/type/build).
-- Local pnpm requires `--config.verify-deps-before-run=false` to avoid its implicit install path in this environment. Dependencies installed from frozen lockfile.
-- Local Docker socket is inaccessible even outside the sandbox; passwordless sudo is unavailable, and localhost PostgreSQL port 54322 has no listener. Database verification alternative is being investigated. No production database commands have been run.
-- Live iCloud account credentials have not been supplied. Sync implementation can be verified against controlled CalDAV fixtures; live-account setup remains separate.
-
-## Additional gaps discovered
-
-- No private attachment upload foundation despite receipt/photo fields in existing domain commands. Implementing before dependent UI.
-- Empty active shopping sessions cannot be ended. Add explicit cancel-session command with safe claim release.
-- Latest main contains approved assistant scope exceptions (ADR 0027); preserve those, introduce no new paid infrastructure.
+The repository is public and hosted CI is available. Follow the current main policy: focused local tests, lint and type checks, then full verification in CI. Local PostgreSQL on port 54322 is unavailable. No production database changes were performed. Pending base integration and the final assembled-app audit remain separate gates.

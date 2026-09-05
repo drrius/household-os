@@ -1,3 +1,4 @@
+import { mapArchivedRoutines } from "./home-archived-routines";
 import { z } from "zod";
 
 import { ZURICH_TIME_ZONE } from "@/lib/ui/zurich-date";
@@ -299,9 +300,7 @@ export function buildHomeViewModel(
     pets,
     areas,
     routines,
-    archivedRoutines: input.routines
-      .filter((routine) => routine.archived_at !== null)
-      .map((routine) => ({ id: routine.id, title: routine.title })),
+    archivedRoutines: mapArchivedRoutines(input.routines),
     activity,
     storageUsedLabel,
   };
