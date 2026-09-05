@@ -4,11 +4,15 @@ import { bootstrapMembers } from "./local-runtime";
 async function enroll(page: Page, link: string) {
   try {
     await page.goto(link);
+    await page
+      .getByRole("button", { name: "Continue to passkey setup" })
+      .click();
+    await page.waitForURL((url) => url.pathname === "/security");
   } catch {
-    throw new Error("Member enrollment navigation failed.");
+    throw new Error(
+      "Member enrollment failed; token-bearing URLs are omitted.",
+    );
   }
-  await page.getByRole("button", { name: "Continue to passkey setup" }).click();
-  await expect(page).toHaveURL(/\/security$/);
 }
 
 async function createTripAndBooking(page: Page) {
