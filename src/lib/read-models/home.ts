@@ -1,9 +1,12 @@
+import type { HomeViewModel } from "./home-view-model";
 import { mapArchivedRoutines } from "./home-archived-routines";
 import { z } from "zod";
 
 import { ZURICH_TIME_ZONE } from "@/lib/ui/zurich-date";
 
 const activityKindSchema = z.enum([
+  "project_record_changed",
+  "project_task_assigned",
   "routine_created",
   "routine_updated",
   "occurrence_completed",
@@ -72,21 +75,7 @@ type RoutineRow = z.infer<typeof routineRowSchema>;
 type ActivityRow = z.infer<typeof activityRowSchema>;
 type ActivityKind = z.infer<typeof activityKindSchema>;
 
-export type HomeViewModel = {
-  householdLabel: string;
-  members: Array<{ userId: string; displayName: string; isSelf: boolean }>;
-  pets: Array<{ id: string; name: string; meta: string }>;
-  areas: Array<{ id: string; name: string; routineCount: number }>;
-  routines: Array<{
-    id: string;
-    title: string;
-    areaName: string;
-    paused?: boolean;
-  }>;
-  archivedRoutines?: Array<{ id: string; title: string }>;
-  activity: Array<{ id: string; title: string; whenLabel: string }>;
-  storageUsedLabel: string | null;
-};
+export type { HomeViewModel } from "./home-view-model";
 
 export type HomeReadRows = {
   households: readonly HouseholdRow[];
@@ -103,6 +92,8 @@ export type BuildHomeViewModelInput = HomeReadRows & {
 };
 
 const ACTIVITY_COPY = {
+  project_record_changed: ["updated a plan", null],
+  project_task_assigned: ["assigned a project task", null],
   routine_created: ["created a routine", "created"],
   routine_updated: ["updated a routine", "updated"],
   occurrence_completed: ["completed a routine", "completed"],
