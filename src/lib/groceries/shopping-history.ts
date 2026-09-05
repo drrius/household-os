@@ -28,38 +28,54 @@ export async function loadShoppingHistory(sessionId: string) {
     throw new Error("Couldn't load this shopping trip.");
   const session = sessionResult.data;
   if (!session || !session.finished_at) return null;
-  const [itemsResult, draftResult, shopperResult] = await Promise.all([
-    links.data.length > 0
-      ? supabase
-          .from("grocery_items")
-          .select("id, name, quantity, unit, note")
-          .eq("household_id", member.householdId)
-          .in(
-            "id",
-            links.data.map((item) => item.grocery_item_id),
-          )
-      : Promise.resolve({ data: [], error: null }),
-    session.draft_expense_id
-      ? supabase
-          .from("expense_drafts")
-          .select("id, description, amount_cents, status")
-          .eq("household_id", member.householdId)
-          .eq("id", session.draft_expense_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    supabase
-      .from("household_members")
-      .select("display_name")
-      .eq("household_id", member.householdId)
-      .eq("user_id", session.member_id)
-      .single(),
-  ]);
-  if (itemsResult.error || draftResult.error || shopperResult.error)
+  const [itemsResult, draftResult, shopperResult, eventResult] =
+    await Promise.all([
+      links.data.length > 0
+        ? supabase
+            .from("grocery_items")
+            .select("id, name, quantity, unit, note")
+            .eq("household_id", member.householdId)
+            .in(
+              "id",
+              links.data.map((item) => item.grocery_item_id),
+            )
+        : Promise.resolve({ data: [], error: null }),
+      session.draft_expense_id
+        ? supabase
+            .from("expense_drafts")
+            .select("id, description, amount_cents, status")
+            .eq("household_id", member.householdId)
+            .eq("id", session.draft_expense_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("household_members")
+        .select("display_name")
+        .eq("household_id", member.householdId)
+        .eq("user_id", session.member_id)
+        .single(),
+      session.draft_expense_id
+        ? supabase
+            .from("financial_events")
+            .select("id")
+            .eq("household_id", member.householdId)
+            .eq("expense_draft_id", session.draft_expense_id)
+            .eq("shopping_session_id", sessionId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+  if (
+    itemsResult.error ||
+    draftResult.error ||
+    shopperResult.error ||
+    eventResult.error
+  )
     throw new Error("Couldn't load this shopping trip's details.");
   const draft = draftResult.data;
   return {
     session,
     draft,
+    financialEventId: eventResult.data?.id ?? null,
     items: itemsResult.data,
     shopperName: shopperResult.data.display_name,
   };
