@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { classifyPath, SIGN_IN_PATH } from "@/lib/auth/paths";
+import { safeReturnPath } from "@/lib/auth/return-path";
 import { getPublicEnv } from "@/lib/env";
 
 function applyCookies(from: NextResponse, to: NextResponse) {
@@ -56,6 +57,10 @@ export async function proxy(request: NextRequest) {
     const signInUrl = request.nextUrl.clone();
     signInUrl.pathname = SIGN_IN_PATH;
     signInUrl.search = "";
+    signInUrl.searchParams.set(
+      "returnTo",
+      safeReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
+    );
     const redirectResponse = NextResponse.redirect(signInUrl);
     applyCookies(response, redirectResponse);
     return redirectResponse;
