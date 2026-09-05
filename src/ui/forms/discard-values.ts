@@ -4,6 +4,7 @@ const metadata = new Set([
   "routineId",
   "draftId",
   "expectedVersion",
+  "searchReturn",
 ]);
 
 export function discardSnapshot(values: readonly DiscardValue[]): string {

@@ -31,3 +31,10 @@ export function useSearchOrigin() {
   if (!context) throw new Error("Search origin provider is missing.");
   return context;
 }
+
+export function SearchReturnField() {
+  const context = useContext(SearchOriginContext);
+  return context?.origin ? (
+    <input type="hidden" name="searchReturn" value={context.origin.href} />
+  ) : null;
+}

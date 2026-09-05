@@ -1,4 +1,5 @@
 "use server";
+import { withSearchReturn } from "@/lib/search/save-return";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { revalidatePath } from "next/cache";
@@ -102,7 +103,7 @@ export async function saveProjectTaskAction(
   });
   if (rejected) return rejected;
   refreshProject(projectId);
-  redirect(`/plan/projects/${projectId}#tasks`);
+  redirect(withSearchReturn(`/plan/projects/${projectId}#tasks`, form));
 }
 
 export async function setProjectTaskStateAction(
@@ -153,6 +154,6 @@ export async function setProjectTaskStateAction(
     form.get("operation") === "archive" ||
     form.get("operation") === "restore"
   )
-    redirect(`/plan/projects/${projectId}#tasks`);
+    redirect(withSearchReturn(`/plan/projects/${projectId}#tasks`, form));
   return { submissionId: previous.submissionId + 1 };
 }

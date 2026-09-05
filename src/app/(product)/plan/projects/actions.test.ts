@@ -60,3 +60,25 @@ it("rejects edits to an archived project before issuing a write", async () => {
   expect(result.values?.title).toBe("Changed title");
   expect(mocks.save).not.toHaveBeenCalled();
 });
+
+it("retains search context when a successful task edit returns to its parent plan", async () => {
+  vi.clearAllMocks();
+  mocks.member.mockResolvedValue({});
+  mocks.load.mockResolvedValue({ archived_at: null });
+  mocks.save.mockResolvedValue({});
+  const form = new FormData();
+  const project = "39000000-0000-4000-8000-000000000001";
+  form.set("id", "39000000-0000-4000-8000-000000000002");
+  form.set("project_id", project);
+  form.set("title", "Pack passports");
+  form.set("updatedAt", "2026-09-05T12:00:00Z");
+  form.set("searchReturn", "/search?q=passport&type=task");
+  await expect(
+    saveProjectTaskAction({ submissionId: 0 }, form),
+  ).rejects.toMatchObject({
+    digest: expect.stringContaining(
+      `/plan/projects/${project}?fromSearch=%2Fsearch%3Fq%3Dpassport%26type%3Dtask#tasks`,
+    ),
+  });
+  expect(mocks.save).toHaveBeenCalledTimes(1);
+});

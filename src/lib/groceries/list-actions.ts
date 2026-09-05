@@ -1,4 +1,5 @@
 "use server";
+import { withSearchReturn } from "@/lib/search/save-return";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -44,7 +45,7 @@ export async function updateGroceryItemAction(
   });
   if (rejected) return rejected;
   revalidateGroceryViews();
-  redirect("/groceries");
+  redirect(withSearchReturn("/groceries", formData));
 }
 
 export async function removeGroceryItemAction(

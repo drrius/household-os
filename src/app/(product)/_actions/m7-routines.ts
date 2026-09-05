@@ -1,4 +1,5 @@
 "use server";
+import { withSearchReturn } from "@/lib/search/save-return";
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -29,7 +30,7 @@ export async function createRoutineAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
-  redirect("/home?saved=routine");
+  redirect(withSearchReturn("/home?saved=routine", formData));
 }
 
 export async function updateRoutineAction(
@@ -50,7 +51,7 @@ export async function updateRoutineAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
-  redirect("/home?saved=routine");
+  redirect(withSearchReturn("/home?saved=routine", formData));
 }
 
 export async function routineLifecycleAction(
@@ -68,5 +69,5 @@ export async function routineLifecycleAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/home"]);
-  redirect("/home?saved=routine");
+  redirect(withSearchReturn("/home?saved=routine", formData));
 }

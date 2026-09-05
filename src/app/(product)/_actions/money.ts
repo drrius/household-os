@@ -1,4 +1,5 @@
 "use server";
+import { withSearchReturn } from "@/lib/search/save-return";
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -89,7 +90,7 @@ export async function correctEventAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/money", "/home"]);
-  redirect(destination);
+  redirect(withSearchReturn(destination, form));
 }
 
 export async function refundEventAction(
@@ -117,5 +118,5 @@ export async function refundEventAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/money", "/home"]);
-  redirect(destination);
+  redirect(withSearchReturn(destination, form));
 }

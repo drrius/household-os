@@ -1,3 +1,5 @@
+import { withSearchReturn } from "@/lib/search/save-return";
+import type { FormActionState } from "@/lib/forms/action-state";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -5,10 +7,19 @@ import { AppShell } from "@/ui/shell/app-shell";
 import { FormFields } from "@/ui/forms/form-fields.client";
 import { EchoedInput } from "@/ui/forms/echoed-control.client";
 
-async function save(id: string): Promise<never> {
+async function save(
+  id: string,
+  previous: FormActionState,
+  form: FormData,
+): Promise<never> {
   "use server";
   if (process.env.HOUSEHOLD_OS_E2E_FIXTURES !== "1") notFound();
-  redirect(`/m7-fixture/search-origin/${z.uuid().parse(id)}`);
+  void previous;
+  const destination =
+    form.get("returnList") === "yes"
+      ? "/m7-fixture/search-origin"
+      : `/m7-fixture/search-origin/${z.uuid().parse(id)}`;
+  redirect(withSearchReturn(destination, form));
 }
 export default async function Page({
   params,
@@ -36,6 +47,9 @@ export default async function Page({
             Record title
             <EchoedInput name="title" initialValue="Lisbon booking" />
           </label>
+          <button type="submit" name="returnList" value="yes">
+            Save and return to list
+          </button>
         </FormFields>
       ) : (
         <Link href={`${base}/edit`}>Edit record</Link>
