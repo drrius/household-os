@@ -49,3 +49,9 @@ Draft #72 CI `33991220911` passed full verification at `0f0641e`; browser/member
 Remaining audit targets: grocery-category management; financial-event/draft detail and lossless history pagination; attachment metadata/open handoffs; old creation retry/concurrency gaps; complete handler/read/approval discovery coverage and readable assistant tool labels; final action inventory and acceptance review. Preserve the scope above and continue until final hosted checks, CodeRabbit review and merge are done.
 
 Financial read coverage now includes event/refund/correction details and pending draft details. Money overview pagination returns a date + creation timestamp + ID cursor; a regression test traverses 41 events sharing the same date and instant across three pages without missing or repeating a record. Generated malformed cursors are rejected before filter construction. The legacy date filter remains available for choosing a starting range, not as the recommended continuation.
+
+### Categories and attachments checkpoint
+
+Added paginated active/archived grocery-category reads and create/edit/order/archive/restore, preserving the UI's previous-state concurrency checks. New category creates accept an optional stable identity and acknowledge only unchanged retry collisions. Added authenticated attachment links, usage reads and guarded unused-upload cleanup; links do not expose signed storage tokens, and cleanup does not claim saved files were deleted. Focused category retry and cross-household attachment property tests pass.
+
+Remaining: shared read/write registry coverage and approval-contract audit; readable labels for new tools; original creation retry gaps (areas/pets and any remaining commands); final complete action inventory; finish CodeRabbit/hosted checks and merge #72, then final main browser/member verification. Document direct device/credential/file-picker handoffs clearly in the final report.

@@ -1,4 +1,7 @@
 import "server-only";
+import { readAttachmentTool } from "./attachments";
+import { attachmentSchemas } from "./definitions/attachment-tools";
+import { readGroceryCategories } from "./reads-categories";
 import { moneyDetailSchemas } from "./definitions/money-detail-tools";
 import { readMoneyDetail } from "./reads-money-details";
 import { notificationSchemas } from "./definitions/notification-tools";
@@ -46,6 +49,8 @@ export async function executeAiTool(
     return executeAiWrite(name, rawInput, invocationId);
   }
   const input = definition.inputSchema.parse(rawInput ?? {});
+  if (Object.hasOwn(attachmentSchemas, name))
+    return readAttachmentTool(name, input);
   if (Object.hasOwn(moneyDetailSchemas, name))
     return readMoneyDetail(name, input);
   if (Object.hasOwn(notificationSchemas, name))
@@ -69,6 +74,8 @@ export async function executeAiTool(
       return readRoutines(input as { includeArchived: boolean });
     case "get_week_plan":
       return readWeekPlan(input as { weekOf?: string; librarySearch?: string });
+    case "get_grocery_categories":
+      return readGroceryCategories(input);
     case "get_grocery_list":
       return readGroceryList();
     case "get_recurring_expense_rules":

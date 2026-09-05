@@ -1,3 +1,5 @@
+import { ATTACHMENT_TOOLS } from "./attachment-tools";
+import { CATEGORY_TOOLS } from "./category-tools";
 import { MONEY_DETAIL_TOOLS } from "./money-detail-tools";
 import { NOTIFICATION_TOOLS } from "./notification-tools";
 import { DAILY_DETAIL_TOOLS } from "./daily-detail-tools";
@@ -36,6 +38,8 @@ export {
  */
 export const AI_TOOL_DEFINITIONS = [
   ...READ_TOOLS,
+  ...ATTACHMENT_TOOLS,
+  ...CATEGORY_TOOLS,
   ...MONEY_DETAIL_TOOLS,
   ...NOTIFICATION_TOOLS,
   ...DAILY_DETAIL_TOOLS,

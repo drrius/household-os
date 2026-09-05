@@ -1,4 +1,5 @@
 import "server-only";
+import { createGroceryCategory } from "./category-create";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import type { GroceryFormValue } from "@/lib/forms/grocery";
@@ -75,6 +76,7 @@ export async function buyGroceryAgain(itemId: string, creationId?: string) {
 }
 
 export async function saveGroceryCategory(input: {
+  creationId?: string;
   categoryId: string | null;
   name: string;
   sortOrder: number;
@@ -83,17 +85,11 @@ export async function saveGroceryCategory(input: {
   previousArchivedAt?: string | null;
   archive: boolean;
 }) {
+  if (input.categoryId === null)
+    return createGroceryCategory(input.name, input.sortOrder, input.creationId);
   const member = await requireMemberContext();
   const supabase = await createClient();
   const values = { name: input.name, sort_order: input.sortOrder };
-  if (input.categoryId === null) {
-    const { error } = await supabase
-      .from("grocery_categories")
-      .insert({ ...values, household_id: member.householdId });
-    if (error)
-      throw new Error(`create_grocery_category failed: ${error.message}`);
-    return;
-  }
   let query = supabase
     .from("grocery_categories")
     .update({
