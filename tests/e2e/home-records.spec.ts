@@ -52,7 +52,7 @@ test("commitments show notice deadline, responsibility and a separate expected c
     .getByRole("button", { name: "Add commitment", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Decide before 2026-12-01" }),
+    page.getByRole("heading", { name: "Decide before 1 Dec 2026" }),
   ).toBeVisible({ timeout: 15000 });
   await expect(page.getByText("CHF 1234.50", { exact: true })).toBeVisible();
   await expect(page.getByText("Partner", { exact: true })).toBeVisible();
