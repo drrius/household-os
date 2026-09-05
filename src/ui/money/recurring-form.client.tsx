@@ -49,6 +49,7 @@ function RecurringFormSession({
       : { mode: "equal" as const, allocationsByMemberId: {} };
   return (
     <FormFields
+      protectChanges
       action={action}
       submitLabel={rule ? "Save recurring expense" : "Create recurring expense"}
     >

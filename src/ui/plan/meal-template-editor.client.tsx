@@ -66,6 +66,7 @@ function TemplateFields({
 }: EditorProps & { categoryChanged: (value: string) => void }) {
   return (
     <FormFields
+      protectChanges
       action={action}
       submitLabel={template ? "Save grocery" : "Add default grocery"}
     >

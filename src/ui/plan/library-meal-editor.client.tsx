@@ -51,7 +51,7 @@ function LibraryMealFields({
   action = saveLibraryMealAction,
 }: EditorProps) {
   return (
-    <FormFields action={action} submitLabel="Save meal">
+    <FormFields protectChanges action={action} submitLabel="Save meal">
       <input type="hidden" name="libraryId" value={id} />
       <input type="hidden" name="version" value={meal?.updated_at ?? ""} />
       <input type="hidden" name="isNew" value={meal ? "no" : "yes"} />

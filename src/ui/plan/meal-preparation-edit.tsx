@@ -77,7 +77,7 @@ function PreparationEditSnapshot({
     idempotencyKey: incomingKey,
   }));
   return (
-    <FormFields action={action} submitLabel="Save prep task">
+    <FormFields protectChanges action={action} submitLabel="Save prep task">
       <input type="hidden" name="entryId" value={entryId} />
       <input
         type="hidden"

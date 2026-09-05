@@ -35,7 +35,7 @@ export function ContextExpenseForm({
 }) {
   const [snapshot] = useState({ initialKey, occurredOn, viewerId });
   return (
-    <FormFields action={action} submitLabel="Post expense">
+    <FormFields protectChanges action={action} submitLabel="Post expense">
       <input type="hidden" name="idempotencyKey" value={snapshot.initialKey} />
       <ExpenseAmountAndSplitFields
         initialAmount=""

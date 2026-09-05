@@ -5,6 +5,9 @@ const cases = [
   ["task", "/m7-fixture/projects/create/task", "What needs doing?"],
   ["booking", "/m7-fixture/trips", "Booking name"],
   ["event", "/m7-fixture/calendar", "Title"],
+  ["meal", "/m7-fixture/meals/new", "Meal"],
+  ["recurring expense", "/m7-fixture/money/recurring", "Description"],
+  ["trip expense", "/m7-fixture/context-costs?mode=form", "Description"],
 ] as const;
 
 for (const [kind, path, label] of cases) {

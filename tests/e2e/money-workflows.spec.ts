@@ -53,6 +53,12 @@ test("partial refund previews shares and preserves fields after a server respons
     "Returned the unopened item",
   );
   await expect(page.locator('input[name="idempotencyKey"]')).toHaveValue(key);
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("link", { name: "Cancel", exact: true }).click();
+  await expect(page).toHaveURL(/money\/refund$/);
+  await expect(page.getByLabel(/^Note/)).toHaveValue(
+    "Returned the unopened item",
+  );
 });
 
 test("correction retains existing note, shares and receipt", async ({

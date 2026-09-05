@@ -35,7 +35,11 @@ export function PlaceLibraryMealForm({
       description="Choose when to cook it. Its default groceries will join your shared list."
       title="Place saved meal"
     >
-      <FormFields action={placeFromLibraryAction} submitLabel="Add to plan">
+      <FormFields
+        protectChanges
+        action={placeFromLibraryAction}
+        submitLabel="Add to plan"
+      >
         <input
           name="idempotencyKey"
           type="hidden"
@@ -70,7 +74,11 @@ export function CreateMealForm({
       description="Plan something to cook, eat out, or keep as an idea for this week."
       title="New meal"
     >
-      <FormFields action={createMealAction} submitLabel="Add to plan">
+      <FormFields
+        protectChanges
+        action={createMealAction}
+        submitLabel="Add to plan"
+      >
         <input
           name="idempotencyKey"
           type="hidden"
@@ -113,7 +121,11 @@ export function LeftoverMealForm({
       title="Plan leftovers"
       description="Use an earlier meal again. No groceries will be added."
     >
-      <FormFields action={placeLeftoverMealAction} submitLabel="Plan leftovers">
+      <FormFields
+        protectChanges
+        action={placeLeftoverMealAction}
+        submitLabel="Plan leftovers"
+      >
         <input type="hidden" name="leftoverOfEntryId" value={source.id} />
         <input
           type="hidden"
