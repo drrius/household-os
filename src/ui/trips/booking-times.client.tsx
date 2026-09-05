@@ -1,5 +1,6 @@
 "use client";
 import { RecordField, RecordSelect } from "@/ui/projects/record-field.client";
+import { TimeZoneField } from "./time-zone-field.client";
 const clockChoices = [
   { value: "reject", label: "Ask if the time is ambiguous" },
   { value: "earlier", label: "First occurrence (before clocks go back)" },
@@ -24,12 +25,10 @@ export function BookingTimes({
         step="1"
         optional
       />
-      <RecordField
+      <TimeZoneField
         name="time_zone"
         label="Start time zone"
-        initial={values.time_zone}
-        maxLength={100}
-        description="For example Europe/Zurich or America/New_York."
+        initial={values.time_zone ?? "Europe/Zurich"}
       />
       <RecordField
         name="ends_at"
@@ -39,11 +38,10 @@ export function BookingTimes({
         step="1"
         optional
       />
-      <RecordField
+      <TimeZoneField
         name="end_time_zone"
         label="End time zone"
-        initial={values.end_time_zone}
-        maxLength={100}
+        initial={values.end_time_zone ?? "Europe/Zurich"}
       />
       <details className="border-t pt-2">
         <summary className="min-h-11 cursor-pointer content-center text-sm">
