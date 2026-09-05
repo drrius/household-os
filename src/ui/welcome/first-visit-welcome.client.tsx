@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -59,15 +60,14 @@ export function FirstVisitWelcome() {
 
   return (
     <Dialog
-      disablePointerDismissal
       open={!dismissed}
-      onOpenChange={(open, details) => {
+      onOpenChange={(open) => {
         if (!open) {
-          details.cancel();
+          persistDismissed();
         }
       }}
     >
-      <DialogContent showCloseButton={false}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Welcome to your household</DialogTitle>
           <DialogDescription>
@@ -75,8 +75,20 @@ export function FirstVisitWelcome() {
             in one place. Both of you, equally.
           </DialogDescription>
         </DialogHeader>
-        <Button onClick={persistDismissed} size="lg" type="button">
-          Got it
+        <Link
+          className={buttonVariants({ size: "lg" })}
+          href="/home/routines/starters"
+          onClick={persistDismissed}
+        >
+          Set up our routines
+        </Link>
+        <Button
+          onClick={persistDismissed}
+          size="lg"
+          type="button"
+          variant="ghost"
+        >
+          Explore first
         </Button>
       </DialogContent>
     </Dialog>

@@ -1,25 +1,14 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { RoutineCompleteControl } from "@/ui/today/routine-complete-control.client";
 import type { RoutineRow } from "@/ui/today/today-view-model";
 
-type RoutineListProps = {
-  rows: readonly RoutineRow[];
-};
-
-export function RoutineList({ rows }: RoutineListProps) {
+export function RoutineList({ rows }: { rows: readonly RoutineRow[] }) {
   return (
-    <div className="flex flex-col gap-4">
+    <ul className="divide-y divide-border" role="list">
       {rows.map((row) => (
-        <Card
-          className={row.tone === "overdue" ? "bg-warning-soft" : undefined}
-          key={row.occurrenceId}
-          size="sm"
-        >
-          <CardContent>
-            <RoutineCompleteControl row={row} />
-          </CardContent>
-        </Card>
+        <li className="py-3 first:pt-0 last:pb-0" key={row.occurrenceId}>
+          <RoutineCompleteControl row={row} />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

@@ -79,8 +79,18 @@ function dayButtonClass(isSelected: boolean, isToday: boolean): string {
   return "text-muted-foreground hover:bg-muted hover:text-foreground";
 }
 
-export function PlanWeekPager({ days }: { days: PagerDay[] }) {
-  const todayColumnId = days.find((day) => day.isToday)?.columnId ?? null;
+export function PlanWeekPager({
+  days,
+  selectedDay,
+}: {
+  days: PagerDay[];
+  selectedDay?: string;
+}) {
+  const todayColumnId =
+    days.find((day) => day.columnId === `plan-day-column-${selectedDay}`)
+      ?.columnId ??
+    days.find((day) => day.isToday)?.columnId ??
+    null;
   const fallbackColumnId = todayColumnId ?? days[0]?.columnId ?? null;
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(
     fallbackColumnId,
