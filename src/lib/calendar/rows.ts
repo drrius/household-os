@@ -1,3 +1,5 @@
+import { masterFromIcal } from "@/domain/calendar/ical-read";
+import { storageCalendarTimeZone } from "@/domain/calendar/storage";
 import type { CalendarEventInput } from "@/domain/calendar/types";
 export type CalendarRow = {
   id: string;
@@ -57,7 +59,7 @@ export function rowFields(input: CalendarEventInput) {
     title: input.title,
     starts_at: input.startsAt,
     ends_at: input.endsAt,
-    time_zone: input.timeZone,
+    time_zone: storageCalendarTimeZone(input.timeZone),
     all_day: input.allDay,
     attendance: input.attendance,
     attending_member_id: input.attendingMemberId,
@@ -66,4 +68,18 @@ export function rowFields(input: CalendarEventInput) {
     project_id: input.projectId,
     recurrence_rule: input.recurrenceRule,
   };
+}
+
+/** ICS retains custom timezone semantics; row columns are a database-safe projection. */
+export function calendarInputForDisplay(row: CalendarRow): CalendarEventInput {
+  const input = inputFromRow(row);
+  return row.ical_data
+    ? {
+        ...input,
+        ...masterFromIcal(row.ical_data),
+        attendance: input.attendance,
+        attendingMemberId: input.attendingMemberId,
+        projectId: input.projectId,
+      }
+    : input;
 }
