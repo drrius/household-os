@@ -142,6 +142,72 @@ describe("buildHomeViewModel", () => {
     });
   });
 
+  it.each([
+    ["contact", "contact"],
+    ["asset", "item"],
+    ["commitment", "commitment"],
+    ["decision", "decision"],
+    ["decision_option", "option"],
+    ["document", "document"],
+    ["maintenance", "maintenance record"],
+  ])(
+    "renders %s activity with actor, action, and snapshot label",
+    (recordKind, noun) => {
+      for (const operation of ["added", "updated", "archived", "restored"]) {
+        const home = buildHomeViewModel(
+          homeInput({
+            activityEvents: [
+              {
+                id: "home-activity",
+                actor_member_id: partnerId,
+                kind: "household_record_changed",
+                entity_type: "household_record",
+                entity_id: "record-id",
+                payload: {
+                  record_kind: recordKind,
+                  label: "Home record",
+                  operation,
+                },
+                created_at: "2026-09-05T10:00:00Z",
+              },
+            ],
+          }),
+        );
+        expect(home.activity[0]?.title).toBe(
+          `Leah ${operation} ${noun}: Home record`,
+        );
+      }
+    },
+  );
+
+  it.each([
+    {},
+    { record_kind: "unknown", label: "Home record", operation: "added" },
+    { record_kind: "asset", label: "", operation: "updated" },
+    {
+      record_kind: "document",
+      label: "Contract",
+      operation: "uploaded to a public URL",
+    },
+  ])("uses safe fallback copy for malformed Home snapshots", (payload) => {
+    const home = buildHomeViewModel(
+      homeInput({
+        activityEvents: [
+          {
+            id: "home-activity",
+            actor_member_id: viewerId,
+            kind: "household_record_changed",
+            entity_type: "household_record",
+            entity_id: "record-id",
+            payload,
+            created_at: "2026-09-05T10:00:00Z",
+          },
+        ],
+      }),
+    );
+    expect(home.activity[0]?.title).toBe("Sam updated a household record");
+  });
+
   it("keeps optional home sections empty when no rows exist", () => {
     expect(buildHomeViewModel(homeInput())).toEqual({
       householdLabel: "Sam & Leah",
@@ -168,6 +234,28 @@ describe("buildHomeViewModel", () => {
 });
 
 describe("parseHomeReadRows", () => {
+  it("accepts the added Home activity kind without dropping prior kinds", () => {
+    const rows = parseHomeReadRows({
+      ...homeInput(),
+      activityEvents: [
+        {
+          id: "home-activity",
+          actor_member_id: viewerId,
+          kind: "household_record_changed",
+          entity_type: "household_record",
+          entity_id: "record-id",
+          payload: {
+            record_kind: "asset",
+            label: "Washing machine",
+            operation: "added",
+          },
+          created_at: "2026-09-05T10:00:00Z",
+        },
+      ],
+    });
+    expect(rows.activityEvents[0]?.kind).toBe("household_record_changed");
+  });
+
   it("rejects activity kinds outside the migration contract", () => {
     expect(() =>
       parseHomeReadRows({
