@@ -35,6 +35,7 @@ export default async function CostPage({
       members={members}
       older={Boolean(route.before)}
       saved={route.saved}
+      associationSaved={route.associationSaved}
     />
   );
 }

@@ -25,7 +25,7 @@ export function CostHeader({
           href={
             target.bookingId
               ? costTargetHref({ kind: target.kind, id: target.id })
-              : `/money/contexts?kind=${target.kind}`
+              : `/money/contexts?kind=${target.kind}${record.archived_at ? "&archived=true" : ""}`
           }
           className="inline-flex min-h-11 items-center gap-2 text-muted-foreground"
         >
@@ -47,10 +47,18 @@ export function CostHeader({
           </h1>
         </div>
         {!archived && (
-          <Link className={buttonVariants()} href={costExpenseHref(target)}>
-            <Plus aria-hidden="true" className="size-4 shrink-0" />
-            Add expense
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link className={buttonVariants()} href={costExpenseHref(target)}>
+              <Plus aria-hidden="true" className="size-4 shrink-0" />
+              Add expense
+            </Link>
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href={`/money/contexts/${target.kind}/${target.id}/existing${target.bookingId ? `?booking=${target.bookingId}` : ""}`}
+            >
+              Link recorded expense
+            </Link>
+          </div>
         )}
       </header>
     </>

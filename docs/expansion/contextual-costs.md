@@ -16,6 +16,6 @@ The read layer validates route kinds, IDs, complete cursors and matching booking
 
 ## Remaining integration and review gates
 
-This branch starts from PR48 (`58982b8`). It does not import the pending PR44 attachment dependency; existing migration 015 and receipt test 028 still need that integration. No production migration, deployment, or PR merge was performed. Codex review quota is exhausted, so positive review remains outstanding.
+This branch starts from PR48 (`58982b8`). It does not import the pending PR44 attachment dependency; existing migration 015 and receipt test 028 still need that integration. No production migration, deployment, or PR merge was performed. The initial head `b2d1e93` received an explicit Codex thumbs-up at 05:35:50 UTC on 5 September. Later changes require fresh review.
 
-Record detail pages in PR51/52 still need direct links to these routes after authorized integration. Linking/reassigning an already-recorded expense, complete bookings/itinerary, assembled navigation and the fresh whole-app completeness audit remain required follow-up work. This implementation is not evidence that those journeys are complete.
+Record detail pages in PR51/52 still need direct links to these routes after authorized integration. Existing-expense linking, reassignment and removal are covered in [expense-associations.md](expense-associations.md). Complete bookings/itinerary, assembled navigation and the fresh whole-app completeness audit remain required follow-up work. This implementation is not evidence that those journeys are complete.

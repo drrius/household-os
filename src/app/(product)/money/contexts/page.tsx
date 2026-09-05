@@ -11,6 +11,7 @@ import { loadCostRecords } from "@/lib/connected/cost-records";
 import { AppPage } from "@/ui/layout/app-page";
 const querySchema = z.object({
   kind: costKind.default("project"),
+  association: z.literal("removed").optional(),
   archived: z.enum(["true", "false"]).default("false"),
   page: z
     .string()
@@ -47,6 +48,11 @@ export default async function CostRecordsPage({
         See what you paid for a trip, project or household item. Add each
         payment once and keep it connected to who owes whom.
       </p>
+      {parsed.data.association === "removed" && (
+        <p role="status" className="rounded-xl bg-secondary p-4">
+          Removal request saved. The payment remains in Money.
+        </p>
+      )}
       <CostRecordFilters kind={kind} archived={archived === "true"} />
       {data.records.length ? (
         <ul role="list" className="divide-y divide-border">

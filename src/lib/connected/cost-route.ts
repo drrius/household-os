@@ -6,6 +6,7 @@ export const costQuerySchema = z
     beforeOn: z.iso.date().optional(),
     beforeId: z.uuid().optional(),
     saved: z.literal("1").optional(),
+    association: z.literal("saved").optional(),
   })
   .refine(
     (value) => Boolean(value.beforeOn) === Boolean(value.beforeId),
@@ -21,5 +22,6 @@ export function parseCostRoute(params: unknown, query: unknown) {
         ? { occurred_on: search.beforeOn, id: search.beforeId }
         : undefined,
     saved: search.saved === "1",
+    associationSaved: search.association === "saved",
   };
 }

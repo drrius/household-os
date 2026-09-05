@@ -19,6 +19,7 @@ export function ContextCosts({
   members,
   older = false,
   saved = false,
+  associationSaved = false,
 }: {
   target: CostTarget;
   record: CostRecord;
@@ -27,6 +28,7 @@ export function ContextCosts({
   members: readonly { user_id: string; display_name: string }[];
   older?: boolean;
   saved?: boolean;
+  associationSaved?: boolean;
 }) {
   const base = costTargetHref(target);
   const next = new URLSearchParams(
@@ -39,11 +41,7 @@ export function ContextCosts({
   return (
     <AppPage labelledBy="context-cost-title">
       <CostHeader target={target} record={record} booking={booking} />
-      {saved && (
-        <p role="status" className="rounded-xl bg-secondary p-4">
-          Expense saved. Your payment is recorded in Money.
-        </p>
-      )}
+      <CostSaveStatus saved={saved} associationSaved={associationSaved} />
       <CostTotal paidCents={costs.paid_cents} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">
@@ -105,5 +103,29 @@ function CostTotal({ paidCents }: { paidCents: string }) {
         . Estimates and unpaid bookings do not count here.
       </p>
     </div>
+  );
+}
+
+function CostSaveStatus({
+  saved,
+  associationSaved,
+}: {
+  saved: boolean;
+  associationSaved: boolean;
+}) {
+  return (
+    <>
+      {" "}
+      {saved && (
+        <p role="status" className="rounded-xl bg-secondary p-4">
+          Expense saved. Your payment is recorded in Money.
+        </p>
+      )}
+      {associationSaved && (
+        <p role="status" className="rounded-xl bg-secondary p-4">
+          Association request saved. No new payment was recorded.
+        </p>
+      )}
+    </>
   );
 }

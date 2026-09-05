@@ -59,6 +59,12 @@ export function CostActivityRow({
               View booking costs
             </Link>
           )}
+          <Link
+            className="min-h-11 content-center underline"
+            href={`/money/contexts/associations/${event.context_link_id}`}
+          >
+            Manage association
+          </Link>
           <p>
             Payment corrections and refunds remain in your financial history.
           </p>
