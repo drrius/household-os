@@ -1,7 +1,10 @@
 "use client";
-import { useId, useState, type ComponentProps } from "react";
+import { useId, type ComponentProps } from "react";
 import type { HomeRecord, RecordKind } from "@/domain/home-records/schema";
-import { formatCentimesField } from "@/domain/money/chf";
+import {
+  recordFieldValue,
+  useRecordSnapshot,
+} from "./use-record-snapshot.client";
 import type { RecordOptions } from "@/lib/home-records/options";
 import type { FormAction } from "@/lib/forms/action-state";
 import { recordAction } from "@/app/(product)/home/inventory/actions";
@@ -18,19 +21,15 @@ function RecordControl({
   field,
   record,
   options,
+  attachmentChanged,
 }: {
+  attachmentChanged?: () => void;
   field: RecordField;
   record: HomeRecord;
   options: RecordOptions;
 }) {
   const id = useId();
-  const initial = record[field.name];
-  const value = useFormFieldValue(
-    field.name,
-    typeof initial === "number" && field.type === "money"
-      ? formatCentimesField(initial)
-      : String(initial ?? field.initial ?? ""),
-  );
+  const value = useFormFieldValue(field.name, recordFieldValue(record, field));
   const error = useFormFieldsState().errors[field.name];
   const props = {
     id,
@@ -50,6 +49,7 @@ function RecordControl({
           name={field.name}
           purpose="documents"
           initialPath={value}
+          onStateChange={attachmentChanged}
         />
       ) : (
         <>
@@ -152,44 +152,54 @@ export function RecordForm(props: RecordFormProps) {
     />
   );
 }
+function visibleFields(kind: RecordKind, parent?: RecordFormProps["parent"]) {
+  return fields[kind].filter(
+    (field) =>
+      field.name !== parent?.column &&
+      !(
+        parent &&
+        kind === "documents" &&
+        ["asset_id", "commitment_id", "project_id"].includes(field.name)
+      ),
+  );
+}
 function RecordFormSession({
   kind,
-  record: initialRecord,
-  options,
+  record: incomingRecord,
+  options: incomingOptions,
   returnTo,
   parent,
   action = recordAction,
 }: RecordFormProps) {
-  // Preserve both the edit version and generated new-record identity on refresh.
-  const [record] = useState(initialRecord);
+  const { holder, current, capture, freeze } = useRecordSnapshot(
+    kind,
+    incomingRecord,
+    incomingOptions,
+  );
+  const { record, options } = current;
   return (
-    <FormFields
-      action={action}
-      submitLabel={
-        record.updated_at ? "Save changes" : `Add ${labels[kind].singular}`
-      }
+    <div
+      ref={holder}
+      onInputCapture={capture}
+      onChangeCapture={capture}
+      onSubmitCapture={freeze}
     >
-      <input type="hidden" name="kind" value={kind} />
-      <RecordIdentity record={record} />
-      <input type="hidden" name="returnTo" value={returnTo} />
-      {parent ? (
-        <input type="hidden" name={parent.column} value={parent.id} />
-      ) : null}
-      <div className="@container">
-        <div className="grid gap-5 @xl:grid-cols-2">
-          {fields[kind]
-            .filter(
-              (field) =>
-                field.name !== parent?.column &&
-                !(
-                  parent &&
-                  kind === "documents" &&
-                  ["asset_id", "commitment_id", "project_id"].includes(
-                    field.name,
-                  )
-                ),
-            )
-            .map((field) => (
+      <FormFields
+        key={JSON.stringify(current)}
+        action={action}
+        submitLabel={
+          record.updated_at ? "Save changes" : `Add ${labels[kind].singular}`
+        }
+      >
+        <input type="hidden" name="kind" value={kind} />
+        <RecordIdentity record={record} />
+        <input type="hidden" name="returnTo" value={returnTo} />
+        {parent ? (
+          <input type="hidden" name={parent.column} value={parent.id} />
+        ) : null}
+        <div className="@container">
+          <div className="grid gap-5 @xl:grid-cols-2">
+            {visibleFields(kind, parent).map((field) => (
               <div
                 key={field.name}
                 className={
@@ -202,22 +212,24 @@ function RecordFormSession({
                   field={field}
                   record={record}
                   options={options}
+                  attachmentChanged={capture}
                 />
               </div>
             ))}
+          </div>
         </div>
-      </div>
-      {kind === "commitments" || kind === "options" ? (
-        <p className="text-muted-foreground">
-          Expected costs help you plan. They do not change your balance.
-        </p>
-      ) : null}
-      {kind === "documents" ? (
-        <p className="text-muted-foreground">
-          Choose one related record, or keep this document in your shared
-          library.
-        </p>
-      ) : null}
-    </FormFields>
+        {kind === "commitments" || kind === "options" ? (
+          <p className="text-muted-foreground">
+            Expected costs help you plan. They do not change your balance.
+          </p>
+        ) : null}
+        {kind === "documents" ? (
+          <p className="text-muted-foreground">
+            Choose one related record, or keep this document in your shared
+            library.
+          </p>
+        ) : null}
+      </FormFields>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import type { AttachmentPurpose } from "@/domain/attachments/files";
 import { useAttachmentUpload } from "./use-attachment-upload.client";
 
@@ -10,7 +10,22 @@ type AttachmentFieldProps = {
   purpose: AttachmentPurpose;
   initialPath?: string | null;
   required?: boolean;
+  onStateChange?: () => void;
 };
+
+function attachmentStatus(
+  pending: boolean,
+  error: string | null,
+  path: string,
+) {
+  if (pending) return "Uploading…";
+  return (
+    error ??
+    (path
+      ? "Attachment ready."
+      : "Photos are resized. Maximum file size: 4 MB.")
+  );
+}
 
 export function AttachmentField({
   name,
@@ -18,6 +33,7 @@ export function AttachmentField({
   purpose,
   initialPath = "",
   required = false,
+  onStateChange,
 }: AttachmentFieldProps) {
   const id = useId();
   const { input, path, pending, error, upload, remove } = useAttachmentUpload(
@@ -25,6 +41,12 @@ export function AttachmentField({
     initialPath,
   );
 
+  useEffect(() => {
+    onStateChange?.();
+  }, [path, pending, error, onStateChange]);
+
+  const accept =
+    purpose === "completions" ? "image/*" : "image/*,application/pdf";
   return (
     <div className="grid gap-2 text-base sm:text-sm">
       <label className="font-medium" htmlFor={id}>
@@ -39,9 +61,7 @@ export function AttachmentField({
         id={id}
         name={`${name}Upload`}
         type="file"
-        accept={
-          purpose === "completions" ? "image/*" : "image/*,application/pdf"
-        }
+        accept={accept}
         aria-describedby={`${id}-status`}
         aria-invalid={error !== null}
         aria-disabled={pending}
@@ -59,12 +79,7 @@ export function AttachmentField({
         role="status"
         className={error ? "text-destructive-strong" : "text-muted-foreground"}
       >
-        {pending
-          ? "Uploading…"
-          : (error ??
-            (path
-              ? "Attachment ready."
-              : "Photos are resized. Maximum file size: 4 MB."))}
+        {attachmentStatus(pending, error, path)}
       </p>
       {(path || error) && !pending ? (
         <div className="flex items-center gap-4">

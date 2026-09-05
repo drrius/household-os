@@ -51,3 +51,37 @@ test("a fresh same-page navigation starts a new record lifetime", async ({
   await expect(editor.locator('[name="name"]')).toHaveValue("");
   await expect(editor.locator('[name="id"]')).not.toHaveValue(originalId);
 });
+
+test("untouched Home fields accept partner values and versions", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/home-form-refresh");
+  const editor = page.getByRole("region", { name: "Existing record" });
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  await expect(editor.locator('[name="name"]')).toHaveValue("Contact 2");
+  await expect(editor.locator('[name="version"]')).toHaveValue("v2");
+});
+test("reverting a Home draft adopts the waiting partner update", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/home-form-refresh");
+  const editor = page.getByRole("region", { name: "Existing record" });
+  await editor.locator('[name="name"]').fill("My draft");
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  await editor.locator('[name="name"]').fill("Contact 1");
+  await expect(editor.locator('[name="name"]')).toHaveValue("Contact 2");
+  await expect(editor.locator('[name="version"]')).toHaveValue("v2");
+});
+test("selection-only edits preserve matching options and release after reverting", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/home-form-refresh");
+  const editor = page.getByRole("region", { name: "Commitment record" });
+  await editor.locator('[name="responsible_member_id"]').selectOption("sam");
+  await page.getByRole("button", { name: "Simulate partner refresh" }).click();
+  await expect(editor.locator('[name="version"]')).toHaveValue("v1");
+  await expect(editor.locator('option[value="alex"]')).toHaveText("Alex 1");
+  await editor.locator('[name="responsible_member_id"]').selectOption("alex");
+  await expect(editor.locator('[name="version"]')).toHaveValue("v2");
+  await expect(editor.locator('option[value="alex"]')).toHaveText("Alex 2");
+});
