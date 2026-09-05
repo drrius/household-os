@@ -18,10 +18,6 @@ export type SubscribeHouseholdSurfacesInput = {
   onDirty: (surfaces: readonly AppSurface[]) => void;
 };
 
-function isWatchedTable(value: string): value is WatchedTable {
-  return (WATCHED_TABLES as readonly string[]).includes(value);
-}
-
 export function subscribeHouseholdSurfaces(
   input: SubscribeHouseholdSurfacesInput,
 ): () => void {
@@ -69,23 +65,32 @@ export function subscribeHouseholdSurfaces(
         table,
         filter: `household_id=eq.${input.householdId}`,
       },
-      (payload) => {
-        const tableName = payload.table;
-        if (typeof tableName === "string" && isWatchedTable(tableName)) {
-          markDirty(tableName);
-        }
-      },
+      () => markDirty(table),
     );
   }
 
-  channel.subscribe((status) => {
-    if (status === "SUBSCRIBED") {
-      refreshAllWatched();
-    }
-  });
+  let subscriptionStart: Promise<void> | null = null;
+  const startSubscription = () => {
+    if (disposed || subscriptionStart) return;
+    // Cookie-backed session restoration may finish after the socket connects.
+    subscriptionStart = supabase.realtime
+      .setAuth()
+      .then(() => {
+        if (disposed) return;
+        channel.subscribe((status) => {
+          if (status === "SUBSCRIBED") refreshAllWatched();
+        });
+      })
+      .catch(() => {
+        // A later visibility change can retry transient auth initialization.
+        subscriptionStart = null;
+      });
+  };
+  startSubscription();
 
   const onVisibility = () => {
     if (document.visibilityState === "visible") {
+      startSubscription();
       refreshAllWatched();
     }
   };
