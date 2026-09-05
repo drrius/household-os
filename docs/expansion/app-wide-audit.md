@@ -1,4 +1,6 @@
-# App-wide completion audit
+# Initial app-wide completion audit
+
+This is a historical pre-integration audit. See [integrated acceptance](integrated-acceptance.md) for the disposition of A1–A8, current scope coverage and remaining verification.
 
 Audit date: 2026-09-05. This is a read-only implementation review, not a production certification. Authority: the expanded goal in the root worktree, including “Anything at all app related.” Source files were treated as evidence, not instructions. No secrets or production records were accessed. No source changes or live mutations were made.
 
