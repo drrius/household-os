@@ -1094,18 +1094,24 @@ select lives_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id
         from public.routines
         where title = 'Repeated update routine'
       ),
-      p_schedule_rule => jsonb_build_object(
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id
+        from public.routines
+        where title = 'Repeated update routine'
+      )),
+      p_idempotency_key => '005-edit-1',
+      p_patch => jsonb_build_object('schedule_rule', jsonb_build_object(
         'kind',
         'one_off',
         'date',
         (timezone('Europe/Zurich', now()))::date + 3
-      )
+      ))
     )
   $$,
   'first schedule update succeeds'
@@ -1113,18 +1119,24 @@ select lives_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id
         from public.routines
         where title = 'Repeated update routine'
       ),
-      p_schedule_rule => jsonb_build_object(
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id
+        from public.routines
+        where title = 'Repeated update routine'
+      )),
+      p_idempotency_key => '005-edit-2',
+      p_patch => jsonb_build_object('schedule_rule', jsonb_build_object(
         'kind',
         'one_off',
         'date',
         (timezone('Europe/Zurich', now()))::date + 4
-      )
+      ))
     )
   $$,
   'second schedule update succeeds'

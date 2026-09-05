@@ -800,12 +800,14 @@ select throws_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (select id from public.routines where title = 'Daily kitchen'),
-      p_schedule_kind => 'calendar',
-      p_schedule_rule => '{"kind":"weekly","weekday":1}'::jsonb,
-      p_assignment_policy => 'shared',
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (select id from public.routines where title = 'Daily kitchen')),
+      p_idempotency_key => '002-edit-1',
+      p_patch => jsonb_build_object('schedule_kind', 'calendar',
+        'schedule_rule', '{"kind":"weekly","weekday":1}'::jsonb,
+        'assignment_policy', 'shared',
+        'rebuild_window', true)
     )
   $$,
   'update_routine_definition can change schedule and assignment'
@@ -846,17 +848,14 @@ values ('10000000-0000-4000-8000-000000000011', 'Routine Edit Pet');
 
 select lives_ok(
   $$
-    update public.routines
-    set instructions = 'Direct optional-field edit',
-        pet_id = (
-          select id
-          from public.pets
-          where name = 'Routine Edit Pet'
-        )
-    where household_id = '10000000-0000-4000-8000-000000000011'
-      and title = 'Daily kitchen'
+    select public.edit_routine_definition(
+      (select id from public.routines where title='Daily kitchen'),
+      (select updated_at from public.routines where title='Daily kitchen'),
+      '002-optional-set',
+      jsonb_build_object('instructions','Direct optional-field edit','pet_id',(select id from public.pets where name='Routine Edit Pet'))
+    )
   $$,
-  'members can set routine instructions and pet directly under column grants'
+  'members can set routine instructions and pet through the versioned command'
 );
 
 select is(
@@ -867,18 +866,19 @@ select is(
     where routine.title = 'Daily kitchen'
   ),
   'Routine Edit Pet',
-  'the direct optional-field update persists the pet link'
+  'the atomic optional-field command persists the pet link'
 );
 
 select lives_ok(
   $$
-    update public.routines
-    set instructions = null,
-        pet_id = null
-    where household_id = '10000000-0000-4000-8000-000000000011'
-      and title = 'Daily kitchen'
+    select public.edit_routine_definition(
+      (select id from public.routines where title='Daily kitchen'),
+      (select updated_at from public.routines where title='Daily kitchen'),
+      '002-optional-clear',
+      '{"instructions":null,"pet_id":null}'::jsonb
+    )
   $$,
-  'members can clear routine instructions and pet directly'
+  'members can clear routine instructions and pet atomically'
 );
 
 select is(
@@ -888,7 +888,7 @@ select is(
     where title = 'Daily kitchen'
   ),
   true,
-  'the direct optional-field update can null both fields'
+  'the atomic optional-field command can null both fields'
 );
 
 reset role;
@@ -957,11 +957,13 @@ select is(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (select id from public.routines where title = 'Daily kitchen'),
-      p_schedule_kind => 'calendar',
-      p_schedule_rule => '{"kind":"biweekly","weekday":1}'::jsonb,
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (select id from public.routines where title = 'Daily kitchen')),
+      p_idempotency_key => '002-edit-2',
+      p_patch => jsonb_build_object('schedule_kind', 'calendar',
+        'schedule_rule', '{"kind":"biweekly","weekday":1}'::jsonb,
+        'rebuild_window', true)
     )
   $$,
   'update_routine_definition accepts a biweekly schedule'
@@ -1038,11 +1040,13 @@ where routine_id = (select id from public.routines where title = 'Daily kitchen'
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (select id from public.routines where title = 'Daily kitchen'),
-      p_assignment_policy => 'assigned',
-      p_assigned_member_id => '00000000-0000-4000-8000-000000000012',
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (select id from public.routines where title = 'Daily kitchen')),
+      p_idempotency_key => '002-edit-3',
+      p_patch => jsonb_build_object('assignment_policy', 'assigned',
+        'assigned_member_id', '00000000-0000-4000-8000-000000000012',
+        'rebuild_window', true)
     )
   $$,
   'assignment-only updates rebuild the biweekly window'
@@ -1116,13 +1120,17 @@ select lives_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id from public.routines where title = 'Weekly keep reschedule'
       ),
-      p_assignment_policy => 'assigned',
-      p_assigned_member_id => '00000000-0000-4000-8000-000000000011',
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id from public.routines where title = 'Weekly keep reschedule'
+      )),
+      p_idempotency_key => '002-edit-4',
+      p_patch => jsonb_build_object('assignment_policy', 'assigned',
+        'assigned_member_id', '00000000-0000-4000-8000-000000000011',
+        'rebuild_window', true)
     )
   $$,
   'assignment-only updates rebuild a rescheduled weekly window'
@@ -1207,15 +1215,19 @@ select is(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id from public.routines where title = 'Weekly keep reschedule'
       ),
-      p_active_until => private.first_routine_due_date(
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id from public.routines where title = 'Weekly keep reschedule'
+      )),
+      p_idempotency_key => '002-edit-5',
+      p_patch => jsonb_build_object('active_until', private.first_routine_due_date(
         '{"kind":"weekly","weekday":1}'::jsonb,
         private.household_today()
       ) + 1,
-      p_rebuild_window => true
+        'rebuild_window', true)
     )
   $$,
   'a shortened active window still rebuilds a rescheduled routine'
@@ -1296,13 +1308,17 @@ select lives_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id from public.routines where title = 'Daily keep reschedule'
       ),
-      p_assignment_policy => 'assigned',
-      p_assigned_member_id => '00000000-0000-4000-8000-000000000011',
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id from public.routines where title = 'Daily keep reschedule'
+      )),
+      p_idempotency_key => '002-edit-6',
+      p_patch => jsonb_build_object('assignment_policy', 'assigned',
+        'assigned_member_id', '00000000-0000-4000-8000-000000000011',
+        'rebuild_window', true)
     )
   $$,
   'assignment-only updates rebuild a rescheduled daily window'
@@ -1360,12 +1376,16 @@ select lives_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id from public.routines where title = 'Daily keep reschedule'
       ),
-      p_active_from => private.household_today() + 5,
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id from public.routines where title = 'Daily keep reschedule'
+      )),
+      p_idempotency_key => '002-edit-7',
+      p_patch => jsonb_build_object('active_from', private.household_today() + 5,
+        'rebuild_window', true)
     )
   $$,
   'a later active_from still rebuilds a rescheduled daily routine'
@@ -1463,12 +1483,16 @@ select lives_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id from public.routines where title = 'Alternating keep reschedule'
       ),
-      p_active_until => private.household_today() + 30,
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id from public.routines where title = 'Alternating keep reschedule'
+      )),
+      p_idempotency_key => '002-edit-8',
+      p_patch => jsonb_build_object('active_until', private.household_today() + 30,
+        'rebuild_window', true)
     )
   $$,
   'an active-window-only edit rebuilds a rescheduled alternating routine'
@@ -1562,13 +1586,17 @@ select lives_ok(
 
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id from public.routines where title = 'Biweekly keep reschedule'
       ),
-      p_assignment_policy => 'assigned',
-      p_assigned_member_id => '00000000-0000-4000-8000-000000000012',
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id from public.routines where title = 'Biweekly keep reschedule'
+      )),
+      p_idempotency_key => '002-edit-9',
+      p_patch => jsonb_build_object('assignment_policy', 'assigned',
+        'assigned_member_id', '00000000-0000-4000-8000-000000000012',
+        'rebuild_window', true)
     )
   $$,
   'assignment-only updates rebuild a rescheduled biweekly window'
@@ -1609,13 +1637,17 @@ select results_eq(
 -- biweekly routine above is discarded and the window rebuilds from today.
 select lives_ok(
   $$
-    select public.update_routine_definition(
+    select public.edit_routine_definition(
       p_routine_id => (
         select id from public.routines where title = 'Biweekly keep reschedule'
       ),
-      p_schedule_kind => 'calendar',
-      p_schedule_rule => '{"kind":"biweekly","weekday":2}'::jsonb,
-      p_rebuild_window => true
+      p_expected_updated_at => (select updated_at from public.routines where id = (
+        select id from public.routines where title = 'Biweekly keep reschedule'
+      )),
+      p_idempotency_key => '002-edit-10',
+      p_patch => jsonb_build_object('schedule_kind', 'calendar',
+        'schedule_rule', '{"kind":"biweekly","weekday":2}'::jsonb,
+        'rebuild_window', true)
     )
   $$,
   'a schedule-rule change rebuilds a rescheduled window'

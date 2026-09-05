@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 
 import type { FormAction } from "@/lib/forms/action-state";
 import { EchoedInput, EchoedTextarea } from "@/ui/forms/echoed-control.client";
@@ -17,6 +18,8 @@ type Option = { id: string; name: string };
 type Member = { user_id: string; display_name: string };
 export type RoutineFormDefaults = {
   routineId?: string;
+  expectedUpdatedAt?: string;
+  idempotencyKey?: string;
   title?: string;
   instructions?: string | null;
   areaId?: string;
@@ -99,15 +102,7 @@ function RoutineDetails({
   );
 }
 
-export function RoutineForm({
-  action,
-  areas,
-  defaultDate,
-  defaults = {},
-  members,
-  pets,
-  submitLabel,
-}: {
+type RoutineFormProps = {
   action: FormAction;
   areas: readonly Option[];
   defaultDate: string;
@@ -115,7 +110,25 @@ export function RoutineForm({
   members: readonly Member[];
   pets: readonly Option[];
   submitLabel: string;
-}) {
+};
+export function RoutineForm(props: RoutineFormProps) {
+  return (
+    <RoutineFormSession key={props.defaults?.routineId ?? "new"} {...props} />
+  );
+}
+function RoutineFormSession({
+  action,
+  areas,
+  defaultDate: initialDate,
+  defaults: initialDefaults = {},
+  members,
+  pets,
+  submitLabel,
+}: RoutineFormProps) {
+  const [{ defaults, defaultDate }] = useState({
+    defaults: initialDefaults,
+    defaultDate: initialDate,
+  });
   return (
     <FormFields
       action={action}
@@ -123,7 +136,19 @@ export function RoutineForm({
       showRequiredNotice={false}
     >
       {defaults.routineId ? (
-        <input name="routineId" type="hidden" value={defaults.routineId} />
+        <>
+          <input name="routineId" type="hidden" value={defaults.routineId} />
+          <input
+            name="expectedUpdatedAt"
+            type="hidden"
+            value={defaults.expectedUpdatedAt ?? ""}
+          />
+          <input
+            name="idempotencyKey"
+            type="hidden"
+            value={defaults.idempotencyKey ?? ""}
+          />
+        </>
       ) : null}
       <FormSection legend="What needs doing?">
         <FormField label="Title">

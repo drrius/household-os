@@ -14,6 +14,7 @@ import { RoutineForm } from "@/ui/forms/routine-form";
 const routineSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
+  updated_at: z.string(),
   paused_at: z.string().nullable(),
   instructions: z.string().nullable(),
   area_id: z.string().uuid(),
@@ -53,7 +54,7 @@ export default async function EditRoutinePage({
   const { data, error } = await supabase
     .from("routines")
     .select(
-      "id, title, instructions, area_id, pet_id, assignment_policy, assigned_member_id, rotation_anchor_member_id, schedule_rule, priority, paused_at",
+      "id, updated_at, title, instructions, area_id, pet_id, assignment_policy, assigned_member_id, rotation_anchor_member_id, schedule_rule, priority, paused_at",
     )
     .eq("household_id", member.householdId)
     .eq("id", routineId)
@@ -74,6 +75,8 @@ export default async function EditRoutinePage({
         defaultDate={zurichCivilDate()}
         defaults={{
           routineId: routine.id,
+          expectedUpdatedAt: routine.updated_at,
+          idempotencyKey: crypto.randomUUID(),
           title: routine.title,
           instructions: routine.instructions,
           areaId: routine.area_id,
