@@ -105,7 +105,7 @@ select 'task'::text kind,e.id,e.project_id parent_id,e.title title,
  and (p_types is null or 'task'=any(p_types))
  union all
 select 'booking'::text kind,e.id,e.project_id parent_id,e.title title,
- coalesce(e.notes,'') || ' ' || coalesce(e.origin,'') || ' ' || coalesce(e.destination,'') || ' ' || coalesce(e.confirmation,'') body,p.title labels,e.status status,(e.archived_at is not null or e.status='cancelled' or p.archived_at is not null or p.status in('complete','cancelled')) archived,case when exists(select 1 from pg_catalog.pg_timezone_names z where z.name=e.time_zone) then (e.starts_at at time zone e.time_zone)::date end date,
+ coalesce(e.notes,'') || ' ' || coalesce(e.origin,'') || ' ' || coalesce(e.destination,'') || ' ' || coalesce(e.confirmation,'') body,p.title labels,e.status status,(e.archived_at is not null or e.status='cancelled' or p.archived_at is not null or p.status in('complete','cancelled')) archived,(e.starts_at at time zone e.time_zone)::date date,
  to_tsvector('simple'::regconfig,coalesce(e.title,'') || ' ' || coalesce(e.notes,'') || ' ' || coalesce(e.origin,'') || ' ' || coalesce(e.destination,'') || ' ' || coalesce(e.confirmation,'')) document,to_tsvector('simple'::regconfig,p.title) label_document
  from public.trip_bookings e join public.household_projects p on p.household_id=e.household_id and p.id=e.project_id
  where e.household_id=tenant and true
@@ -113,7 +113,7 @@ select 'booking'::text kind,e.id,e.project_id parent_id,e.title title,
  and (p_types is null or 'booking'=any(p_types) or 'trip'=any(p_types))
  union all
 select 'calendar'::text kind,e.id,null::uuid parent_id,e.title title,
- coalesce(e.notes,'') || ' ' || coalesce(e.location,'') body,'' labels,case when e.cancelled_at is null then 'planned' else 'cancelled' end status,(e.cancelled_at is not null) archived,case when e.all_day then (e.starts_at at time zone 'UTC')::date when exists(select 1 from pg_catalog.pg_timezone_names z where z.name=e.time_zone) then (e.starts_at at time zone e.time_zone)::date end date,
+ coalesce(e.notes,'') || ' ' || coalesce(e.location,'') body,'' labels,case when e.cancelled_at is null then 'planned' else 'cancelled' end status,(e.cancelled_at is not null) archived,case when e.all_day then (e.starts_at at time zone 'UTC')::date else (e.starts_at at time zone e.time_zone)::date end date,
  to_tsvector('simple'::regconfig,coalesce(e.title,'') || ' ' || coalesce(e.notes,'') || ' ' || coalesce(e.location,'')) document,to_tsvector('simple'::regconfig,'') label_document
  from public.calendar_events e
  where e.household_id=tenant and true
