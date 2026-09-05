@@ -35,6 +35,8 @@ Read `docs/agent-work-protocol.md` before parallel implementation.
 
 Run only the minimal local verification that provides the smallest meaningful proof the change works: run the tests you touched and directly affected tests, plus targeted lint and typechecking for the scope you changed. CI runs the full suite; do not run `pnpm verify` or full test suites locally by default. For database changes, run the relevant database tests. For financial changes, run focused example tests and property tests.
 
+CI follows `.github/workflows/ci.yml`: docs-only PRs run formatting checks, while main pushes run full `pnpm verify` and browser integration checks. Database jobs run when their inputs change; a docs-only PR result is not full-suite evidence.
+
 Test meaningful logic or observable behavior. Do not render components to static markup to assert props or attributes. Do not add tests that merely assert callback wiring or mirror the implementation.
 
 ## Cursor Cloud specific instructions
