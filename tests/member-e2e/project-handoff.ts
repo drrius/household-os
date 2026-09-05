@@ -31,6 +31,9 @@ export async function exerciseProjectHandoff(
     has: sam.getByRole("link", { name: "CI pack passports", exact: true }),
   });
   await row.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(
+    sam.getByRole("region", { name: "Checklists", exact: true }),
+  ).toContainText("0 to do · 1 done");
   // No reload: this checks the other member's subscribed project view.
   await expect(checklist).toContainText("0 to do · 1 done", {
     timeout: 30_000,

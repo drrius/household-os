@@ -3,6 +3,7 @@ import { bootstrapMembers } from "./local-runtime";
 import { exerciseMoneyHistory } from "./money-history";
 import { exerciseProjectHandoff } from "./project-handoff";
 import { exerciseSearchReturn } from "./search-return";
+import { exerciseShoppingMoney } from "./shopping-money";
 
 async function enroll(page: Page, link: string) {
   try {
@@ -117,14 +118,20 @@ test("two members share travel, paid history, assigned work and search context",
     await exerciseMoneyHistory(alex, sam, tripUrl);
     await exerciseProjectHandoff(alex, sam, tripUrl);
     await exerciseSearchReturn(sam);
+    await exerciseShoppingMoney(alex, sam);
   } catch (error) {
-    const page = memberA.pages()[0];
-    if (page && !new URL(page.url()).pathname.startsWith("/auth")) {
-      const snapshot = await page
-        .locator("body")
-        .ariaSnapshot()
-        .catch(() => "Unavailable");
-      console.info("Member A failure state:", snapshot.slice(0, 12000));
+    for (const [name, context] of [
+      ["Alex", memberA],
+      ["Sam", memberB],
+    ] as const) {
+      const page = context.pages()[0];
+      if (page && !new URL(page.url()).pathname.startsWith("/auth")) {
+        const snapshot = await page
+          .locator("body")
+          .ariaSnapshot()
+          .catch(() => "Unavailable");
+        console.info(`${name} failure state:`, snapshot.slice(0, 12000));
+      }
     }
     throw error;
   } finally {
