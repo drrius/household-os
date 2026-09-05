@@ -95,30 +95,31 @@ export function createCaldavTransport(
                 : "application/xml; charset=utf-8",
           },
         });
-      } catch {
+        if ([301, 302, 307, 308].includes(response.status)) {
+          const location = response.headers.get("location");
+          await response.body?.cancel();
+          if (!location || redirects === 3)
+            throw new CalendarError(
+              "invalid",
+              "iCloud calendar discovery returned too many redirects.",
+            );
+          url = validate(new URL(location, url).href);
+          continue;
+        }
+        authorizeStatus(response.status);
+        return {
+          status: response.status,
+          body: await boundedText(response),
+          etag: response.headers.get("etag"),
+          url: url.href,
+        };
+      } catch (error) {
+        if (error instanceof CalendarError) throw error;
         throw new CalendarError(
           "network",
           "Could not reach iCloud. Check your connection and try again.",
         );
       }
-      if ([301, 302, 307, 308].includes(response.status)) {
-        const location = response.headers.get("location");
-        await response.body?.cancel();
-        if (!location || redirects === 3)
-          throw new CalendarError(
-            "invalid",
-            "iCloud calendar discovery returned too many redirects.",
-          );
-        url = validate(new URL(location, url).href);
-        continue;
-      }
-      authorizeStatus(response.status);
-      return {
-        status: response.status,
-        body: await boundedText(response),
-        etag: response.headers.get("etag"),
-        url: url.href,
-      };
     }
     throw new CalendarError("network", "iCloud calendar request failed.");
   };

@@ -113,11 +113,13 @@ export function writeCalendar(
 }
 
 function ensureEditable(master: ICAL.Component) {
-  const zone = master.getFirstProperty("dtstart")?.getParameter("tzid");
-  if (typeof zone === "string" && !isTimeZone(zone))
-    throw new Error(
-      "This event uses a custom time zone. Edit it in Apple Calendar to preserve its original definition.",
-    );
+  for (const field of ["dtstart", "dtend"]) {
+    const zone = master.getFirstProperty(field)?.getParameter("tzid");
+    if (typeof zone === "string" && !isTimeZone(zone))
+      throw new Error(
+        "This event uses a custom time zone. Edit it in Apple Calendar to preserve its original definition.",
+      );
+  }
   if (master.hasProperty("attendee") || master.hasProperty("organizer"))
     throw new Error(
       "This event has invitations. Manage its changes in Apple Calendar so guests receive the right updates.",
