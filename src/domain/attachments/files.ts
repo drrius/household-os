@@ -19,10 +19,16 @@ export function isHouseholdAttachment(
 ): boolean {
   const match = pathPattern.exec(path);
   return (
-    match !== null && match[1]?.toLowerCase() === householdId.toLowerCase()
+    match !== null &&
+    match[1]?.toLowerCase() === householdId.toLowerCase() &&
+    !(
+      match[2]?.toLowerCase() === "completions" &&
+      match[3]?.toLowerCase() === "pdf"
+    )
   );
 }
 
+/** Header detection for browser preparation and routing; never proves image validity. */
 export function attachmentFileType(
   bytes: Uint8Array,
 ): { extension: string; mime: string } | null {

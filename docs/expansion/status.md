@@ -22,17 +22,31 @@ The initial baseline was `39f9363`. Existing PR40 (MCP bridge) is outside this e
 | Shared forms                                                           | `e2f19f3`: accessible labels, framework signals, calendar discard tracking and protected pending saves                                | [#57](https://github.com/drrius/household-os/pull/57): local 273 tests/build and 60 production browser cases pass; explicit positive Codex review of current head; three fixed threads resolved                                                                                                                                                        |
 | Contextual paid costs                                                  | `b65ecd4`: exact costs, atomic expenses and guarded association changes with payer details                                            | [#58](https://github.com/drrius/household-os/pull/58): local 395 tests/build and 24 production browser cases pass; positive Codex review of `b65ecd4`; database tests028/030 require dependency integration                                                                                                                                            |
 
+## Current checkpoint — 2026-09-05 CodeRabbit and public CI
+
+The user replaced Codex review with CodeRabbit. Historical Codex results above remain historical; outstanding delivery requires CodeRabbit review, evidence-based replies and rereview. Organization settings now allow automatic review of stacked PR60, so the earlier base-branch configuration issue is no longer a blocker. The optional 80% docstring coverage warning does not fit this repository’s style. Review rate limits are not approval; no usage-based billing or extra allowance was authorized.
+
+The user made the repository public. Hosted CI runs are available and are the database verification path while local Postgres is unavailable. Current failures are concrete code/dependency failures, not evidence of a billing restriction. Main’s build and browser suite passed in run 33954716592; its SQL014 fails because routine019’s edit command is absent.
+
+- PR44 was externally merged at `38e927d` on 2026-09-05 08:14 UTC. No merge was performed by this task.
+- PR59 is now `6c18e0a`: full 371 tests/build pass; hosted SQL032/033/035 pass on this head. CodeRabbit accepted all three follow-up findings and their threads are resolved. SQL014 still requires routine019.
+- PR51 is now `16311ad`: full 406 tests/build and 54 Home browser cases pass. The follow-up covers query normalization, pristine parented forms, attention pagination, versioned option archive, lifecycle guards and fixture fidelity. CodeRabbit accepted all ten corrected findings. Hosted verify passes; migration execution stops at the missing attachment claim helper, so SQL034/037 remain unverified.
+- PR60 is now `f79e657`: 398 tests/build and 75 project/task/starter/booking browser cases pass, including city search and controlled-input refresh. Hosted SQL036 passes on this head (run 33956008616); overall DB status fails on SQL011’s older areas fixture. CodeRabbit found no actionable comments on initial `77940c0`; city-search follow-up review remains required. See [booking evidence](trip-bookings.md).
+- PR49 is now `7f224ea`: 366 tests/build and 30 Money browser cases pass. Hosted verify and the complete database suite pass in direct branch run 33956554346; browser CI is still running. CodeRabbit accepted three corrections and withdrew its negative-share finding after checking the existing parser and new regression/property tests. The overall rereview remains a separate gate.
+- PR47 is now `b6206eb`: 390 tests/build pass. Grocery constraint validation and missing legacy fallback repairs are pushed with SQL038; hosted database verification is pending. Two other findings are disputed with lifecycle/action evidence.
+- New CodeRabbit findings on projects and routines remain to be assessed and resolved. Other PRs still require current-reviewer coverage.
+
 ## Remaining application-wide acceptance work
 
 - Assemble the dependent implementations, resolve base conflicts and run their migrations and workflows together. Isolated PRs are not evidence of working navigation or cross-feature transactions.
-- Complete booking and itinerary create/read/edit/archive journeys, their calendar links, private documents and contextual paid-cost entry points from trip/record details.
+- Integrate the implemented booking and itinerary journeys with calendar links, private documents and contextual paid-cost entry points from trip/record details.
 - Bring upcoming travel, projects, renewal deadlines, maintenance and calendar commitments into Today and Plan with useful actions and preserved date/filter context. Keep the five primary destinations comfortable on phones.
 - Expose global search only when result destinations exist. Verify all related-record links, inherited payment associations, notifications, reminder destinations and recovery paths against the assembled application.
 - Apply shared form/navigation improvements to the expanded long forms. Discard protection currently covers routine/expense Cancel and internal links; App Router browser history and programmatic exits are outside that mechanism. Confirm deliberate limits and recovery in the final mobile audit.
 - Exercise both members' concurrent edits and sign-in/sign-out/device ownership together. Verify realtime invalidation, stale confirmations, no duplicate financial posting, private attachment lifecycle and zero-cost limits on the assembled schema.
 - Finish environment/setup/recovery documentation and live checks for private iCloud, Web Push and private uploads when the required credentials and deployment authorization are available. Do not manufacture those proofs from fixtures.
 - Repeat the full application audit after assembly: navigation, discovery, onboarding, household/account/settings, all record lifecycles, daily coordination, accessibility, motion, small screens, errors/loading/empty states, operational readiness and any other worthwhile missing feature. A checked starting-workflow list does not close the goal.
-- Resolve substantiated Codex findings, explain disagreements, obtain explicit positive review of every final code head and pass required verification before completion.
+- Resolve substantiated CodeRabbit findings, explain disagreements, obtain explicit positive review of every final code head and pass required verification before completion.
 
 ## External and integration gates
 
@@ -43,3 +57,25 @@ Automatic approval review rejected feature-branch integration twice and requeste
 Codex previously returned review-quota errors. Later explicit approval of PR44 `87fd556` and PR58 `b2d1e93`, followed by an accepted running review of `5050d98`, established that review requests could resume. Outstanding changed heads have been requested once; prior approvals are never extended to later code by assumption. No credits or usage resets were purchased or redeemed.
 
 Live iCloud setup needs the server encryption key and the member's Apple app-specific password. Live push requires the compatible worker deployed before its database change. Production changes and PR merges remain outside authorization.
+
+## September 5 review-thread and verification checkpoint
+
+The user requires fixed review threads to be resolved immediately after fixes are pushed. The first cleanup pass manually resolved 74 previously open threads, with commit evidence in replies. This was an audit snapshot, not an application-completion assessment. Project coordination was still unimplemented at that point; its later delivery and two additional resolved threads are recorded below. CodeRabbit also resolves some threads automatically. Do not use an empty thread list as proof that the final head has passed CI or full review.
+
+The current main `AGENTS.md` is imported here. Local checks are limited to directly affected tests, targeted lint and typechecking; full suites run in CI. The goal document now reflects this policy and immediate thread resolution. No local `pnpm verify` or full suite was run during this pass.
+
+- PR #53: `179bb43` makes the existing sign-in route regression discoverable by renaming its JSX-free `.test.tsx` file to `.test.ts`, and requires an exact safe fallback. Three focused tests, lint and typechecking passed. Push re-enrollment integration remains an outstanding dependency.
+- PR #59: `1603ce8` clarifies historical verification wording and imports the current agent instructions. CodeRabbit reported no actionable comments on this head.
+- PR #60: `16beb5d` accurately labels desktop WebKit and records the user's verification and review-resolution requirements.
+- PR #64: `3f48a18` follows up merged PRs #44 and #56. Failed attachment removal now gives actionable validation feedback; push actions preserve actual Next.js authentication redirects. The release guide specifies migration dry run/review/application before Edge deployment. Eighteen focused tests, targeted lint and typechecking, and one Chromium removal/retry case passed. Hosted verification and browser CI passed, and CodeRabbit reported no actionable findings. PR #64 was subsequently externally merged into main at 777f7b6. No production command was run.
+- PR #46: main was externally integrated at `72f6cde`, and PR #49 was externally merged into the routine branch at `dd7f648`. Do not overwrite that external integration. SQL040 adds two-session current/routine/preview contention, unchanged-state checks, exact-key retries and concurrent completion. All 16 assertions passed on `dd7f648`; fixture cleanup then failed because a completion still referenced its member. `2cfa5a9` corrects that cleanup. The subsequent hosted database job 101285833372 passed the entire suite, including all SQL040 assertions and cleanup, on the externally updated 8abedbe head. Hosted verification passed too. The local worktree was fast-forwarded to the published external history before that fix; no new feature-branch integration was performed here.
+
+PR #52 now includes project/task assignment notifications and visible recovery history in a2de2de, with exact task destinations in cfe36a9. Sixteen focused tests, targeted lint, TypeScript and one Chromium history flow passed. Hosted verify and the complete database suite passed on cfe36a9, including SQL011, SQL039 and SQL041 (job 101286958642). Both original coordination findings are resolved, bringing this pass to 76 manually resolved threads. Broader browser CI and CodeRabbit rereview remain to be recorded.
+
+PR #65 (9bfe6f0) adds the release/recovery guide and corrects the README's stale UI freeze and local-verification instructions. Its documentation checks pass; review remains pending. It records manual calendar sync and unperformed live checks honestly.
+
+Home and search still require their assembled dependencies and route-level verification. Global completion, live iCloud/device checks and the replacement trial remain outstanding; neither the review cleanup nor the release guide closes those gates.
+
+## Authorized integration checkpoint
+
+The user explicitly approved feature-branch integration on September 5. The previous automatic-approval blocker is cleared. The connected foundation now incorporates main through 700cf39, including the merged routine/Money work, attachment security and recovery, push setup, release guide and updated CI policy. Attachment conflicts retain main’s reviewed implementation; calendar parser dependencies remain pinned alongside jpeg-js. Nineteen directly affected attachment/invalidation tests and TypeScript checking passed locally. Hosted integration checks remain required.

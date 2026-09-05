@@ -1,8 +1,9 @@
 export type InboxNotificationKind =
-  "partner_notice" | "routine_reminder" | "household_digest";
+  "partner_notice" | "routine_reminder" | "household_digest" | "device_test";
 
 export type PushInboxNotification = {
   id: string;
+  test_subscription_id?: string;
   kind: InboxNotificationKind;
   activity_kind: string | null;
   entity_type: string | null;
@@ -49,6 +50,8 @@ function partnerTitle(activityKind: string | null): string {
 
 function urlForNotification(notification: PushInboxNotification): string {
   switch (notification.kind) {
+    case "device_test":
+      return "/home/notifications";
     case "routine_reminder":
     case "household_digest":
       return "/";
@@ -81,6 +84,14 @@ export function buildPushPayload(
   notification: PushInboxNotification,
 ): PushPayload {
   switch (notification.kind) {
+    case "device_test":
+      return {
+        title: "Household OS test",
+        body: "Push is working on this device.",
+        url: "/home/notifications",
+        notificationId: notification.id,
+        icon: "/icons/icon-192.png",
+      };
     case "routine_reminder":
       return {
         title: "Routine reminder",

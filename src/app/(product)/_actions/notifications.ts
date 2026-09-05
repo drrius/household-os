@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { PushEndpointOwnedError } from "@/lib/notifications/push-registration-error";
+import type { PushRegistrationResult } from "@/lib/notifications/push-status-contract";
 
 import {
   settleFormAction,
@@ -50,12 +52,15 @@ export async function registerPushSubscriptionAction(input: {
   p256dh: string;
   auth: string;
   userAgent?: string | null;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<PushRegistrationResult> {
   try {
     await registerPushSubscription(input);
     revalidatePath("/home/notifications");
     return { ok: true };
   } catch (error) {
+    if (error instanceof PushEndpointOwnedError) {
+      return { ok: false, error: error.message, reason: "endpoint_owned" };
+    }
     return {
       ok: false,
       error:

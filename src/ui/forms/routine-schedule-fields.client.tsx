@@ -223,7 +223,7 @@ export function RoutineScheduleFields({
   };
 
   return (
-    <FormSection legend="Schedule">
+    <FormSection legend="When?">
       <FormField label="Repeat">
         <FormSelect
           items={[...scheduleModes]}

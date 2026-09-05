@@ -15,7 +15,7 @@ describe("project assignment inbox destination", () => {
     "renders the stored task and safely handles project %s",
     async (projectId) => {
       const row = {
-        id: "notice",
+        id: "41000400-0000-4000-8000-000000000001",
         kind: "partner_notice",
         activity_kind: "project_task_assigned",
         entity_type: "project_task",

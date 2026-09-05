@@ -10,9 +10,13 @@ import {
   settleFormAction,
   type FormActionState,
 } from "@/lib/forms/action-state";
+import { mealDate, mealPlanHref } from "@/lib/forms/meal-navigation";
 import { parseGroceryForm } from "@/lib/forms/grocery";
 import {
   parseMealForm,
+  parseMoveMealForm,
+  parseLeftoverMealForm,
+  parseMealPreparationForm,
   parsePlaceFromLibraryForm,
   parseRemoveMealForm,
   parseUpdateMealForm,
@@ -20,6 +24,8 @@ import {
 import { createGroceryItem } from "@/lib/groceries/commands";
 import {
   createAndPlaceMeal,
+  createMealPreparation,
+  moveMealPlanEntry,
   placeMeal,
   removeMealPlanEntry,
   updateMealPlanEntry,
@@ -66,7 +72,7 @@ export async function createMealAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(mealPlanHref(mealDate(formData.get("date"))));
 }
 
 export async function placeFromLibraryAction(
@@ -86,7 +92,7 @@ export async function placeFromLibraryAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(mealPlanHref(mealDate(formData.get("date"))));
 }
 
 export async function removeMealEntryAction(formData: FormData): Promise<void> {
@@ -104,11 +110,13 @@ export async function removeMealEntryAction(formData: FormData): Promise<void> {
   }
   if (failure !== null) {
     const fallback =
-      entryId === null ? "/plan" : `/plan/meals/${encodeURIComponent(entryId)}`;
+      entryId === null
+        ? "/plan"
+        : `/plan/meals/${encodeURIComponent(entryId)}/edit`;
     redirect(errorHref(fallback, failure));
   }
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(mealPlanHref(mealDate(formData.get("date"))));
 }
 
 export async function updateMealEntryAction(
@@ -129,5 +137,47 @@ export async function updateMealEntryAction(
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/plan", "/groceries"]);
-  redirect("/plan");
+  redirect(mealPlanHref(mealDate(formData.get("date"))));
+}
+
+export async function moveMealEntryAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
+    await moveMealPlanEntry(parseMoveMealForm(formData));
+  });
+  if (rejected) return rejected;
+  revalidateProduct(["/", "/plan", "/groceries"]);
+  redirect(mealPlanHref(mealDate(formData.get("date"))));
+}
+
+export async function placeLeftoverMealAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const rejected = await settleFormAction(previous, formData, async () => {
+    await placeMeal({
+      ...parseLeftoverMealForm(formData),
+      sourceKind: "leftover",
+    });
+  });
+  if (rejected) return rejected;
+  revalidateProduct(["/", "/plan"]);
+  redirect(mealPlanHref(mealDate(formData.get("date"))));
+}
+
+export async function createMealPreparationAction(
+  previous: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  let entryId = "";
+  const rejected = await settleFormAction(previous, formData, async () => {
+    const input = parseMealPreparationForm(formData);
+    entryId = input.mealPlanEntryId;
+    await createMealPreparation(input);
+  });
+  if (rejected) return rejected;
+  revalidateProduct(["/", "/plan", `/plan/meals/${entryId}`]);
+  redirect(`/plan/meals/${entryId}`);
 }

@@ -7,3 +7,7 @@ Project/trip and task creation, edits, completion/reopening and archive/restore 
 This implements the outstanding coordination findings under ADRs 0010 and 0028. It adds no money posting or automatic expense creation. SQL041 covers attribution, atomic rollback, no-op/self-assignment suppression, durable outbox integration, retained values, archive/restore and tenant isolation. The existing SQL011 fixture now supplies required area sort positions so hosted CI can reach its connected-household assertions.
 
 Focused verification: 16 directly affected tests (including budget formatting properties and safe notification destinations), targeted lint and TypeScript passed. The single new Chromium history flow passed, including expansion, earlier values, readable assignments/CHF amounts and pagination. Local PostgreSQL is unavailable; hosted SQL041 execution remains required. No full local suite or production build was run.
+
+## Dependency integration
+
+The updated foundation and current main are now integrated. The shared inbox retains main's pagination, unread counts and target checks; project assignment labels, task names and exact task links now live in its presentation module, with payload selected by the read model. Six directly affected inbox/project tests, targeted lint and TypeScript checking pass. Hosted database and combined browser verification must run on this integrated head; earlier cfe36a9 results are historical evidence.
