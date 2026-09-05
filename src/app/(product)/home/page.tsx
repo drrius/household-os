@@ -41,7 +41,7 @@ async function queryHomeRows(
         .order("name"),
       client
         .from("routines")
-        .select("id, title, area_id, pet_id, archived_at")
+        .select("id, title, area_id, pet_id, archived_at, paused_at")
         .eq("household_id", householdId),
       client
         .from("activity_events")
@@ -77,7 +77,12 @@ async function queryHomeRows(
   });
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const query = await searchParams;
   const member = await requireMemberContext();
   const client = await createClient();
   const rows = await queryHomeRows(client, member.householdId);
@@ -87,15 +92,22 @@ export default async function HomePage() {
   });
 
   return (
-    <HomeScreen
-      model={model}
-      storageUsage={
-        <Suspense
-          fallback={<AttachmentUsageDisplay usage={{ status: "loading" }} />}
-        >
-          <AttachmentUsageContent client={client} />
-        </Suspense>
-      }
-    />
+    <>
+      {query.saved === "routine" ? (
+        <p role="status" className="mx-4 rounded-xl bg-success-soft p-3">
+          Routine saved. Your household is up to date.
+        </p>
+      ) : null}
+      <HomeScreen
+        model={model}
+        storageUsage={
+          <Suspense
+            fallback={<AttachmentUsageDisplay usage={{ status: "loading" }} />}
+          >
+            <AttachmentUsageContent client={client} />
+          </Suspense>
+        }
+      />
+    </>
   );
 }

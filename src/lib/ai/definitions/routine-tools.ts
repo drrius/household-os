@@ -45,6 +45,11 @@ export const ROUTINE_TOOLS: readonly AiToolDefinition[] = [
       withAssignmentCheck(
         z.object({
           routineId: uuid,
+          expectedUpdatedAt: z.iso
+            .datetime({ offset: true })
+            .describe(
+              "Exact updated_at from get_routines for the version being edited; read the routine before editing",
+            ),
           title: z.string().trim().min(1).max(120).nullish(),
           schedule: scheduleInputSchema.nullish(),
           assignmentPolicy: assignmentPolicy.nullish(),

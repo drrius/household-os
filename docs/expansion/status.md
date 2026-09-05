@@ -13,6 +13,10 @@ The app-wide effective goal and current PR matrix live on the integration branch
 
 CodeRabbit is the current reviewer. Three findings are addressed in the current follow-up (stale documentation, upload errors, refund operation identity). CodeRabbit withdrew the negative-share report after reviewing the example and property tests: the existing `parseChfToCentimes` grammar accepts only unsigned amounts and already produces a field-specific rejection.
 
+## Stack and merge order
+
+`main → #46 (routines) → #49 (Money)`. PR #49 targets `codex/routines-household` and includes its parent commits through `c9eb7be`. The parent supplies `edit_routine_definition`, required by the meal lifecycle database tests already on main. Merge #46 first; then retarget #49 to main, update its branch, and require fresh CI before merging #49.
+
 ## Verification and dependencies
 
 The earlier 339-test main baseline was historical, not verification of this Money branch. Current follow-up verification is recorded in `money-coderabbit-review.md` when completed.
