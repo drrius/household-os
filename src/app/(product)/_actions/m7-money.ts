@@ -7,6 +7,8 @@ import {
   revalidateProduct,
   uuidSchema,
 } from "@/app/(product)/_actions/m7-shared";
+import { requireMemberContext } from "@/lib/auth/member-context";
+import { validateReceiptPath } from "@/lib/money/receipt";
 import { settlementAmount } from "@/domain/money/settlements";
 import {
   settleFormAction,
@@ -36,6 +38,11 @@ export async function createExpenseAction(
         ? draftValue
         : null;
     const members = await loadHouseholdMembers();
+    const member = await requireMemberContext();
+    const receiptPath = validateReceiptPath(
+      formData.get("receiptPath"),
+      member.householdId,
+    );
     const input = parseExpenseForm(formData, [
       members[0].user_id,
       members[1].user_id,
@@ -50,10 +57,11 @@ export async function createExpenseAction(
         occurredOn: input.occurredOn,
         categoryId: input.categoryId,
         note: input.note,
+        receiptPath,
       });
       return;
     }
-    await postManualExpense(input);
+    await postManualExpense({ ...input, receiptPath });
   });
   if (rejected) return rejected;
   revalidateProduct(["/", "/money", "/home"]);

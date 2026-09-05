@@ -1,11 +1,26 @@
-# Routine implementation status
+# Money implementation status
 
-This is the routine branch checkpoint. The integration branch tracks the application-wide goal, PR matrix and remaining acceptance work. The former 339-test main result was a historical baseline, not verification of the routine expansion.
+The app-wide effective goal and current PR matrix live on the integration branch in `docs/expansion/goal.md` and `docs/expansion/status.md`. This is the Money branch checkpoint, replacing the original pre-implementation plan.
 
-PR46 implements routine details, exceptions, editing, setup and maintenance controls. Its `5f9fe07` cohort passed 371 tests and the production build. SQL019 covers routine edit versions and lifecycle sequences; hosted execution still needs to be recorded. Archived routines are sorted by title and id.
+## Delivered in PR #49
 
-This branch now includes current main: private attachments with claim/cleanup, meals, inbox paging, and device push. Completion photos use the landed attachment lifecycle instead of the earlier isolated copy.
+- Inspectable financial events, original shares, receipts, and effects on both members.
+- Partial refunds with exact/proportional previews and remaining-share limits.
+- Corrections and opening-balance repair while retaining append-only history.
+- Recurring expense setup and readable draft schedules.
+- Recovery after rejected submissions and stable refund operation identity through background server refreshes.
+- Recoverable attachment upload errors when an upstream service returns HTML.
 
-CodeRabbit replaced Codex as reviewer at the user’s request. Sequential SQL019 scenarios are not a two-session contention proof; the pgTAP suite runs in one transaction and cannot open a second PostgreSQL session.
+CodeRabbit is the current reviewer. Three findings are addressed in the current follow-up (stale documentation, upload errors, refund operation identity). CodeRabbit withdrew the negative-share report after reviewing the example and property tests: the existing `parseChfToCentimes` grammar accepts only unsigned amounts and already produces a field-specific rejection.
 
-The repository is public and hosted CI is available. Follow the current main policy: focused local tests, lint and type checks, then full verification in CI. Local PostgreSQL on port 54322 is unavailable. No production database changes were performed. The final assembled-app audit remains a separate gate.
+## Stack and merge order
+
+`main → #46 (routines) → #49 (Money)`. PR #49 targets `codex/routines-household` and includes its parent commits through `c9eb7be`. The parent supplies `edit_routine_definition`, required by the meal lifecycle database tests already on main. Merge #46 first; then retarget #49 to main, update its branch, and require fresh CI before merging #49.
+
+## Verification and dependencies
+
+The earlier 339-test main baseline was historical, not verification of this Money branch. Current follow-up verification is recorded in `money-coderabbit-review.md` when completed.
+
+The private attachment foundation now exists and PR #44 was externally merged. This branch incorporates main through `fa09be9`, retaining the merged attachment security and retry implementation alongside the Money fixes. Combined verification remains required before merge. Repository visibility is now public and hosted CI is available. Local Postgres is unavailable on port 54322. No production database changes have been made.
+
+Live iCloud credentials remain a separate setup requirement for the calendar branch. No live-account sync claim is made by this Money checkpoint.
