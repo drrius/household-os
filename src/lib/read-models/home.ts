@@ -1,6 +1,7 @@
 import { mapArchivedRoutines } from "./home-archived-routines";
 import { z } from "zod";
 
+import { householdRecordActivity } from "@/domain/home-records/activity";
 import { ZURICH_TIME_ZONE } from "@/lib/ui/zurich-date";
 
 const activityKindSchema = z.enum([
@@ -28,6 +29,7 @@ const activityKindSchema = z.enum([
   "recurring_expense_rule_created",
   "recurring_expense_rule_updated",
   "recurring_drafts_generated",
+  "household_record_changed",
 ]);
 const timestampSchema = z.iso.datetime({ offset: true });
 const householdRowSchema = z.object({
@@ -129,6 +131,7 @@ const ACTIVITY_COPY = {
   recurring_expense_rule_created: ["created a recurring expense", null],
   recurring_expense_rule_updated: ["updated a recurring expense", null],
   recurring_drafts_generated: ["generated recurring expense drafts", null],
+  household_record_changed: ["updated a household record", null],
 } satisfies Record<ActivityKind, readonly [string, string | null]>;
 const activityWhenFormatter = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
@@ -214,10 +217,15 @@ function mapActivity({
       const routineId = routineIdForActivity(event);
       const routineTitle =
         routineId === null ? undefined : routineById.get(routineId)?.title;
+      const recordAction =
+        event.kind === "household_record_changed"
+          ? householdRecordActivity(event.payload)
+          : null;
       const action =
-        routineVerb !== null && routineTitle !== undefined
+        recordAction ??
+        (routineVerb !== null && routineTitle !== undefined
           ? `${routineVerb} ${routineTitle}`
-          : fallback;
+          : fallback);
 
       return {
         id: event.id,
