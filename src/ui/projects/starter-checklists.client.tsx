@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
+import { useStarterOperation } from "./use-starter-operation.client";
 import type { ProjectKind } from "@/domain/projects/types";
 import { startersFor } from "@/domain/projects/starters";
 import {
@@ -13,29 +20,42 @@ import { Button, buttonVariants } from "@/components/ui/button";
 export function StarterChecklists({
   projectId,
   kind,
-  taskIds,
   action = addStarterTasksAction,
 }: {
   projectId: string;
   kind: ProjectKind;
-  taskIds: Record<string, string>;
   action?: (previous: StarterResult, form: FormData) => Promise<StarterResult>;
 }) {
   const choices = startersFor(kind);
-  const [ids] = useState(taskIds);
+  const operation = useStarterOperation(projectId);
   const [preset, setPreset] = useState(choices[0]!.key as string);
   const starter = choices.find((item) => item.key === preset)!;
   const [selected, setSelected] = useState<string[]>(
     starter.tasks.map((item) => item[0]),
   );
   const { submission, submit, pending, result, errorRef } =
-    useStarterSubmission(action);
+    useStarterSubmission(async (previous, form) => {
+      const next = await action(previous, form);
+      if (next && "added" in next) operation.confirm();
+      return next;
+    });
   if (result && "added" in result)
-    return <StarterSuccess result={result} projectId={projectId} />;
+    return (
+      <StarterSuccess
+        result={result}
+        projectId={projectId}
+        error={operation.error}
+      />
+    );
   return (
     <form key={submission.submissionId} action={submit} className="grid gap-5">
       <input type="hidden" name="projectId" value={projectId} />
-      <fieldset disabled={pending} className="grid gap-5">
+      <input type="hidden" name="operationId" value={operation.id ?? ""} />
+      {operation.error ? <p role="alert">{operation.error}</p> : null}
+      <fieldset
+        disabled={pending || operation.id === null}
+        className="grid gap-5"
+      >
         <StarterPreset
           choices={choices}
           preset={preset}
@@ -46,7 +66,6 @@ export function StarterChecklists({
         />
         <StarterChoices
           starter={starter}
-          ids={ids}
           selected={selected}
           onToggle={(key, checked) =>
             setSelected((current) =>
@@ -60,35 +79,46 @@ export function StarterChecklists({
           Choose what helps. You can assign, edit or remove tasks afterward.
           Tasks already on this checklist are skipped, including completed ones.
         </p>
-        <Button type="submit" disabled={pending || selected.length === 0}>
+        <Button
+          type="submit"
+          disabled={pending || operation.id === null || selected.length === 0}
+        >
           {pending
             ? "Adding tasks…"
             : `Add ${selected.length} ${selected.length === 1 ? "task" : "tasks"}`}
         </Button>
       </fieldset>
-      {result && "error" in result ? (
-        <p
-          ref={errorRef}
-          tabIndex={-1}
-          role="alert"
-          className="text-destructive"
-        >
-          {result.error}
-        </p>
-      ) : null}
+      <StarterFailure result={result} errorRef={errorRef} />
     </form>
   );
+}
+
+function StarterFailure({
+  result,
+  errorRef,
+}: {
+  result: StarterResult;
+  errorRef: RefObject<HTMLParagraphElement | null>;
+}) {
+  return result && "error" in result ? (
+    <p ref={errorRef} tabIndex={-1} role="alert" className="text-destructive">
+      {result.error}
+    </p>
+  ) : null;
 }
 
 function StarterSuccess({
   result,
   projectId,
+  error,
 }: {
+  error: string | null;
   result: { added: number; skipped: number };
   projectId: string;
 }) {
   return (
     <div className="grid gap-4 rounded-2xl border bg-card p-5">
+      {error ? <p role="alert">{error}</p> : null}
       <p role="status">
         {result.added} {result.added === 1 ? "task added" : "tasks added"}.
         {result.skipped > 0 ? ` ${result.skipped} already present.` : ""}
@@ -105,12 +135,10 @@ function StarterSuccess({
 
 function StarterChoices({
   starter,
-  ids,
   selected,
   onToggle,
 }: {
   starter: ReturnType<typeof startersFor>[number];
-  ids: Record<string, string>;
   selected: string[];
   onToggle: (key: string, checked: boolean) => void;
 }) {
@@ -130,11 +158,6 @@ function StarterChoices({
             onChange={(event) => onToggle(key, event.target.checked)}
           />
           <span>{title}</span>
-          <input
-            type="hidden"
-            name={`id:${key}`}
-            value={ids[`${starter.key}:${key}`]}
-          />
         </label>
       ))}
     </div>

@@ -5,8 +5,13 @@ import { z } from "zod";
 import { startersFor } from "@/domain/projects/starters";
 import type { ProjectKind } from "@/domain/projects/types";
 
-/** UUIDv5 namespaces each preset item under its project, independent of renders. */
-export function starterTaskIds(projectId: string, kind: ProjectKind) {
+/** UUIDv5 namespaces preset items under a project and retry operation. */
+export function starterTaskIds(
+  projectId: string,
+  kind: ProjectKind,
+  operationId: string,
+) {
+  const operation = z.uuid().parse(operationId).toLowerCase();
   const namespace = Buffer.from(
     z.uuid().parse(projectId).replaceAll("-", ""),
     "hex",
@@ -17,7 +22,7 @@ export function starterTaskIds(projectId: string, kind: ProjectKind) {
         const name = `${starter.key}:${key}`;
         const bytes = createHash("sha1")
           .update(namespace)
-          .update(name)
+          .update(`${operation}:${name}`)
           .digest();
         bytes[6] = (bytes[6]! & 0x0f) | 0x50;
         bytes[8] = (bytes[8]! & 0x3f) | 0x80;

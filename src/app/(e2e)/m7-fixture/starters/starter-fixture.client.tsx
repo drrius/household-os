@@ -1,17 +1,16 @@
 "use client";
 import { StarterChecklists } from "@/ui/projects/starter-checklists.client";
 
-export function StarterFixture({ ids }: { ids: Record<string, string> }) {
+export function StarterFixture() {
   return (
     <StarterChecklists
       projectId="22000200-0000-4000-8000-000000000001"
       kind="trip"
-      taskIds={ids}
       action={async (_previous, form) => {
         const identity = JSON.stringify(Array.from(form.entries()));
-        const prior = sessionStorage.getItem("starter-fixture-receipt");
-        if (prior === null)
-          sessionStorage.setItem("starter-fixture-receipt", identity);
+        const receiptKey = `starter-fixture-receipt:${form.get("operationId")}`;
+        const prior = sessionStorage.getItem(receiptKey);
+        if (prior === null) sessionStorage.setItem(receiptKey, identity);
         await new Promise<void>((resolve) =>
           window.addEventListener("starter-response", () => resolve(), {
             once: true,

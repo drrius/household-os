@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { starterTaskIds } from "@/lib/projects/starter-identities";
 import { loadProject } from "@/lib/projects/queries";
 import { FormPage } from "@/ui/forms/form-page";
 import { StarterChecklists } from "@/ui/projects/starter-checklists.client";
@@ -29,7 +28,6 @@ export default async function StarterPage({
           key={projectId}
           projectId={projectId}
           kind={project.kind}
-          taskIds={starterTaskIds(projectId, project.kind)}
         />
       )}
     </FormPage>

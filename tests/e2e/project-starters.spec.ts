@@ -66,30 +66,19 @@ test("home preparation is selectable and an empty selection cannot be submitted"
   ).toBe(true);
 });
 
-test("reloading after an uncertain batch preserves receipt identities", async ({
+test("uncertain operation survives reload and rotates after confirmation", async ({
   page,
 }) => {
   await page.goto("/m7-fixture/starters");
   await page.getByLabel("Start with").selectOption("packing");
-  const identities = await page
-    .locator('input[name^="id:"]')
-    .evaluateAll((inputs) =>
-      inputs.map((input) => (input as HTMLInputElement).value),
-    );
+  const identity = await page.locator('[name="operationId"]').inputValue();
   await page.getByRole("button", { name: "Add 5 tasks" }).click();
   await expect(
     page.getByRole("button", { name: "Adding tasks…" }),
   ).toBeDisabled();
-  // The fixture stores its committed receipt before delivering any response.
   await page.reload();
   await page.getByLabel("Start with").selectOption("packing");
-  expect(
-    await page
-      .locator('input[name^="id:"]')
-      .evaluateAll((inputs) =>
-        inputs.map((input) => (input as HTMLInputElement).value),
-      ),
-  ).toEqual(identities);
+  await expect(page.locator('[name="operationId"]')).toHaveValue(identity);
   await page.getByRole("button", { name: "Add 5 tasks" }).click();
   await expect(
     page.getByRole("button", { name: "Adding tasks…" }),
@@ -100,4 +89,24 @@ test("reloading after an uncertain batch preserves receipt identities", async ({
   await expect(page.getByRole("status")).toHaveText(
     "4 tasks added. 1 already present.",
   );
+  await page.goto("/m7-fixture/starters");
+  await expect(page.getByRole("button", { name: "Add 4 tasks" })).toBeEnabled();
+  await expect(page.locator('[name="operationId"]')).not.toHaveValue(identity);
+});
+
+test("unavailable retry storage blocks submission with a recovery explanation", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new Error("Storage unavailable");
+    };
+  });
+  await page.goto("/m7-fixture/starters");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
+    "could not keep retry information",
+  );
+  await expect(
+    page.getByRole("button", { name: "Add 4 tasks" }),
+  ).toBeDisabled();
 });

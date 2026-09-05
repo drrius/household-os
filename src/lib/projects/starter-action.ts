@@ -26,7 +26,8 @@ export async function addStarterTasksAction(
       .min(1)
       .max(20)
       .parse(form.getAll("item"));
-    const ids = starterTaskIds(projectId, project.kind);
+    const operationId = z.uuid().parse(form.get("operationId"));
+    const ids = starterTaskIds(projectId, project.kind, operationId);
     const tasks = starterTasks(project.kind, preset, selected, ids);
     const client = await createClient();
     const { data, error } = await client.rpc("add_project_task_batch", {

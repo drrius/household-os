@@ -14,6 +14,7 @@ it("derives the same server receipt IDs even if a reloaded client sends new IDs"
   const form = new FormData();
   form.set("projectId", "22000200-0000-4000-8000-000000000001");
   form.set("preset", "packing");
+  form.set("operationId", "22000200-0000-4000-8000-000000000099");
   form.append("item", "documents");
   form.set("id:documents", crypto.randomUUID());
   expect(await addStarterTasksAction(null, form)).toEqual({
