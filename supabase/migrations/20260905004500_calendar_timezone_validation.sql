@@ -12,9 +12,9 @@ grant execute on function private.is_supported_calendar_time_zone(text) to authe
 
 alter table public.calendar_events
   add constraint calendar_events_supported_time_zone
-  check (private.is_supported_calendar_time_zone(time_zone)) not valid;
+  check (private.is_supported_calendar_time_zone(time_zone));
 alter table public.trip_bookings
   add constraint trip_bookings_supported_time_zone
-  check (private.is_supported_calendar_time_zone(time_zone)) not valid,
+  check (private.is_supported_calendar_time_zone(time_zone)),
   add constraint trip_bookings_supported_end_time_zone
-  check (private.is_supported_calendar_time_zone(end_time_zone)) not valid;
+  check (private.is_supported_calendar_time_zone(end_time_zone));
