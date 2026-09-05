@@ -72,6 +72,7 @@ export function PreparationEditFixture() {
       >
         <MealPreparationEdit
           action={validatePrep}
+          idempotencyKey={id}
           entryId={id}
           prep={{
             id,
@@ -80,6 +81,7 @@ export function PreparationEditFixture() {
             status: "open",
             planned_assignee_id: null,
             routine: {
+              updated_at: "2026-09-05T12:00:00.123456+00:00",
               title: "Make sauce",
               instructions: "Simmer gently",
               area_id: id,

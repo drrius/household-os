@@ -11,6 +11,7 @@ const prepSchema = z.object({
   status: z.enum(["open", "completed", "skipped"]),
   planned_assignee_id: z.string().uuid().nullable(),
   routine: z.object({
+    updated_at: z.string(),
     title: z.string(),
     instructions: z.string().nullable(),
     area_id: z.string().uuid(),
@@ -23,7 +24,7 @@ export async function loadMealPreparation(entryId: string) {
   const { data, error } = await client
     .from("routine_occurrences")
     .select(
-      "id, routine_id, due_date, status, planned_assignee_id, routine:routines!inner(title, instructions, area_id, schedule_rule)",
+      "id, routine_id, due_date, status, planned_assignee_id, routine:routines!inner(updated_at, title, instructions, area_id, schedule_rule)",
     )
     .eq("household_id", member.householdId)
     .eq("meal_plan_entry_id", z.string().uuid().parse(entryId))
@@ -41,25 +42,27 @@ export async function updateMealPreparation(
   const prep = await loadMealPreparation(input.entryId);
   if (!prep) throw new Error("This meal no longer has a preparation task.");
   const client = await createClient();
-  const open = prep.status === "open";
-  const { error } = await client.rpc("update_routine_definition", {
+  const { error } = await client.rpc("edit_routine_definition", {
     p_routine_id: prep.routine_id,
-    p_title: input.title,
-    p_instructions: input.instructions,
-    p_area_id: input.areaId,
-    ...(open
-      ? {
-          p_schedule_kind: "one_off",
-          p_schedule_rule:
-            input.dueOn === prep.due_date
-              ? prep.routine.schedule_rule
-              : { kind: "one_off", date: input.dueOn },
-          p_assignment_policy: input.assignedMemberId ? "assigned" : "shared",
-          p_assigned_member_id: input.assignedMemberId,
-          p_rotation_anchor_member_id: null,
-        }
-      : {}),
+    p_expected_updated_at: input.expectedUpdatedAt,
+    p_idempotency_key: input.idempotencyKey,
+    p_patch: {
+      title: input.title,
+      instructions: input.instructions,
+      area_id: input.areaId,
+      ...(input.dueOn !== input.originalDueOn
+        ? {
+            schedule_kind: "one_off",
+            schedule_rule: { kind: "one_off", date: input.dueOn },
+          }
+        : {}),
+      assignment_policy: input.assignedMemberId ? "assigned" : "shared",
+      assigned_member_id: input.assignedMemberId,
+      rotation_anchor_member_id: null,
+    },
   });
+  if (error?.code === "40001")
+    throw new Error("This prep task changed. Reopen it before saving.");
   if (error)
     throw new Error(
       "Could not update this prep task. It may have just been completed. Refresh and try again.",

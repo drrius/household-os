@@ -26,6 +26,7 @@ export default async function EditMealPreparationPage({
       <MealPreparationEdit
         entryId={entry.id}
         prep={prep}
+        idempotencyKey={crypto.randomUUID()}
         members={options.members}
         areas={options.areas}
       />

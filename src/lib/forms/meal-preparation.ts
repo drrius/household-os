@@ -1,6 +1,11 @@
 import { z } from "zod";
 export function parseMealPreparationEdit(form: FormData) {
   return {
+    expectedUpdatedAt: z.iso
+      .datetime({ offset: true })
+      .parse(form.get("expectedUpdatedAt")),
+    idempotencyKey: z.string().uuid().parse(form.get("idempotencyKey")),
+    originalDueOn: z.iso.date().parse(form.get("originalDueOn")),
     entryId: z.string().uuid().parse(form.get("entryId")),
     title: z.string().trim().min(1).max(120).parse(form.get("title")),
     instructions: z
