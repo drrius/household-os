@@ -13,7 +13,11 @@ for (const destination of protectedDestinations) {
   test(`anonymous visitors cannot open ${destination}`, async ({ page }) => {
     await page.goto(destination);
 
-    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === "/sign-in" &&
+        url.searchParams.get("returnTo") === destination,
+    );
     await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Sign in with passkey" }),

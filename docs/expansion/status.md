@@ -83,3 +83,7 @@ Home and search still require their assembled dependencies and route-level verif
 ## Authorized integration checkpoint
 
 The user explicitly approved feature-branch integration on September 5. The previous automatic-approval blocker is cleared. The connected foundation now incorporates main through 700cf39, including the merged routine/Money work, attachment security and recovery, push setup, release guide and updated CI policy. Attachment conflicts retain main’s reviewed implementation; calendar parser dependencies remain pinned alongside jpeg-js. Nineteen directly affected attachment/invalidation tests and TypeScript checking passed locally. Hosted integration checks remain required.
+
+## PR48 integration after merged groceries
+
+PR48 now incorporates main through `fba131f`, including the merged grocery workflows and their notification surface. The conflict resolution preserves grocery invalidation alongside the connected Plan and Home cost surfaces. The connected schema, RLS, attachment lifecycle, timezone, decision and cost-context changes remain unchanged. Hosted CI is the final merge gate; no rereview is requested per the user's current instruction.
