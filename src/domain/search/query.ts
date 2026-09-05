@@ -64,7 +64,7 @@ export function parseSearchRequest(
   };
   if (Object.values(params).some(Array.isArray))
     request.error = "Use one search term and one value for each filter.";
-  if (request.q.length > 120)
+  if (searchCharacterCount(request.q) > 120)
     request.error = "Keep your search to 120 characters or fewer.";
   if (
     typeof params.type === "string" &&
@@ -147,4 +147,8 @@ export function searchResultHref(result: {
     default:
       throw new Error("Unsupported search result.");
   }
+}
+
+export function searchCharacterCount(value: string): number {
+  return Array.from(value).length;
 }

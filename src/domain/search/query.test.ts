@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import fc from "fast-check";
 import {
   parseSearchRequest,
+  searchCharacterCount,
   resultKinds,
   searchHref,
   searchResultHref,
@@ -106,4 +107,11 @@ it("rejects malformed RPC output before rendering links", () => {
   expect(() =>
     parseSearchPage({ total_count: 1, results: [], next_cursor: null }),
   ).toThrow();
+});
+
+it("counts request length in Unicode code points just like PostgreSQL", () => {
+  expect(searchCharacterCount("😀")).toBe(1);
+  expect(searchCharacterCount("😀a")).toBe(2);
+  expect(parseSearchRequest({ q: "😀".repeat(120) }).error).toBeNull();
+  expect(parseSearchRequest({ q: "😀".repeat(121) }).error).toMatch(/120/);
 });

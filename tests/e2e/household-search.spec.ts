@@ -110,3 +110,34 @@ test("valid Unicode titles and excerpts render without breaking the result page"
     caret: "initial",
   });
 });
+
+test("Unicode query limits agree between input and server validation", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/search");
+  const input = page.getByLabel("What are you looking for?");
+  await input.fill("😀".repeat(120));
+  expect(
+    await input.evaluate((node: HTMLInputElement) => node.checkValidity()),
+  ).toBe(true);
+  await input.press("Enter");
+  await expect(input).toHaveValue("😀".repeat(120));
+  await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+  await input.fill("😀".repeat(121));
+  expect(
+    await input.evaluate((node: HTMLInputElement) => node.checkValidity()),
+  ).toBe(false);
+  await page.goto("/m7-fixture/search?q=" + encodeURIComponent("😀"));
+  await expect(
+    page.getByRole("heading", { name: "Nothing found yet" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Add one more character" }),
+  ).toBeVisible();
+  await page.goto(
+    "/m7-fixture/search?q=" + encodeURIComponent("😀".repeat(121)),
+  );
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
+    "120 characters",
+  );
+});

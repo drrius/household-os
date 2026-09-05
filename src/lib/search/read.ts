@@ -1,3 +1,4 @@
+import { searchCharacterCount } from "@/domain/search/query";
 import "server-only";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
@@ -11,7 +12,8 @@ export async function loadHouseholdSearch(
   request: SearchRequest,
 ): Promise<SearchPage> {
   await requireMemberContext();
-  if (request.error || request.q.length < 2) return emptySearchPage;
+  if (request.error || searchCharacterCount(request.q) < 2)
+    return emptySearchPage;
   const db = await createClient();
   const { data, error } = await db.rpc("search_household", {
     p_query: request.q,

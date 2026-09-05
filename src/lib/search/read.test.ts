@@ -51,3 +51,11 @@ it("does not execute invalid input and reports read failures rather than fake em
     loadHouseholdSearch(parseSearchRequest({ q: "holiday" })),
   ).rejects.toThrow("Search couldn't load your household");
 });
+
+it("uses database character semantics before invoking the search RPC", async () => {
+  await loadHouseholdSearch(parseSearchRequest({ q: "😀" }));
+  expect(mocks.rpc).not.toHaveBeenCalled();
+  await loadHouseholdSearch(parseSearchRequest({ q: "😀".repeat(120) }));
+  expect(mocks.rpc).toHaveBeenCalledOnce();
+  expect(mocks.rpc.mock.calls[0]?.[1].p_query).toBe("😀".repeat(120));
+});

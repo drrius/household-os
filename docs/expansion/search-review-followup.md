@@ -1,0 +1,13 @@
+# Search review follow-up
+
+Findings 3939661545, 3939661548, 3939661549 and 3939661550 are addressed.
+
+Search request parsing, minimum-length checks and browser input constraints count Unicode code points. Two-character eligibility and the 120-character limit now match PostgreSQL. The browser pattern accepts 120 supplementary Unicode characters and rejects 121 without truncating valid input.
+
+Active decision option titles and notes feed one parent-decision result; the archive filter includes archived options without crossing tenant boundaries or duplicating parent results. Linked documents inherit archive/finished state from their project, booking, inventory or commitment; default search omits those documents, while history remains discoverable with the archive filter.
+
+The search route now has its own refresh surface. Every source and joined label table invalidates it, including saved meals, options, completion notes, areas, pets and expense categories. The CLI-generated publication migration adds missing realtime sources. All payloads remain household-scoped and existing RLS still applies.
+
+Verification: full `pnpm verify` passed 407 tests in 61 files and the production build. All 15 production browser cases passed across Chromium, WebKit and mobile Safari. The first run exposed test selectors matching Next.js's route announcer; scoping assertions to product alerts resolved that test issue. Added SQL coverage for parent lifecycle, option search, archive filtering, tenant isolation and publication membership. Local `pnpm db:test` was attempted but PostgreSQL refused connection. The branch still requires the updated attachment dependency and result-route integration; no complete database or assembled-product pass is claimed.
+
+Evidence: `/tmp/search-review-verify.log`, `/tmp/search-review-fixture-build.log`, `/tmp/search-review-e2e-final.log`, `/tmp/search-review-db.log`.

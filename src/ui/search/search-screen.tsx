@@ -1,3 +1,4 @@
+import { searchCharacterCount } from "@/domain/search/query";
 import Link from "next/link";
 import { ArrowRight, SearchX } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -38,7 +39,7 @@ export function SearchScreen({
   page: SearchPage;
   base?: "/search" | "/m7-fixture/search";
 }) {
-  const searching = request.q.length >= 2 && !request.error;
+  const searching = searchCharacterCount(request.q) >= 2 && !request.error;
   return (
     <AppPage labelledBy="search-title">
       <div className="@container grid w-full max-w-4xl gap-6">
@@ -66,7 +67,10 @@ export function SearchScreen({
         ) : searching ? (
           <SearchResults request={request} page={page} base={base} />
         ) : (
-          <SearchSuggestions short={request.q.length === 1} base={base} />
+          <SearchSuggestions
+            short={searchCharacterCount(request.q) === 1}
+            base={base}
+          />
         )}
       </div>
     </AppPage>

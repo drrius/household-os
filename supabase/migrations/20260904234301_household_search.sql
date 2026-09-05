@@ -145,15 +145,20 @@ select 'commitment'::text kind,e.id,null::uuid parent_id,e.title title,
  and (p_types is null or 'commitment'=any(p_types))
  union all
 select 'decision'::text kind,e.id,null::uuid parent_id,e.title title,
- coalesce(e.notes,'') body,'' labels,e.status status,(e.archived_at is not null or e.status='dismissed') archived,null::date date,
- to_tsvector('simple'::regconfig,coalesce(e.title,'') || ' ' || coalesce(e.notes,'')) document,to_tsvector('simple'::regconfig,'') label_document
+ coalesce(e.notes,'') || ' ' || coalesce(o.text,'') body,'' labels,e.status status,(e.archived_at is not null or e.status='dismissed') archived,null::date date,
+ to_tsvector('simple'::regconfig,coalesce(e.title,'') || ' ' || coalesce(e.notes,'') || ' ' || coalesce(o.text,'')) document,to_tsvector('simple'::regconfig,'') label_document
  from public.household_decisions e
+ left join lateral (
+  select string_agg(title || ' ' || coalesce(notes,''),' ' order by id) text
+  from public.decision_options where household_id=e.household_id and decision_id=e.id
+   and (p_include_archived or archived_at is null)
+ ) o on true
  where e.household_id=tenant and true
  and (p_include_archived or not (e.archived_at is not null or e.status='dismissed'))
  and (p_types is null or 'decision'=any(p_types))
  union all
 select 'document'::text kind,e.id,null::uuid parent_id,e.title title,
- '' body,coalesce(p.title,'') || ' ' || coalesce(b.title,'') || ' ' || coalesce(a.title,'') || ' ' || coalesce(c.title,'') labels,'active' status,(e.archived_at is not null) archived,null::date date,
+ '' body,coalesce(p.title,'') || ' ' || coalesce(b.title,'') || ' ' || coalesce(a.title,'') || ' ' || coalesce(c.title,'') labels,'active' status,(e.archived_at is not null or p.archived_at is not null or coalesce(p.status in('complete','cancelled'),false) or b.archived_at is not null or coalesce(b.status='cancelled',false) or a.archived_at is not null or c.archived_at is not null or coalesce(c.status='ended',false)) archived,null::date date,
  to_tsvector('simple'::regconfig,coalesce(e.title,'')) document,to_tsvector('simple'::regconfig,coalesce(p.title,'') || ' ' || coalesce(b.title,'') || ' ' || coalesce(a.title,'') || ' ' || coalesce(c.title,'')) label_document
  from public.household_documents e
  left join public.household_projects p on p.household_id=e.household_id and p.id=e.project_id
@@ -161,7 +166,7 @@ select 'document'::text kind,e.id,null::uuid parent_id,e.title title,
  left join public.household_assets a on a.household_id=e.household_id and a.id=e.asset_id
  left join public.household_commitments c on c.household_id=e.household_id and c.id=e.commitment_id
  where e.household_id=tenant and true
- and (p_include_archived or not (e.archived_at is not null))
+ and (p_include_archived or not (e.archived_at is not null or p.archived_at is not null or coalesce(p.status in('complete','cancelled'),false) or b.archived_at is not null or coalesce(b.status='cancelled',false) or a.archived_at is not null or c.archived_at is not null or coalesce(c.status='ended',false)))
  and (p_types is null or 'document'=any(p_types))
  ), matches as materialized (
  select kind,id,parent_id,title,body,labels,status,archived,date,

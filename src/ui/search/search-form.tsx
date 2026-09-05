@@ -27,7 +27,8 @@ export function SearchForm({
           type="search"
           defaultValue={request.q}
           placeholder="Try Lisbon, insurance or pasta…"
-          maxLength={120}
+          pattern=".{0,120}"
+          title="Use at most 120 characters."
           autoComplete="off"
           className="min-w-0 flex-1"
           aria-describedby="search-hint"
