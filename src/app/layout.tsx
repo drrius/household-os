@@ -1,3 +1,4 @@
+import { SearchOriginProvider } from "@/ui/search/search-origin.client";
 import { HistoryGuard } from "@/ui/forms/history-guard.client";
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
@@ -61,7 +62,7 @@ export default function RootLayout({
         >
           <HistoryGuard />
           <ServiceWorkerRegistrar />
-          {children}
+          <SearchOriginProvider>{children}</SearchOriginProvider>
         </ThemeProvider>
       </body>
     </html>

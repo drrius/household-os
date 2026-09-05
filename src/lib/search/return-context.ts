@@ -45,3 +45,29 @@ export function searchReturnHref(value: unknown): string | null {
     return null;
   }
 }
+
+export type SearchOrigin = { record: string; href: string };
+
+export function searchOriginForPath(
+  pathname: string,
+  candidates: readonly string[],
+  previous: SearchOrigin | null,
+): SearchOrigin | null {
+  if (candidates.length) {
+    const href =
+      candidates.length === 1 ? searchReturnHref(candidates[0]) : null;
+    const records = [
+      ...pathname.matchAll(
+        /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/giu,
+      ),
+    ];
+    const last = records.at(-1);
+    return href && last
+      ? { record: pathname.slice(0, last.index + last[0].length), href }
+      : null;
+  }
+  return previous &&
+    (pathname === previous.record || pathname.startsWith(`${previous.record}/`))
+    ? previous
+    : null;
+}

@@ -1,7 +1,11 @@
 import { expect, it } from "vitest";
 import fc from "fast-check";
 import { parseSearchRequest, searchHref } from "@/domain/search/query";
-import { searchResultWithContext, searchReturnHref } from "./return-context";
+import {
+  searchResultWithContext,
+  searchReturnHref,
+  searchOriginForPath,
+} from "./return-context";
 const id = "00000000-0000-4000-8000-000000000001";
 it("retains search filters and continuation cursor through a booking destination", () => {
   const request = parseSearchRequest({
@@ -47,4 +51,32 @@ it("never creates another origin from arbitrary search context", () => {
       }
     }),
   );
+});
+
+it("keeps an origin through edits of that record and clears it for unrelated destinations", () => {
+  const record = `/plan/projects/${id}/bookings/00000000-0000-4000-8000-000000000002`;
+  const origin = searchOriginForPath(
+    record,
+    ["/search?q=Lisbon&type=trip"],
+    null,
+  );
+  expect(origin?.record).toBe(record);
+  expect(searchOriginForPath(`${record}/edit`, [], origin)).toEqual(origin);
+  expect(searchOriginForPath(`/plan/projects/${id}`, [], origin)).toBeNull();
+  expect(searchOriginForPath(`${record}0`, [], origin)).toBeNull();
+  expect(
+    searchOriginForPath(record, ["/search?q=bad", "/search?q=other"], origin),
+  ).toBeNull();
+  expect(
+    searchOriginForPath(record, ["https://outside.invalid"], origin),
+  ).toBeNull();
+});
+it("uses the record rather than its history action as the origin", () => {
+  expect(
+    searchOriginForPath(
+      `/home/routines/${id}/history`,
+      ["/search?q=clean"],
+      null,
+    )?.record,
+  ).toBe(`/home/routines/${id}`);
 });
