@@ -24,17 +24,25 @@ export async function loadAgenda(requested?: string) {
   } catch {
     week = calendarWeek(zurichCivilDate());
   }
-  const [rows, connection, members] = await Promise.all([
-    readAgendaRows(),
+  const [agenda, connection] = await Promise.all([
+    loadCalendarOccurrences(week.start, week.end),
     getConnectionSummary(),
+  ]);
+  return { week, ...agenda, connection };
+}
+
+// Shared by the calendar week and Today's rolling agenda. End is exclusive.
+export async function loadCalendarOccurrences(start: string, end: string) {
+  const [rows, members] = await Promise.all([
+    readAgendaRows(),
     calendarMemberNames(),
   ]);
   const items: AgendaItem[] = [];
   const warnings: { id: string; title: string; message: string }[] = [];
   const attention: CalendarRow[] = [];
   const range = {
-    start: `${week.start}T00:00:00Z`,
-    end: `${week.end}T00:00:00Z`,
+    start: `${start}T00:00:00Z`,
+    end: `${end}T00:00:00Z`,
   };
   // Extend timed expansion around UTC boundaries; day grouping below uses Zurich.
   const window = {
@@ -77,7 +85,6 @@ export async function loadAgenda(requested?: string) {
     }
   }
   return {
-    week,
     items: items.sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
     warnings,
     attention: attention.map((row) => ({
@@ -86,7 +93,6 @@ export async function loadAgenda(requested?: string) {
       state: row.sync_state,
       error: row.last_sync_error,
     })),
-    connection,
     cancelled: rows
       .filter((row) => row.cancelled_at)
       .sort((a, b) => b.cancelled_at!.localeCompare(a.cancelled_at!))
