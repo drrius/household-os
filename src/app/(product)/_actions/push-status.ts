@@ -1,5 +1,7 @@
 "use server";
 
+import { unstable_rethrow } from "next/navigation";
+
 import {
   PushStatusError,
   devicePushTest,
@@ -15,7 +17,8 @@ export async function readPushRegistrationAction(
 ): Promise<PushStatusResult<{ registered: boolean }>> {
   try {
     return { ok: true, value: await readPushRegistration(endpoint) };
-  } catch {
+  } catch (error) {
+    unstable_rethrow(error);
     return {
       ok: false,
       error:
@@ -31,6 +34,7 @@ async function runTestCommand(
   try {
     return { ok: true, value: await devicePushTest(command, input) };
   } catch (error) {
+    unstable_rethrow(error);
     return {
       ok: false,
       error:

@@ -1,7 +1,7 @@
 # ADR 0028: Complete the household operating system
 
 - Status: Accepted by the household owner in the implementation request and scope clarification.
-- Date: 2026-09-05
+- Date: 2026-09-05 (Europe/Zurich)
 - Amends: the v1 feature freeze, ADR 0002, ADR 0004's calendar exclusion, ADR 0020 attachment formats, and the deferred design phase.
 
 ## Decision
