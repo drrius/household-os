@@ -1,3 +1,4 @@
+import { writeCalendar } from "@/domain/calendar/ical-write";
 import { notFound } from "next/navigation";
 import { calendarTimePresentation } from "@/domain/calendar/presentation";
 import type { CalendarEventInput } from "@/domain/calendar/types";
@@ -48,27 +49,23 @@ export default async function CalendarDetailsFixture({
     remote_conflict_etag: null,
     last_sync_error: null,
   };
-  if (surface === "custom")
-    row.ical_data = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "BEGIN:VTIMEZONE",
-      "TZID:Custom/Fixed",
-      "BEGIN:STANDARD",
-      "DTSTART:19700101T000000",
-      "TZOFFSETFROM:+0200",
-      "TZOFFSETTO:+0200",
-      "END:STANDARD",
-      "END:VTIMEZONE",
-      "BEGIN:VEVENT",
-      "UID:fixture@example",
-      "DTSTART;TZID=Custom/Fixed:20260907T100000",
-      "DTEND;TZID=Custom/Fixed:20260907T123000",
-      "SUMMARY:Time together",
-      "END:VEVENT",
-      "END:VCALENDAR",
-      "",
-    ].join("\r\n");
+  if (surface === "custom") row.ical_data = customCalendar();
+  if (surface === "conflict" || surface === "unreadable-conflict") {
+    row.sync_state = "conflict";
+    row.remote_conflict_ical =
+      surface === "unreadable-conflict"
+        ? "invalid calendar"
+        : writeCalendar(
+            {
+              ...input,
+              title: "Apple version",
+              startsAt: "2026-09-07T09:00:00Z",
+              endsAt: "2026-09-07T11:30:00Z",
+              location: "",
+            },
+            { uid: row.ical_uid },
+          );
+  }
   const display = calendarInputForDisplay(row);
   return (
     <AppShell>
@@ -84,4 +81,27 @@ export default async function CalendarDetailsFixture({
       />
     </AppShell>
   );
+}
+
+function customCalendar() {
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "BEGIN:VTIMEZONE",
+    "TZID:Custom/Fixed",
+    "BEGIN:STANDARD",
+    "DTSTART:19700101T000000",
+    "TZOFFSETFROM:+0200",
+    "TZOFFSETTO:+0200",
+    "END:STANDARD",
+    "END:VTIMEZONE",
+    "BEGIN:VEVENT",
+    "UID:fixture@example",
+    "DTSTART;TZID=Custom/Fixed:20260907T100000",
+    "DTEND;TZID=Custom/Fixed:20260907T123000",
+    "SUMMARY:Time together",
+    "END:VEVENT",
+    "END:VCALENDAR",
+    "",
+  ].join("\r\n");
 }

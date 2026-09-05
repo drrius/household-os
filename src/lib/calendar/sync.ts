@@ -41,17 +41,26 @@ async function runSync(
       "network",
       "Could not load pending calendar changes.",
     );
+  let pushFailure: CalendarError | null = null;
   for (const row of (pending.data ?? []).slice(0, 20) as CalendarRow[]) {
-    await pushCalendarEvent(
-      db,
-      transport,
-      connection.id,
-      connection.selected_calendar_url!,
-      token,
-      row,
-      remoteObjects,
-    );
+    try {
+      await pushCalendarEvent(
+        db,
+        transport,
+        connection.id,
+        connection.selected_calendar_url!,
+        token,
+        row,
+        remoteObjects,
+      );
+    } catch (error) {
+      pushFailure ??=
+        error instanceof CalendarError
+          ? error
+          : new CalendarError("network", calendarErrorMessage(error));
+    }
   }
+  if (pushFailure) throw pushFailure;
   if ((pending.data?.length ?? 0) > 20)
     throw new CalendarError(
       "network",
