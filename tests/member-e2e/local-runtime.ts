@@ -57,5 +57,9 @@ export async function bootstrapMembers(origin: string): Promise<string[]> {
     links.some((link) => !link.startsWith(`${origin}/auth/consume?`))
   )
     throw new Error("Expected two member enrollment links.");
+  for (const link of links) {
+    const token = new URL(link).searchParams.get("token_hash");
+    if (token) process.stdout.write(`::add-mask::${token}\n`);
+  }
   return links;
 }

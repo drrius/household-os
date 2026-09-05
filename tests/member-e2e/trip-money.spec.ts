@@ -47,6 +47,10 @@ test("two members share a persisted trip, booking and authoritative paid expense
     baseURL,
     viewport: { width: 390, height: 844 },
   });
+  for (const context of [memberA, memberB]) {
+    context.setDefaultTimeout(20_000);
+    context.setDefaultNavigationTimeout(60_000);
+  }
   try {
     const alex = await memberA.newPage();
     const sam = await memberB.newPage();
@@ -91,8 +95,20 @@ test("two members share a persisted trip, booking and authoritative paid expense
     await expect(
       sam.getByRole("heading", { name: "CI paid flight", exact: true }),
     ).toBeVisible();
+  } catch (error) {
+    const page = memberA.pages()[0];
+    if (page && !new URL(page.url()).pathname.startsWith("/auth")) {
+      const snapshot = await page
+        .locator("body")
+        .ariaSnapshot()
+        .catch(() => "Unavailable");
+      console.info("Member A failure state:", snapshot.slice(0, 12000));
+    }
+    throw error;
   } finally {
-    await memberA.close();
-    await memberB.close();
+    await Promise.all([
+      memberA.close().catch(() => {}),
+      memberB.close().catch(() => {}),
+    ]);
   }
 });
