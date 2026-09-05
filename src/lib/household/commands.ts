@@ -1,44 +1,20 @@
 import "server-only";
+import { createHouseholdItem } from "./create-item";
 
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  throw new Error("Household command returned an unexpected payload");
-}
-
 export async function createArea(
   name: string,
+  creationId?: string,
 ): Promise<Record<string, unknown>> {
-  const member = await requireMemberContext();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("areas")
-    .insert({
-      household_id: member.householdId,
-      name,
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(`create_area failed: ${error.message}`);
-  return asRecord(data);
+  return createHouseholdItem("areas", name, creationId);
 }
-
 export async function createPet(
   name: string,
+  creationId?: string,
 ): Promise<Record<string, unknown>> {
-  const member = await requireMemberContext();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("pets")
-    .insert({ household_id: member.householdId, name })
-    .select("id")
-    .single();
-  if (error) throw new Error(`create_pet failed: ${error.message}`);
-  return asRecord(data);
+  return createHouseholdItem("pets", name, creationId);
 }
 
 export async function updateHouseholdName(name: string): Promise<void> {

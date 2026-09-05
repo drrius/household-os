@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -24,6 +25,7 @@ describe("assistant tool definitions", () => {
       "establish_opening_balance",
       "confirm_expense_draft",
       "correct_financial_event",
+      "record_contextual_expense",
     ]);
   });
 
@@ -183,4 +185,14 @@ describe("shopping draft contract", () => {
     });
     expect(result?.success).toBe(false);
   });
+});
+
+it("publishes JSON input schemas for every assistant tool", () => {
+  for (const definition of AI_TOOL_DEFINITIONS) {
+    expect(
+      () =>
+        JSON.stringify(z.toJSONSchema(definition.inputSchema, { io: "input" })),
+      definition.name,
+    ).not.toThrow();
+  }
 });

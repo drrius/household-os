@@ -1,4 +1,5 @@
 import "server-only";
+import { invocationRecordId } from "./connected-input";
 
 import { revalidatePath } from "next/cache";
 
@@ -75,16 +76,20 @@ type MealSource =
   | { kind: "leftover"; leftoverOfEntryId: string };
 
 export const GROCERY_HANDLERS: Record<string, AiWriteHandler> = {
-  add_grocery_item: (input) =>
-    createGroceryItem(
-      input as {
-        name: string;
-        quantity?: string | null;
-        unit?: string | null;
-        categoryId?: string | null;
-        note?: string | null;
-      },
-    ),
+  add_grocery_item: async (input, { idempotencyKey }) => {
+    const { householdId } = await requireMemberContext();
+    const value = input as {
+      name: string;
+      quantity?: string | null;
+      unit?: string | null;
+      categoryId?: string | null;
+      note?: string | null;
+    };
+    return createGroceryItem({
+      ...value,
+      creationId: invocationRecordId(`${householdId}:${idempotencyKey}`),
+    });
+  },
   remove_grocery_item: (input) =>
     removeGroceryItem((input as { groceryItemId: string }).groceryItemId),
   start_shopping_session: () => startShoppingSession(),
@@ -100,6 +105,7 @@ export const GROCERY_HANDLERS: Record<string, AiWriteHandler> = {
     const value = input as {
       shoppingSessionId: string;
       receiptTotalCents?: number | null;
+      receiptPath?: string | null;
       createExpenseDraft: boolean;
       expenseDescription?: string | null;
       sharedAmountCents?: number | null;
@@ -126,6 +132,7 @@ export const GROCERY_HANDLERS: Record<string, AiWriteHandler> = {
       idempotencyKey: `finish-shopping:${value.shoppingSessionId}`,
       occurredOn: today,
       receiptTotalCents: value.receiptTotalCents ?? null,
+      receiptPath: value.receiptPath ?? null,
       createExpenseDraft: value.createExpenseDraft,
       expenseDescription: value.expenseDescription ?? null,
       sharedAmountCents: value.sharedAmountCents ?? null,
@@ -238,13 +245,21 @@ export const MEAL_HANDLERS: Record<string, AiWriteHandler> = {
 export const HOUSEHOLD_HANDLERS: Record<string, AiWriteHandler> = {
   // These commands touch tables no realtime surface watches, so refresh
   // /home the same way the household server actions do.
-  create_area: async (input) => {
-    const result = await createArea((input as { name: string }).name);
+  create_area: async (input, { idempotencyKey }) => {
+    const { householdId } = await requireMemberContext();
+    const result = await createArea(
+      (input as { name: string }).name,
+      invocationRecordId(`${householdId}:${idempotencyKey}`),
+    );
     revalidatePath("/home");
     return result;
   },
-  create_pet: async (input) => {
-    const result = await createPet((input as { name: string }).name);
+  create_pet: async (input, { idempotencyKey }) => {
+    const { householdId } = await requireMemberContext();
+    const result = await createPet(
+      (input as { name: string }).name,
+      invocationRecordId(`${householdId}:${idempotencyKey}`),
+    );
     revalidatePath("/home");
     return result;
   },

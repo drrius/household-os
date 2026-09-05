@@ -141,10 +141,18 @@ jobs:
       - run: node scripts/test-search-index-retry.mjs
 
   e2e-browser:
+    # Keep both complete browser suites, but divide their tests across runners.
+    # These fixture tests need no database; real member flows run below.
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, mobile-safari]
+        shard: [1, 2, 3, 4]
+        include:
+          - browser: chromium
+            engine: chromium
+          - browser: mobile-safari
+            engine: webkit
     needs: changes
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
     runs-on: ubuntu-latest
@@ -162,10 +170,17 @@ jobs:
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm db:start
-      - run: pnpm test:e2e --project=${{ matrix.browser }}
+          key: playwright-${{ runner.os }}-${{ matrix.engine }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps ${{ matrix.engine }}
+      - run: pnpm test:e2e --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: e2e-${{ matrix.browser }}-${{ matrix.shard }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 3
 
   e2e:
     needs: e2e-browser

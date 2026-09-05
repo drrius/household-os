@@ -32,6 +32,7 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       occurredOn?: string;
       categoryId?: string | null;
       note?: string | null;
+      receiptPath?: string | null;
     };
     return postManualExpense({
       description: value.description,
@@ -46,6 +47,7 @@ export const FINANCIAL_HANDLERS: Record<string, AiWriteHandler> = {
       idempotencyKey,
       categoryId: value.categoryId ?? null,
       note: value.note ?? null,
+      receiptPath: value.receiptPath ?? null,
     });
   },
   record_refund: async (input, { idempotencyKey, today }) => {

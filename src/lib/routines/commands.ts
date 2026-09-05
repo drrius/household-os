@@ -4,6 +4,7 @@ import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateRoutineInput = {
+  idempotencyKey?: string;
   title: string;
   areaId: string;
   assignmentPolicy: "assigned" | "alternating" | "shared";
@@ -39,6 +40,19 @@ export async function createRoutine(
 ): Promise<Record<string, unknown>> {
   const member = await requireMemberContext();
   const supabase = await createClient();
+  if (input.idempotencyKey) {
+    const { idempotencyKey, ...payload } = input;
+    const result = await supabase.rpc("create_routine_once", {
+      p_household_id: member.householdId,
+      p_idempotency_key: idempotencyKey,
+      p_payload: payload,
+    });
+    if (result.error)
+      throw new Error(
+        "Could not confirm this routine creation. Retry the same request or inspect existing routines before making a new one.",
+      );
+    return asRecord(result.data);
+  }
   const { data, error } = await supabase.rpc("create_routine", {
     p_household_id: member.householdId,
     p_title: input.title,

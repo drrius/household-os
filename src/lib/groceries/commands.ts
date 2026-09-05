@@ -1,4 +1,6 @@
 import "server-only";
+import { z } from "zod";
+import { acknowledgeGroceryCreation } from "./creation-retry";
 import { isShoppingReceipt } from "@/domain/groceries/receipt-path";
 import { nextGroceryPosition } from "@/domain/groceries/order";
 
@@ -13,12 +15,16 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 export async function createGroceryItem(input: {
+  creationId?: string;
   name: string;
   quantity?: string | null;
   unit?: string | null;
   categoryId?: string | null;
   note?: string | null;
 }): Promise<Record<string, unknown>> {
+  const creationId = input.creationId
+    ? z.uuid().parse(input.creationId)
+    : undefined;
   const member = await requireMemberContext();
   const supabase = await createClient();
   let orderQuery = supabase
@@ -43,6 +49,7 @@ export async function createGroceryItem(input: {
   const { data, error } = await supabase
     .from("grocery_items")
     .insert({
+      ...(creationId ? { id: creationId } : {}),
       household_id: member.householdId,
       name: input.name,
       quantity: input.quantity ?? null,
@@ -53,6 +60,8 @@ export async function createGroceryItem(input: {
     })
     .select("id")
     .single();
+  if (error?.code === "23505" && creationId)
+    return acknowledgeGroceryCreation(creationId, input);
   if (error) {
     throw new Error(`create_grocery_item failed: ${error.message}`);
   }

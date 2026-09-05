@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { financialHistoryCursor } from "@/domain/money/history-cursor";
 
 import { isoDate, type AiToolDefinition } from "@/lib/ai/definitions/schemas";
 
@@ -48,11 +49,14 @@ export const READ_TOOLS: readonly AiToolDefinition[] = [
     name: "get_money_overview",
     kind: "read",
     description:
-      "Who owes whom and how much, pending expense drafts, recurring expense rules, and recent financial events with ids and their allocations. Amounts are CHF centimes. recentEventsTruncated flags older history; page back with eventsBefore.",
+      "Who owes whom and how much, pending expense drafts, recurring expense rules, and recent financial events with ids and their allocations. Amounts are CHF centimes. recentEventsTruncated flags older history; page back with nextEventsCursor as eventsCursor so same-day events are not skipped.",
     inputSchema: z.object({
+      eventsCursor: financialHistoryCursor.optional(),
       eventsBefore: isoDate
         .optional()
-        .describe("Only events strictly before this date; for older history"),
+        .describe(
+          "Optional date filter for a first page, not a pagination cursor",
+        ),
     }),
   },
   {

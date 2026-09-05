@@ -173,7 +173,7 @@ export async function readGroceryList(): Promise<Record<string, unknown>> {
     supabase
       .from("grocery_items")
       .select(
-        "id, name, quantity, unit, category_id, note, state, claimed_by_session_id",
+        "id, name, quantity, unit, category_id, note, state, claimed_by_session_id, sort_order, updated_at",
       )
       .eq("household_id", member.householdId)
       .in("state", ["active", "claimed"])

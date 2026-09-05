@@ -128,3 +128,18 @@ describe("approvalRows", () => {
     ]);
   });
 });
+
+it("shows the context and booking being approved alongside the actual amount", () => {
+  const rows = approvalRows(
+    {
+      description: "Hotel deposit",
+      amountCents: 12001,
+      contextTitle: "Summer trip",
+      bookingTitle: "Lake hotel",
+    },
+    nameOf,
+  );
+  expect(rows).toContainEqual({ label: "Amount", value: "CHF 120.01" });
+  expect(rows).toContainEqual({ label: "For", value: "Summer trip" });
+  expect(rows).toContainEqual({ label: "Booking", value: "Lake hotel" });
+});

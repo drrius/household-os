@@ -1,4 +1,8 @@
 import "server-only";
+import {
+  validateCompletionPhoto,
+  validateRescheduleDate,
+} from "@/lib/routines/occurrence-validation";
 import { windowIssue } from "@/lib/ai/definitions/schemas";
 
 import { toRoutineSchedule, type AiScheduleInput } from "@/lib/ai/schedule";
@@ -18,7 +22,7 @@ type AssignmentPolicy = "assigned" | "alternating" | "shared";
 type Priority = "pet_care" | "meal_deadline" | "cleaning" | "general";
 
 export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
-  create_routine: (input, { today }) => {
+  create_routine: (input, { today, idempotencyKey }) => {
     const value = input as {
       title: string;
       areaId: string;
@@ -41,6 +45,7 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       throw new Error(createIssue);
     }
     return createRoutine({
+      idempotencyKey,
       title: value.title,
       areaId: value.areaId,
       ...toRoutineSchedule(value.schedule),
@@ -97,13 +102,19 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
     unpauseRoutine((input as { routineId: string }).routineId),
   archive_routine: (input) =>
     archiveRoutine((input as { routineId: string }).routineId),
-  complete_occurrence: (input, { today }) => {
-    const value = input as { occurrenceId: string; note?: string | null };
+  complete_occurrence: async (input, { today }) => {
+    const value = input as {
+      occurrenceId: string;
+      note?: string | null;
+      photoPath?: string | null;
+    };
+    await validateCompletionPhoto(value.photoPath ?? undefined);
     return completeOccurrence({
       occurrenceId: value.occurrenceId,
       idempotencyKey: `complete-occurrence:${value.occurrenceId}`,
       completedOn: today,
       note: value.note ?? null,
+      photoPath: value.photoPath ?? null,
     });
   },
   skip_occurrence: (input) => {
@@ -113,8 +124,9 @@ export const ROUTINE_HANDLERS: Record<string, AiWriteHandler> = {
       idempotencyKey: `skip-occurrence:${value.occurrenceId}`,
     });
   },
-  reschedule_occurrence: (input, { idempotencyKey }) => {
+  reschedule_occurrence: async (input, { idempotencyKey }) => {
     const value = input as { occurrenceId: string; newDueDate: string };
+    await validateRescheduleDate(value.occurrenceId, value.newDueDate);
     return rescheduleOccurrence({
       occurrenceId: value.occurrenceId,
       newDueDate: value.newDueDate,

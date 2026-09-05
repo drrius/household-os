@@ -67,6 +67,13 @@ export const FINANCIAL_TOOLS: readonly AiToolDefinition[] = [
         occurredOn: isoDate.optional().describe("Defaults to today"),
         categoryId: uuid.nullish(),
         note: z.string().max(500).nullish(),
+        receiptPath: z
+          .string()
+          .max(300)
+          .nullish()
+          .describe(
+            "Existing household receipt path from a real member upload; never invent one",
+          ),
       }),
     ),
   },

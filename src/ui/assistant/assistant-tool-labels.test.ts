@@ -74,6 +74,7 @@ describe("approvalTitle", () => {
 describe("isFinancialTool", () => {
   it("marks the tools that write to the append-only ledger", () => {
     expect(isFinancialTool("record_expense")).toBe(true);
+    expect(isFinancialTool("record_contextual_expense")).toBe(true);
     expect(isFinancialTool("correct_financial_event")).toBe(true);
     expect(isFinancialTool("create_routine")).toBe(false);
   });
