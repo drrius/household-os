@@ -18,7 +18,11 @@ export async function exerciseMoneyHistory(
     .getByRole("button", { name: "Save correction", exact: true })
     .click();
   await expect(
-    alex.getByRole("heading", { name: "CI corrected flight", exact: true }),
+    alex.getByRole("heading", {
+      name: "CI corrected flight",
+      exact: true,
+      level: 1,
+    }),
   ).toBeVisible();
   const replacementUrl = alex.url();
   await expect(
@@ -44,6 +48,7 @@ export async function exerciseMoneyHistory(
     alex.getByRole("heading", {
       name: "Refund: CI corrected flight",
       exact: true,
+      level: 1,
     }),
   ).toBeVisible();
   await expect(
@@ -62,12 +67,16 @@ export async function exerciseMoneyHistory(
   ).toContainText("CHF 80.00");
   await sam.goto(originalUrl);
   await expect(
-    sam.getByRole("heading", { name: "CI paid flight", exact: true }),
+    sam.getByRole("heading", { name: "CI paid flight", exact: true, level: 1 }),
   ).toBeVisible();
   await expect(sam.getByText("Reversed", { exact: true })).toBeVisible();
   await sam.goto(replacementUrl);
   await expect(
-    sam.getByRole("heading", { name: "CI corrected flight", exact: true }),
+    sam.getByRole("heading", {
+      name: "CI corrected flight",
+      exact: true,
+      level: 1,
+    }),
   ).toBeVisible();
   await expect(
     sam.getByRole("region", { name: "Related history", exact: true }),

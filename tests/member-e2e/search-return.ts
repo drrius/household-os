@@ -19,7 +19,11 @@ export async function exerciseSearchReturn(sam: Page) {
     .fill("CI updated flight");
   await sam.getByRole("button", { name: "Save booking", exact: true }).click();
   await expect(
-    sam.getByRole("heading", { name: "CI updated flight", exact: true }),
+    sam.getByRole("heading", {
+      name: "CI updated flight",
+      exact: true,
+      level: 1,
+    }),
   ).toBeVisible();
   await sam
     .getByRole("link", { name: "Back to search results", exact: true })

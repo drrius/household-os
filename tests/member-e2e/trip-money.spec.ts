@@ -106,8 +106,13 @@ test("two members share travel, paid history, assigned work and search context",
       sam.getByRole("region", { name: "You owe Alex", exact: true }),
     ).toContainText("41.05");
     await sam.getByRole("link", { name: /CI paid flight/ }).click();
+    await expect(sam).toHaveURL(/\/money\/events\/[0-9a-f-]+$/);
     await expect(
-      sam.getByRole("heading", { name: "CI paid flight", exact: true }),
+      sam.getByRole("heading", {
+        name: "CI paid flight",
+        exact: true,
+        level: 1,
+      }),
     ).toBeVisible();
     await exerciseMoneyHistory(alex, sam, tripUrl);
     await exerciseProjectHandoff(alex, sam, tripUrl);

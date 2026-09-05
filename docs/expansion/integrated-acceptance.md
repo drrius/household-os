@@ -84,6 +84,8 @@ These are incremental facts, not completion of the full acceptance checklist abo
 
 ### First authenticated acceptance passed
 
-Assembly `d42ef9a` passed [member-e2e job 101312340322](https://github.com/drrius/household-os/actions/runs/33968329335/job/101312340322). Two fictional members enrolled through the existing product flow. Alex created the trip and booking and posted CHF 82.10; Sam saw the persisted booking, CHF 82.10 trip costs, CHF 41.05 obligation, and authoritative event detail. Fixtures were disabled and the app ran as a production build against the disposable hosted database.
+Assembly `d42ef9a` passed [member-e2e job 101312340322](https://github.com/drrius/household-os/actions/runs/33968329335/job/101312340322). Two fictional members enrolled through the existing product flow. Alex created the trip and booking and posted CHF 82.10; Sam saw the persisted booking, CHF 82.10 trip costs, CHF 41.05 obligation, and the event link. A later test exposed that the title assertion could still match the list heading before navigation; the next revision explicitly checks the event URL and level-one heading. Fixtures were disabled and the app ran as a production build against the disposable hosted database.
 
 The next test extension covers correction/refund history and contextual totals, assignment notification → completion → partner realtime refresh, and search → booking edit/reload/save → preserved filters. These new assertions are not yet runtime proof.
+
+The first extended attempt `7483ae3` stopped before correction because its captured event URL was still `/money`: the title assertion matched the recent-event list heading. This is corrected by requiring the event URL and level-one detail heading. The earlier baseline proves persisted trip/booking, contextual costs and partner balance, but did not independently establish that final detail navigation completed.
