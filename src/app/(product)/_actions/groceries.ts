@@ -118,6 +118,10 @@ export async function finishShoppingCheckoutAction(
   let sessionId = "";
   const rejected = await settleFormAction(previous, formData, async () => {
     const { members } = await loadMoneyFormOptions();
+    if (members.length !== 2)
+      throw new Error(
+        "Shopping checkout needs both household members. Finish household setup, then try again.",
+      );
     const memberIds = z
       .tuple([z.string().uuid(), z.string().uuid()])
       .parse(members.map((member) => member.user_id));
