@@ -42,6 +42,9 @@ test.describe("Security with unavailable passkeys", () => {
     await expect(page.getByRole("main").getByRole("alert")).toContainText(
       "Your passkeys could not load",
     );
+    await page
+      .getByRole("button", { name: "Restore fixture passkey service" })
+      .click();
     await page.getByRole("button", { name: "Retry loading passkeys" }).click();
     await expect(
       page.getByText("Recovery authenticator", { exact: true }),

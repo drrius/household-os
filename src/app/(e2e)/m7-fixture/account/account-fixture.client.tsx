@@ -63,10 +63,10 @@ export function AccountFixture({
 }
 
 export function UnavailablePasskeysFixture({ pending }: { pending: boolean }) {
-  const attempts = useRef(0);
+  const restored = useRef(false);
   const load = useCallback(async () => {
     if (pending) return new Promise<never>(() => {});
-    if (++attempts.current === 1)
+    if (!restored.current)
       throw new Error("Fixture passkey endpoint unavailable");
     return [
       {
@@ -77,5 +77,19 @@ export function UnavailablePasskeysFixture({ pending }: { pending: boolean }) {
       },
     ];
   }, [pending]);
-  return <PasskeyLoader load={load} />;
+  return (
+    <div className="grid gap-3">
+      <PasskeyLoader load={load} />
+      {!pending ? (
+        <button
+          type="button"
+          onClick={() => {
+            restored.current = true;
+          }}
+        >
+          Restore fixture passkey service
+        </button>
+      ) : null}
+    </div>
+  );
 }
