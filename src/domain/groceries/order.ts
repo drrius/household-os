@@ -1,3 +1,4 @@
+import { groceryFallbackLabel } from "./category-options";
 export type GroceryCategoryOrder = {
   id: string;
   name: string;
@@ -29,7 +30,9 @@ export function groupGroceries<T extends OrderedGrocery>(
       category.id,
       {
         id: category.id,
-        name: category.name,
+        name: category.is_fallback
+          ? groceryFallbackLabel(categories)
+          : category.name,
         sortOrder: category.sort_order,
         items: [],
       },
@@ -38,7 +41,7 @@ export function groupGroceries<T extends OrderedGrocery>(
   const other = orderedCategories.find((category) => category.is_fallback);
   const fallback: GroceryCategoryGroup<T> = {
     id: other?.id ?? "uncategorized",
-    name: other?.name ?? "Other",
+    name: groceryFallbackLabel(categories),
     sortOrder: other?.sort_order ?? Number.MAX_SAFE_INTEGER,
     items: [],
   };

@@ -79,3 +79,22 @@ test("renamed fallback is a single category choice", async ({ page }) => {
   await page.getByRole("option", { name: "Produce", exact: true }).click();
   await expect(editor.locator('[name="categoryId"]')).toHaveValue("produce");
 });
+
+test("an archived fallback and its active namesake remain distinguishable", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/grocery-form-refresh");
+  await page
+    .getByRole("button", { name: "Simulate archived fallback" })
+    .click();
+  const editor = page.getByRole("region", { name: "Item editor" });
+  await expect(editor.getByRole("combobox")).toContainText(
+    "Other (unassigned)",
+  );
+  await editor.getByRole("combobox").click();
+  await expect(
+    page.getByRole("option", { name: "Other (unassigned)", exact: true }),
+  ).toHaveCount(1);
+  await page.getByRole("option", { name: "Other", exact: true }).click();
+  await expect(editor.locator('[name="categoryId"]')).toHaveValue("custom");
+});

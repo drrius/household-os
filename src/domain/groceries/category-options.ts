@@ -9,8 +9,7 @@ export function groceryCategoryOptions(
 ) {
   return [
     {
-      label:
-        categories.find((category) => category.is_fallback)?.name ?? "Other",
+      label: groceryFallbackLabel(categories),
       value: "",
     },
     ...categories
@@ -27,4 +26,22 @@ export function groceryCategorySelection(
     categories.some((category) => category.id === id && !category.is_fallback)
     ? id
     : "";
+}
+
+export function groceryFallbackLabel(
+  categories: readonly GroceryCategoryOption[],
+): string {
+  const name =
+    categories.find((category) => category.is_fallback)?.name ?? "Other";
+  const names = new Set(
+    categories
+      .filter((category) => !category.is_fallback)
+      .map((category) => category.name.toLowerCase()),
+  );
+  if (!names.has(name.toLowerCase())) return name;
+  let label = `${name} (unassigned)`;
+  let suffix = 2;
+  while (names.has(label.toLowerCase()))
+    label = `${name} (unassigned ${suffix++})`;
+  return label;
 }

@@ -6,6 +6,7 @@ import { GroceryCategoryManager } from "@/ui/groceries/category-manager.client";
 import type { FormAction } from "@/lib/forms/action-state";
 export function GroceryRefreshFixture() {
   const [revision, setRevision] = useState(1);
+  const [archivedFallback, setArchivedFallback] = useState(false);
   const [entity, setEntity] = useState("first");
   const save: FormAction = async (previous, form) => {
     const stale = form.has("itemId")
@@ -30,11 +31,21 @@ export function GroceryRefreshFixture() {
         Simulate partner refresh
       </button>
       <button onClick={() => setEntity("second")}>Open another record</button>
+      <button onClick={() => setArchivedFallback(true)}>
+        Simulate archived fallback
+      </button>
       <section aria-label="Item editor">
         <GroceryEditForm
           action={save}
           categories={[
-            { id: "fallback", name: "Unsorted", is_fallback: true },
+            {
+              id: "fallback",
+              name: archivedFallback ? "Other" : "Unsorted",
+              is_fallback: true,
+            },
+            ...(archivedFallback
+              ? [{ id: "custom", name: "Other", is_fallback: false }]
+              : []),
             { id: "produce", name: "Produce", is_fallback: false },
           ]}
           item={{

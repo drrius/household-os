@@ -62,7 +62,7 @@ export async function loadGroceryFormOptions() {
     .from("grocery_categories")
     .select("id, name, is_fallback")
     .eq("household_id", member.householdId)
-    .is("archived_at", null)
+    .or("archived_at.is.null,is_fallback.eq.true")
     .order("sort_order");
   return z
     .array(optionSchema.extend({ is_fallback: z.boolean() }))

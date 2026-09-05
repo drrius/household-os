@@ -23,3 +23,15 @@ describe("grocery category choice identity", () => {
     expect(groceryCategoryOptions([])).toEqual([{ label: "Other", value: "" }]);
   });
 });
+
+it("distinguishes the archived fallback from a new active category with its old name", () => {
+  const options = [
+    { id: "fallback", name: "Other", is_fallback: true },
+    { id: "custom", name: "Other", is_fallback: false },
+  ];
+  expect(groceryCategoryOptions(options)).toEqual([
+    { label: "Other (unassigned)", value: "" },
+    { label: "Other", value: "custom" },
+  ]);
+  expect(groceryCategorySelection(options, "fallback")).toBe("");
+});

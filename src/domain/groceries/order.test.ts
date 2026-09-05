@@ -105,3 +105,31 @@ it("keeps appending possible even when an edited item reaches the integer limit"
     ),
   );
 });
+
+it("list and checkout distinguish archived fallback identity from an active namesake", () => {
+  const groups = groupGroceries(
+    [
+      { id: "fallback", name: "Other", is_fallback: true, sort_order: 0 },
+      { id: "custom", name: "Other", is_fallback: false, sort_order: 1 },
+    ],
+    [
+      { id: "unassigned", category_id: null, sort_order: 0 },
+      { id: "explicit", category_id: "fallback", sort_order: 1 },
+      { id: "named", category_id: "custom", sort_order: 0 },
+    ],
+  );
+  expect(
+    groups.map(({ id, name, items }) => ({
+      id,
+      name,
+      items: items.map((item) => item.id),
+    })),
+  ).toEqual([
+    {
+      id: "fallback",
+      name: "Other (unassigned)",
+      items: ["unassigned", "explicit"],
+    },
+    { id: "custom", name: "Other", items: ["named"] },
+  ]);
+});
