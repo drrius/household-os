@@ -1,3 +1,5 @@
+import { calendarEditView } from "./edit-view";
+import { writeCalendar } from "@/domain/calendar/ical-write";
 import { expect, it } from "vitest";
 import { calendarInputForDisplay, rowFields, type CalendarRow } from "./rows";
 const ical = [
@@ -70,4 +72,53 @@ it("shows pending local fields when no canonical ICS exists yet", () => {
       time_zone: "Europe/Zurich",
     }),
   ).toMatchObject({ title: "Changed", timeZone: "Europe/Zurich" });
+});
+
+it.each([
+  "invalid",
+  "",
+  ["2026-09-01T08:00:00Z", "2026-09-02T08:00:00Z"],
+  "2026-10-01T08:00:00Z",
+])(
+  "recovers unavailable occurrence links without exposing an editor",
+  (occurrence) => {
+    const input = calendarInputForDisplay({ ...row, ical_data: null });
+    const recurring = writeCalendar(
+      { ...input, recurrenceRule: "FREQ=DAILY;COUNT=2" },
+      { uid: row.ical_uid },
+    );
+    const result = calendarEditView(
+      { ...row, ical_data: recurring },
+      occurrence,
+    );
+    expect(result.issue).toEqual(expect.any(String));
+    expect(result.input).toBeUndefined();
+  },
+);
+it("keeps valid occurrence editing and rejects cancelled occurrences", () => {
+  const input = calendarInputForDisplay({ ...row, ical_data: null });
+  const recurring = writeCalendar(
+    { ...input, recurrenceRule: "FREQ=DAILY;COUNT=2" },
+    { uid: row.ical_uid },
+  );
+  const occurrence = "2026-09-02T08:00:00Z";
+  expect(
+    calendarEditView({ ...row, ical_data: recurring }, occurrence),
+  ).toMatchObject({
+    issue: null,
+    recurring: true,
+    input: { startsAt: expect.stringContaining("2026-09-02T08:00:00") },
+  });
+  const cancelled = writeCalendar(input, {
+    uid: row.ical_uid,
+    existing: recurring,
+    recurrenceId: occurrence,
+    cancelled: true,
+  });
+  expect(
+    calendarEditView({ ...row, ical_data: cancelled }, occurrence).issue,
+  ).toEqual(expect.any(String));
+  expect(
+    calendarEditView({ ...row, ical_data: "invalid" }, undefined).issue,
+  ).toEqual(expect.any(String));
 });

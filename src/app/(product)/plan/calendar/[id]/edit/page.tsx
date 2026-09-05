@@ -1,10 +1,8 @@
-import { calendarEditingIssue } from "@/domain/calendar/ical-write";
-import { readCalendar } from "@/domain/calendar/ical-read";
-import { isTimeZone } from "@/domain/calendar/date-time";
-import { calendarOccurrence } from "@/domain/calendar/ical-read";
+import { notFound } from "next/navigation";
+import { z } from "zod";
+import { calendarEditView } from "@/lib/calendar/edit-view";
 import { saveEventAction } from "@/lib/calendar/actions";
 import { getCalendarEvent, getCalendarOptions } from "@/lib/calendar/context";
-import { calendarInputForDisplay } from "@/lib/calendar/rows";
 import { EventForm } from "@/ui/calendar/event-form";
 import { FormPage } from "@/ui/forms/form-page";
 export default async function EditCalendarEventPage({
@@ -12,39 +10,25 @@ export default async function EditCalendarEventPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ occurrence?: string }>;
+  searchParams: Promise<{ occurrence?: string | string[] }>;
 }) {
   const [{ id }, { occurrence }] = await Promise.all([params, searchParams]);
+  if (!z.uuid().safeParse(id).success) notFound();
   const [row, options] = await Promise.all([
     getCalendarEvent(id),
     getCalendarOptions(),
   ]);
-  const issue = row.ical_data ? calendarEditingIssue(row.ical_data) : null;
-  if (issue)
+  const view = calendarEditView(row, occurrence);
+  if (view.issue !== null)
     return (
       <FormPage
         backHref={`/plan/calendar/${id}`}
-        title="Edit in Apple Calendar"
-        description={issue}
-      >
-        <p>Your event is kept in the shared agenda.</p>
-      </FormPage>
-    );
-  const input = calendarInputForDisplay(row);
-  const edited =
-    occurrence && row.ical_data
-      ? { ...input, ...calendarOccurrence(row.ical_data, occurrence) }
-      : input;
-  if (!isTimeZone(edited.timeZone))
-    return (
-      <FormPage
-        backHref={`/plan/calendar/${id}`}
-        title="Edit in Apple Calendar"
-        description="This event uses a custom time zone."
+        title="This event can't be edited here"
+        description={view.issue}
       >
         <p>
-          Manage its changes in Apple Calendar to preserve the original
-          time-zone definition.
+          Return to the event to choose another date, or manage it in Apple
+          Calendar.
         </p>
       </FormPage>
     );
@@ -62,13 +46,9 @@ export default async function EditCalendarEventPage({
         action={saveEventAction}
         id={row.id}
         version={row.updated_at}
-        recurrenceId={occurrence}
-        recurring={
-          row.ical_data
-            ? readCalendar(row.ical_data).event.isRecurring()
-            : false
-        }
-        input={edited}
+        recurrenceId={typeof occurrence === "string" ? occurrence : undefined}
+        recurring={view.recurring}
+        input={view.input}
         options={{
           ...options,
           canPublish:

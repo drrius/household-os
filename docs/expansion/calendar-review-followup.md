@@ -9,4 +9,6 @@ Implemented on the calendar source branch and propagated through the planning/se
 
 Evidence: the transport and custom-zone regressions failed before their fixes; 40 affected tests passed afterward. The queue regressions failed before the fix; 24 sync/push/protocol tests passed afterward. Fifteen sync/push/time-presentation tests and two focused Chromium/mobile Safari conflict cases pass, including accessible choice selection and no hydration warnings. Targeted lint, formatting and TypeScript pass. These are controlled tests, not live private-iCloud verification.
 
-Outstanding review work includes occurrence-query recovery, recurrence export identity/time-zone semantics, recurrence-rule storage, booking restore invariants and remaining source-PR findings. Hosted final-head CI and positive CodeRabbit review remain required.
+Outstanding review work includes recurrence export identity/time-zone semantics, recurrence-rule storage, booking restore invariants and remaining source-PR findings. Hosted final-head CI and positive CodeRabbit review remain required.
+
+Occurrence editing now returns an explicit recovery state for malformed, duplicate, cancelled, excluded or unreadable occurrence data, with a route back to the event. Valid occurrences retain their date-specific editor. Both event routes reject malformed UUIDs with not-found before querying the database. Twenty affected row/occurrence tests, targeted lint, formatting and TypeScript pass. Route browser CI remains required.
