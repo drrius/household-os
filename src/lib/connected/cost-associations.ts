@@ -9,6 +9,7 @@ const eventSchema = z.object({
   id: z.uuid(),
   description: z.string(),
   occurred_on: z.iso.date(),
+  payer_member_id: z.uuid(),
   amount_cents: z.number().int().nonnegative().safe(),
   type: z.enum(["expense", "replacement"]),
 });
@@ -24,7 +25,8 @@ const linkSchema = z.object({
 });
 export type AssociationExpense = z.infer<typeof eventSchema>;
 export type ExpenseAssociation = z.infer<typeof linkSchema>;
-const eventColumns = "id,description,occurred_on,amount_cents,type";
+const eventColumns =
+  "id,description,occurred_on,amount_cents,type,payer_member_id";
 const linkColumns =
   "id,financial_event_id,revision,project_id,asset_id,commitment_id,booking_id,archived_at";
 export const expenseCursor = z.object({

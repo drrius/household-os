@@ -11,6 +11,7 @@ export function AssociationConfirmation({
   destinationTitle,
   revision,
   requestId,
+  payerName,
 }: {
   action: FormAction;
   expense: AssociationExpense;
@@ -18,6 +19,7 @@ export function AssociationConfirmation({
   destinationTitle: string | null;
   revision: string | null;
   requestId: string;
+  payerName: string;
 }) {
   // The confirmation and concurrency token describe the same opened snapshot.
   const [opened] = useState({
@@ -27,10 +29,12 @@ export function AssociationConfirmation({
     destinationTitle,
     revision,
     requestId,
+    payerName,
   });
   return (
     <FormFields
       action={opened.action}
+      showRequiredHint={false}
       submitLabel={
         opened.destinationTitle ? "Save association" : "Remove association"
       }
@@ -49,6 +53,7 @@ export function AssociationConfirmation({
           {formatCentimesAsFrancs(opened.expense.amount_cents)} ·{" "}
           {opened.expense.occurred_on}
         </p>
+        <p>Paid by {opened.payerName}</p>
         <p>
           Current association: {opened.currentTitle ?? "No direct association"}
         </p>

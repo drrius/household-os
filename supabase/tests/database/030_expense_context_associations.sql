@@ -23,6 +23,9 @@ create function pg_temp.assign(p_key integer, p_changes jsonb default '{}'::json
 with input as (select jsonb_build_object('household','30000100-0000-4000-8000-000000000001','event',current_setting('test.event'),'kind','project','context','30000200-0000-4000-8000-000000000001','booking',null,'revision',(select revision from public.household_financial_links where financial_event_id=current_setting('test.event')::uuid)) || p_changes as v)
 select public.assign_expense_context((v->>'household')::uuid,(v->>'event')::uuid,(v->>'revision')::uuid,('30000900-0000-4000-8000-'||lpad(p_key::text,12,'0'))::uuid,v->>'kind',(v->>'context')::uuid,(v->>'booking')::uuid) from input;
 $fn$;
+select ok(not has_table_privilege('authenticated','public.household_financial_links','insert'),'direct association insert privilege revoked');
+select ok(not has_table_privilege('authenticated','public.household_financial_links','update'),'direct association update privilege revoked');
+select ok(not exists(select 1 from information_schema.column_privileges where table_schema='public' and table_name='household_financial_links' and grantee='authenticated' and privilege_type in ('INSERT','UPDATE')),'no column grant bypasses guarded command');
 select ok((select relrowsecurity from pg_class where oid='private.expense_context_change_receipts'::regclass),'private receipt RLS enabled');
 select ok(not has_table_privilege('authenticated','private.expense_context_change_receipts','select,insert,update,delete'),'members cannot forge private receipts');
 select ok(not has_table_privilege('anon','private.expense_context_change_receipts','select,insert,update,delete'),'anonymous cannot access private receipts');
@@ -39,6 +42,7 @@ select throws_ok($$select pg_temp.assign(1,'{"kind":"other"}')$$,'22023',null,'i
 select throws_ok($$select pg_temp.assign(1,'{"context":null}')$$,'22023',null,'incomplete target rejected');
 select throws_ok($$select pg_temp.assign(1,'{"event":"30000000-0000-4000-8000-000000000003"}')$$,'42501',null,'missing event rejected');
 select throws_ok($$select pg_temp.assign(1,'{"context":"30000200-0000-4000-8000-000000000002","booking":"30000500-0000-4000-8000-000000000001"}')$$,'22023',null,'booking must belong to chosen project');
+select throws_ok($$insert into public.household_financial_links(household_id,financial_event_id,project_id) values ('30000100-0000-4000-8000-000000000001',current_setting('test.event')::uuid,'30000200-0000-4000-8000-000000000001')$$,'42501',null,'browser cannot insert a link without guarded command');
 select lives_ok($$select pg_temp.assign(1,'{"revision":null}')$$,'existing expense is associated');
 select is(public.read_household_cost_context('project','30000200-0000-4000-8000-000000000001')->>'paid_cents','101','paid total derives existing event');
 select set_config('test.revision',(select revision::text from public.household_financial_links where financial_event_id=current_setting('test.event')::uuid),true);
@@ -58,7 +62,10 @@ select lives_ok($$select pg_temp.assign(4,'{"kind":"asset","context":"30000300-0
 select is(public.read_household_cost_context('asset','30000300-0000-4000-8000-000000000001')->>'paid_cents','101','inventory receives exact cost');
 select lives_ok($$select pg_temp.assign(5,'{"kind":"commitment","context":"30000400-0000-4000-8000-000000000001"}')$$,'commitment accepts recorded expense');
 select is(public.read_household_cost_context('commitment','30000400-0000-4000-8000-000000000001')->>'paid_cents','101','commitment receives exact cost');
-select throws_ok($$update public.household_financial_links set financial_event_id='30000000-0000-4000-8000-000000000001' where financial_event_id=current_setting('test.event')::uuid$$,'23514',null,'direct update cannot replace association event identity');
+select throws_ok($$update public.household_financial_links set financial_event_id='30000000-0000-4000-8000-000000000001' where financial_event_id=current_setting('test.event')::uuid$$,'42501',null,'browser cannot bypass command with direct update');
+reset role;
+select throws_ok($$update public.household_financial_links set financial_event_id='30000000-0000-4000-8000-000000000001' where financial_event_id=current_setting('test.event')::uuid$$,'23514',null,'trusted writes still cannot replace event identity');
+set local role authenticated;
 update public.household_projects set archived_at=now() where id='30000200-0000-4000-8000-000000000001';
 select throws_ok($$select pg_temp.assign(6)$$,'22023',null,'archived target rejects assignment');
 update public.household_projects set archived_at=null where id='30000200-0000-4000-8000-000000000001';

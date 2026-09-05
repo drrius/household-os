@@ -10,12 +10,14 @@ export function AssociationExpenses({
   expenses,
   hasMore,
   older,
+  members,
 }: {
   target: CostTarget;
   title: string;
   expenses: AssociationExpense[];
   hasMore: boolean;
   older: boolean;
+  members: readonly { user_id: string; display_name: string }[];
 }) {
   const base = `/money/contexts/${target.kind}/${target.id}/existing`;
   const query = new URLSearchParams(
@@ -30,18 +32,7 @@ export function AssociationExpenses({
       >
         Back to {title}
       </Link>
-      <header className="grid gap-2">
-        <h1
-          id="existing-expenses-title"
-          className="text-3xl font-semibold tracking-tight"
-        >
-          Choose a recorded expense
-        </h1>
-        <p className="max-w-prose text-muted-foreground">
-          Associate an existing payment with {title}. You’ll review its current
-          association before saving. This does not record another payment.
-        </p>
-      </header>
+      <ExpenseChoiceHeader title={title} />
       {older && (
         <Link
           className={buttonVariants({
@@ -65,6 +56,11 @@ export function AssociationExpenses({
             <AssociationExpenseRow
               key={expense.id}
               expense={expense}
+              payerName={
+                members.find(
+                  (member) => member.user_id === expense.payer_member_id,
+                )?.display_name ?? "Household member"
+              }
               href={`${base}/${expense.id}?${query}`}
             />
           ))}
@@ -88,9 +84,11 @@ export function AssociationExpenses({
 function AssociationExpenseRow({
   expense,
   href,
+  payerName,
 }: {
   expense: AssociationExpense;
   href: string;
+  payerName: string;
 }) {
   return (
     <li>
@@ -103,7 +101,7 @@ function AssociationExpenseRow({
             {expense.description}
           </span>
           <span className="text-sm text-muted-foreground">
-            {expense.occurred_on}
+            {expense.occurred_on} · Paid by {payerName}
             {expense.type === "replacement" ? " · Corrected payment" : ""}
           </span>
         </span>
@@ -126,4 +124,21 @@ function olderExpensesHref(
     next.set("beforeId", last.id);
   }
   return `${base}?${next}`;
+}
+
+function ExpenseChoiceHeader({ title }: { title: string }) {
+  return (
+    <header className="grid gap-2">
+      <h1
+        id="existing-expenses-title"
+        className="text-3xl font-semibold tracking-tight"
+      >
+        Choose a recorded expense
+      </h1>
+      <p className="max-w-prose text-muted-foreground">
+        Associate an existing payment with {title}. You’ll review its current
+        association before saving. This does not record another payment.
+      </p>
+    </header>
+  );
 }

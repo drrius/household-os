@@ -1,3 +1,4 @@
+import { loadHouseholdMembers } from "@/app/(product)/_actions/m7-shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -21,6 +22,7 @@ export default async function Page({
         .filter(Boolean)
         .join(" · ")
     : "Household record";
+  const members = await loadHouseholdMembers();
   return (
     <FormPage
       title="Manage expense association"
@@ -38,6 +40,11 @@ export default async function Page({
         key={item.expense.id}
         action={associateExpenseAction.bind(null, item.expense.id, null)}
         expense={item.expense}
+        payerName={
+          members.find(
+            (member) => member.user_id === item.expense.payer_member_id,
+          )?.display_name ?? "Household member"
+        }
         currentTitle={title}
         destinationTitle={null}
         revision={item.association.revision}

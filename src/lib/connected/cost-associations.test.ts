@@ -26,6 +26,7 @@ const id = "00000000-0000-4000-8000-000000000001",
 const expense = {
   id,
   description: "Flight",
+  payer_member_id: id,
   occurred_on: "2026-09-05",
   amount_cents: 101,
   type: "expense",

@@ -1,3 +1,4 @@
+import { loadHouseholdMembers } from "@/app/(product)/_actions/m7-shared";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { costTargetHref } from "@/domain/money/cost-target";
@@ -41,6 +42,7 @@ export default async function Page({
         .filter(Boolean)
         .join(" · ")
     : null;
+  const members = await loadHouseholdMembers();
   return (
     <FormPage
       title="Review expense association"
@@ -51,6 +53,11 @@ export default async function Page({
         key={`${eventId}:${route.target.kind}:${route.target.id}:${route.target.bookingId ?? ""}`}
         action={associateExpenseAction.bind(null, eventId, route.target)}
         expense={item.expense}
+        payerName={
+          members.find(
+            (member) => member.user_id === item.expense.payer_member_id,
+          )?.display_name ?? "Household member"
+        }
         currentTitle={current}
         destinationTitle={title}
         revision={item.association?.revision ?? null}

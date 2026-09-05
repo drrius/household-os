@@ -104,9 +104,11 @@ function useNativeValidation() {
 function FormRejectionLiveRegion({
   error,
   liveRegionRef,
+  showRequiredHint,
 }: {
   error: string | undefined;
   liveRegionRef: RefObject<HTMLDivElement | null>;
+  showRequiredHint: boolean;
 }) {
   return (
     <div
@@ -121,9 +123,11 @@ function FormRejectionLiveRegion({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <p className="text-sm text-muted-foreground">
-        Everything is required unless marked optional.
-      </p>
+      {showRequiredHint && (
+        <p className="text-sm text-muted-foreground">
+          Everything is required unless marked optional.
+        </p>
+      )}
     </div>
   );
 }
@@ -145,10 +149,12 @@ export function FormFields({
   action,
   children,
   submitLabel,
+  showRequiredHint = true,
 }: {
   action: FormAction;
   children: ReactNode;
   submitLabel: string;
+  showRequiredHint?: boolean;
 }) {
   const {
     errors: nativeErrors,
@@ -182,7 +188,11 @@ export function FormFields({
       onInput={onInput}
       onInvalidCapture={onInvalidCapture}
     >
-      <FormRejectionLiveRegion error={error} liveRegionRef={alertRef} />
+      <FormRejectionLiveRegion
+        error={error}
+        liveRegionRef={alertRef}
+        showRequiredHint={showRequiredHint}
+      />
       <FormFieldsContext value={state}>
         <div className="grid gap-5" key={submissionId}>
           {children}

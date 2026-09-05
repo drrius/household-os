@@ -34,6 +34,7 @@ export default async function Page({
         </FormPage>
       ) : (
         <AssociationExpenses
+          members={[{ user_id: id, display_name: "Alex" }]}
           target={{ kind: "project", id, bookingId: id }}
           title="Autumn holiday · Flight"
           expenses={
@@ -43,6 +44,7 @@ export default async function Page({
                   {
                     id,
                     description: "Zurich flight",
+                    payer_member_id: id,
                     occurred_on: "2026-09-05",
                     amount_cents: 12501,
                     type: "expense",

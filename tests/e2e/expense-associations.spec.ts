@@ -16,6 +16,9 @@ test("recorded expense selection preserves booking scope and exact paid amounts"
     "href",
     `/money/contexts/project/${id}/existing/${id}?booking=${id}`,
   );
+  await expect(page.getByRole("link", { name: /Zurich flight/ })).toContainText(
+    "Paid by Alex",
+  );
   const next = page.getByRole("link", { name: "Earlier expenses" });
   await expect(next).toHaveAttribute(
     "href",
@@ -36,6 +39,10 @@ test("confirmation freezes visible choice, revision and retry identity through r
   page,
 }) => {
   await page.goto("/m7-fixture/associations?mode=confirm");
+  await expect(page.getByText("Paid by Alex", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Everything is required unless marked optional."),
+  ).toHaveCount(0);
   const request = await page.locator('input[name="requestId"]').inputValue();
   await expect(
     page.getByText("Current association: Summer holiday"),

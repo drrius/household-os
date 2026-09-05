@@ -19,9 +19,11 @@ export function RefreshConfirmation({
       <output>{refreshed ? "Server changed" : "Original server"}</output>
       <AssociationConfirmation
         action={action}
+        payerName="Alex"
         expense={{
           id,
           description: "Zurich flight",
+          payer_member_id: id,
           amount_cents: 12501,
           occurred_on: "2026-09-05",
           type: remove ? "replacement" : "expense",

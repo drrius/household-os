@@ -1,3 +1,4 @@
+import { loadHouseholdMembers } from "@/app/(product)/_actions/m7-shared";
 import { notFound } from "next/navigation";
 import { loadAssociationExpenses } from "@/lib/connected/cost-associations";
 import { loadCostRecord } from "@/lib/connected/cost-records";
@@ -28,6 +29,7 @@ export default async function Page({
   return (
     <AssociationExpenses
       {...page}
+      members={await loadHouseholdMembers()}
       target={route.target}
       title={record.booking?.title ?? record.record.title}
       older={Boolean(route.before)}

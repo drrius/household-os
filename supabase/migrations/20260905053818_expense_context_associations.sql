@@ -119,3 +119,7 @@ end;
 $$;
 revoke all on function public.assign_expense_context(uuid,uuid,uuid,uuid,text,uuid,uuid) from public,anon;
 grant execute on function public.assign_expense_context(uuid,uuid,uuid,uuid,text,uuid,uuid) to authenticated;
+
+-- Browser clients must use the authenticated commands: RLS alone cannot enforce
+-- the original revision, target lifecycle or payload-bound retry contract.
+revoke insert, update on public.household_financial_links from authenticated;
