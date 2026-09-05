@@ -29,7 +29,11 @@ test("search filters and cursor survive record edit, reload and save without lea
 
 test("saving back to a list keeps the original search return link", async ({
   page,
+  request,
 }) => {
+  // Compile the destination before interaction: the dev server can otherwise
+  // spend the assertion window compiling this first visit on a cold CI worker.
+  expect((await request.get("/m7-fixture/search-origin")).ok()).toBe(true);
   const context = "/search?q=passport&type=task&archived=1";
   await page.goto(
     `/m7-fixture/search-origin/77000000-0000-4000-8000-000000000001?${new URLSearchParams({ fromSearch: context })}`,
