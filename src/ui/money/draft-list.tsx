@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MoneyViewModel } from "@/lib/read-models/money";
 import { Amount } from "@/ui/layout/amount";
@@ -13,7 +13,7 @@ type DraftListProps = {
   drafts: MoneyViewModel["drafts"];
 };
 
-export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
+export function DraftList({ drafts }: DraftListProps) {
   return (
     <PageSection title="Drafts" titleId="money-drafts-title">
       {drafts.length === 0 ? (
@@ -51,19 +51,6 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                     )}
                   </p>
                   <div className="flex flex-wrap gap-2 sm:col-span-2">
-                    <form action={confirmDraftAction}>
-                      <input name="draftId" type="hidden" value={draft.id} />
-                      <Button
-                        aria-describedby={
-                          draft.canConfirm ? undefined : `${draft.id}-blocker`
-                        }
-                        disabled={!draft.canConfirm}
-                        type="submit"
-                        variant={draft.canConfirm ? "default" : "secondary"}
-                      >
-                        Confirm
-                      </Button>
-                    </form>
                     <Link
                       className={buttonVariants({
                         className: "no-underline",
@@ -71,7 +58,7 @@ export function DraftList({ confirmDraftAction, drafts }: DraftListProps) {
                       })}
                       href={`/money/expenses/new?draft=${encodeURIComponent(draft.id)}`}
                     >
-                      Edit
+                      Review draft
                     </Link>
                   </div>
                 </CardContent>

@@ -65,26 +65,46 @@ function progressLabel(progress: TodayViewModel["progress"]): string {
 }
 
 function RoutineSections({ view }: { view: TodayViewModel }) {
+  const open = view.routinesToday.filter((row) => row.tone !== "completed");
+  const completed = view.routinesToday.filter(
+    (row) => row.tone === "completed",
+  );
   return (
-    <div className="flex flex-col gap-4">
-      <PageSection title="Overdue" titleId="today-overdue-title">
-        {view.overdue.length > 0 ? (
+    <div className="flex flex-col gap-6 lg:col-span-2">
+      {view.overdue.length > 0 ? (
+        <PageSection title="Still to do" titleId="today-overdue-title">
           <RoutineList rows={view.overdue} />
-        ) : (
-          <EmptyState title="Nothing overdue">
-            <p>The household is caught up.</p>
-          </EmptyState>
-        )}
-      </PageSection>
+        </PageSection>
+      ) : null}
       <PageSection title="Today's routines" titleId="today-routines-title">
-        {view.routinesToday.length > 0 ? (
-          <RoutineList rows={view.routinesToday} />
+        {open.length > 0 ? (
+          <RoutineList rows={open} />
         ) : (
-          <EmptyState title="No routines today">
-            <p>There is no scheduled household work for today.</p>
-          </EmptyState>
+          <div className="grid gap-2 py-4">
+            <p className="font-medium">
+              {view.overdue.length > 0
+                ? "Nothing else due today"
+                : "A little breathing room"}
+            </p>
+            <p className="text-base text-muted-foreground sm:text-sm">
+              {completed.length > 0
+                ? "Today's routines are taken care of."
+                : "No routines scheduled for today."}
+            </p>
+            <Link className="w-fit" href="/home/routines/new">
+              Add a routine
+            </Link>
+          </div>
         )}
       </PageSection>
+      {completed.length > 0 ? (
+        <details className="border-t pt-3">
+          <summary className="min-h-11 cursor-pointer text-base text-muted-foreground sm:text-sm">
+            Done today · {completed.length}
+          </summary>
+          <RoutineList rows={completed} />
+        </details>
+      ) : null}
     </div>
   );
 }
@@ -97,19 +117,9 @@ function ShoppingCard({ shopping }: { shopping: ShoppingGlance }) {
   switch (shopping.kind) {
     case "empty":
       return (
-        <EmptyState
-          action={
-            <Link
-              className={buttonVariants({ className: "no-underline" })}
-              href="/groceries/new"
-            >
-              Add grocery
-            </Link>
-          }
-          title="The list is empty"
-        >
-          <p>There is nothing waiting to be bought.</p>
-        </EmptyState>
+        <p className="text-base text-muted-foreground sm:text-sm">
+          Nothing on the list. <Link href="/groceries/new">Add groceries</Link>
+        </p>
       );
     case "list":
       return (
@@ -206,6 +216,7 @@ function DraftActions({ draft }: { draft: DraftGlance }) {
 }
 
 function MoneySection({ drafts }: { drafts: readonly DraftGlance[] }) {
+  if (drafts.length === 0) return null;
   return (
     <PageSection title="Money requiring attention" titleId="today-money-title">
       {drafts.length > 0 ? (
@@ -292,8 +303,6 @@ export function TodayScreen({ view }: { view: TodayViewModel }) {
           <PageSection title="Shopping" titleId="today-shopping-title">
             <ShoppingCard shopping={view.shopping} />
           </PageSection>
-        </div>
-        <div className="flex flex-col gap-4">
           <MoneySection drafts={view.pendingDrafts} />
         </div>
       </div>
