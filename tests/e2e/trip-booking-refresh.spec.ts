@@ -94,3 +94,30 @@ test("time zone suggestions support spaces, keyboard selection and empty results
     page.getByText("Partner changed this booking. Reopen before saving."),
   ).not.toBeVisible();
 });
+
+test("pristine partner zones refresh both controls and submitted values without freezing the next refresh", async ({
+  page,
+}) => {
+  await page.goto("/m7-fixture/trips?view=zone-refresh");
+  const start = page.getByLabel("Start time zone", { exact: true });
+  const end = page.getByLabel("End time zone", { exact: true });
+  await expect(start).toHaveValue("Europe/Zurich");
+  await expect(end).toHaveValue("America/New_York");
+  for (const revision of [2, 3]) {
+    await page
+      .getByRole("button", { name: "Simulate partner refresh" })
+      .click();
+    await expect(start).toHaveValue("Europe/London");
+    await expect(end).toHaveValue("America/Chicago");
+    await expect(page.locator('[name="updatedAt"]')).toHaveValue(
+      `2026-09-05T12:00:0${revision}Z`,
+    );
+  }
+  await page.getByRole("button", { name: "Save booking", exact: true }).click();
+  await expect(page.getByTestId("submitted-zones")).toHaveText(
+    "Europe/London / America/Chicago",
+  );
+  await expect(page.getByText("Keep this draft and try again.")).toBeVisible();
+  await expect(start).toHaveValue("Europe/London");
+  await expect(end).toHaveValue("America/Chicago");
+});

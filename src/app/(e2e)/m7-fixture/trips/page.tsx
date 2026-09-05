@@ -92,8 +92,13 @@ export default async function Page({
           description="New York together"
           backHref="/plan/trips"
         >
-          {view === "concurrent" || view === "new-refresh" ? (
-            <ConcurrentBooking creating={view === "new-refresh"} />
+          {view === "concurrent" ||
+          view === "new-refresh" ||
+          view === "zone-refresh" ? (
+            <ConcurrentBooking
+              creating={view === "new-refresh"}
+              refreshZones={view === "zone-refresh"}
+            />
           ) : (
             <BookingForm
               id={booking.id}
