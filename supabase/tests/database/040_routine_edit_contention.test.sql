@@ -93,7 +93,7 @@ select is((select count(*)::integer from public.routine_occurrences where routin
 select is((select count(*)::integer from private.routine_edit_receipts where household_id=current_setting('test.race.household')::uuid),3,'only the three accepted logical edits consume keys');
 
 select extensions.dblink_exec('routine_a','reset role');
-select extensions.dblink_exec('routine_a',format('delete from private.routine_edit_receipts where household_id=%1$L; delete from public.households where id=%1$L; delete from auth.users where id in (%2$L,%3$L);',current_setting('test.race.household'),current_setting('test.race.member'),current_setting('test.race.partner')));
+select extensions.dblink_exec('routine_a',format('delete from private.routine_edit_receipts where household_id=%1$L; delete from public.routine_completions where household_id=%1$L; delete from public.households where id=%1$L; delete from auth.users where id in (%2$L,%3$L);',current_setting('test.race.household'),current_setting('test.race.member'),current_setting('test.race.partner')));
 select extensions.dblink_disconnect('routine_b');
 select extensions.dblink_disconnect('routine_a');
 select * from finish();
