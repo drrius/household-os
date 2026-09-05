@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEditSnapshot } from "./use-edit-snapshot.client";
 import type { ProjectMember, ProjectTask } from "@/domain/projects/types";
 import type { FormAction } from "@/lib/forms/action-state";
 import { FormFields } from "@/ui/forms/form-fields.client";
@@ -19,8 +19,30 @@ export function ProjectTaskForm(props: TaskFormProps) {
 }
 
 function TaskEditor(props: TaskFormProps) {
-  const [{ id, projectId, task }] = useState(() => props);
-  const { members, action } = props;
+  const task = props.task;
+  const { data, events } = useEditSnapshot(
+    props,
+    {
+      title: task?.title ?? "",
+      assigned_member_id: task?.assigned_member_id ?? "",
+      due_on: task?.due_on ?? "",
+      section: task?.section ?? "Tasks",
+      notes: task?.notes ?? "",
+    },
+    !task,
+  );
+  return (
+    <div {...events}>
+      <TaskFields
+        key={data.task?.updated_at ?? "new"}
+        {...data}
+        action={props.action}
+      />
+    </div>
+  );
+}
+
+function TaskFields({ id, projectId, task, members, action }: TaskFormProps) {
   return (
     <FormFields action={action} submitLabel={task ? "Save task" : "Add task"}>
       <input type="hidden" name="id" value={id} />

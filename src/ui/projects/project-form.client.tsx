@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEditSnapshot } from "./use-edit-snapshot.client";
 import type { HouseholdProject, ProjectKind } from "@/domain/projects/types";
 import { formatCentimesField } from "@/domain/money/chf";
 import type { FormAction } from "@/lib/forms/action-state";
@@ -19,9 +19,35 @@ export function ProjectForm(props: ProjectFormProps) {
 }
 
 function ProjectEditor(props: ProjectFormProps) {
-  // Keep the version and the values from the same snapshot through realtime refreshes.
-  const [{ id, kind, project }] = useState(() => props);
-  const { action } = props;
+  const project = props.project;
+  const { data, events } = useEditSnapshot(
+    props,
+    {
+      title: project?.title ?? "",
+      destination: project?.destination ?? "",
+      starts_on: project?.starts_on ?? "",
+      ends_on: project?.ends_on ?? "",
+      description: project?.description ?? "",
+      status: project?.status ?? "planning",
+      budget:
+        project?.budget_cents != null
+          ? formatCentimesField(project.budget_cents)
+          : "",
+    },
+    !project,
+  );
+  return (
+    <div {...events}>
+      <ProjectFields
+        key={data.project?.updated_at ?? "new"}
+        {...data}
+        action={props.action}
+      />
+    </div>
+  );
+}
+
+function ProjectFields({ id, kind, project, action }: ProjectFormProps) {
   return (
     <FormFields
       action={action}

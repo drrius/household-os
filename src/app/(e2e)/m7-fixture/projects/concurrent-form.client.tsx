@@ -37,7 +37,7 @@ export function ConcurrentFormFixture({
     ),
     error:
       form.get("updatedAt") === incoming.updated_at
-        ? "Overwrote the partner's changes"
+        ? "Current snapshot accepted"
         : "This changed since you opened it. Reload before saving.",
   });
   return (
@@ -59,7 +59,12 @@ export function ConcurrentFormFixture({
           id={task.id}
           projectId={project.id}
           task={task}
-          members={[]}
+          members={[
+            {
+              user_id: "00000000-0000-4000-8000-000000000021",
+              display_name: "Sam",
+            },
+          ]}
           action={action}
         />
       ) : (
