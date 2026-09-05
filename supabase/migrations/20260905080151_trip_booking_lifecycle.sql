@@ -5,8 +5,8 @@ begin
   select * into v_project from public.household_projects
     where id=new.project_id and household_id=new.household_id for update;
   if not found then raise exception 'Trip not found' using errcode='42501'; end if;
-  if not exists(select 1 from pg_catalog.pg_timezone_names where name=new.time_zone)
-    or not exists(select 1 from pg_catalog.pg_timezone_names where name=new.end_time_zone) then
+  if not private.is_supported_calendar_time_zone(new.time_zone)
+    or not private.is_supported_calendar_time_zone(new.end_time_zone) then
     raise exception 'Bookings require valid named time zones' using errcode='23514';
   end if;
   if v_project.kind<>'trip' then raise exception 'Bookings require a trip' using errcode='23514'; end if;
