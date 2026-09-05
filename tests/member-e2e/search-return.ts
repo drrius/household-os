@@ -15,7 +15,7 @@ export async function exerciseSearchReturn(sam: Page) {
   await expect(sam).toHaveURL(/\/edit\?.*fromSearch=/);
   await sam.reload();
   await sam
-    .getByLabel("Booking name", { exact: true })
+    .getByRole("textbox", { name: "Booking name", exact: true })
     .fill("CI updated flight");
   await sam.getByRole("button", { name: "Save booking", exact: true }).click();
   await expect(
