@@ -6,17 +6,18 @@ create extension if not exists dblink with schema extensions;
 select no_plan();
 select set_config('test.race.household',gen_random_uuid()::text,true);
 select set_config('test.race.member',gen_random_uuid()::text,true);
+select set_config('test.race.partner',gen_random_uuid()::text,true);
 select set_config('test.race.area',gen_random_uuid()::text,true);
 select extensions.dblink_connect('routine_a','host=supabase_db_household-os port=5432 user=postgres password=postgres dbname='||current_database());
 select extensions.dblink_connect('routine_b','host=supabase_db_household-os port=5432 user=postgres password=postgres dbname='||current_database());
 select extensions.dblink_exec('routine_a',format($setup$
- insert into auth.users(id,email) values (%1$L,%1$L||'@routine-race.example.invalid');
+ insert into auth.users(id,email) values (%1$L,%1$L||'@routine-race.example.invalid'),(%4$L,%4$L||'@routine-race.example.invalid');
  insert into public.households(id,name) values (%2$L,'Routine race fixture');
- insert into public.household_members(household_id,user_id,display_name) values (%2$L,%1$L,'Race member');
+ insert into public.household_members(household_id,user_id,display_name) values (%2$L,%1$L,'Race member'),(%2$L,%4$L,'Race partner');
  insert into public.areas(id,household_id,name,sort_order) values (%3$L,%2$L,'Race area',1);
-$setup$,current_setting('test.race.member'),current_setting('test.race.household'),current_setting('test.race.area')));
+$setup$,current_setting('test.race.member'),current_setting('test.race.household'),current_setting('test.race.area'),current_setting('test.race.partner')));
 select * from extensions.dblink('routine_a',format('select set_config(''request.jwt.claim.sub'',%L,false)',current_setting('test.race.member'))) as result(value text);
-select * from extensions.dblink('routine_b',format('select set_config(''request.jwt.claim.sub'',%L,false)',current_setting('test.race.member'))) as result(value text);
+select * from extensions.dblink('routine_b',format('select set_config(''request.jwt.claim.sub'',%L,false)',current_setting('test.race.partner'))) as result(value text);
 select extensions.dblink_exec('routine_a','set statement_timeout=''5s''; set role authenticated');
 select extensions.dblink_exec('routine_b','set statement_timeout=''5s''; set role authenticated');
 select * from extensions.dblink('routine_a',format($create$
@@ -92,7 +93,7 @@ select is((select count(*)::integer from public.routine_occurrences where routin
 select is((select count(*)::integer from private.routine_edit_receipts where household_id=current_setting('test.race.household')::uuid),3,'only the three accepted logical edits consume keys');
 
 select extensions.dblink_exec('routine_a','reset role');
-select extensions.dblink_exec('routine_a',format('delete from private.routine_edit_receipts where household_id=%1$L; delete from public.households where id=%1$L; delete from auth.users where id=%2$L;',current_setting('test.race.household'),current_setting('test.race.member')));
+select extensions.dblink_exec('routine_a',format('delete from private.routine_edit_receipts where household_id=%1$L; delete from public.households where id=%1$L; delete from auth.users where id in (%2$L,%3$L);',current_setting('test.race.household'),current_setting('test.race.member'),current_setting('test.race.partner')));
 select extensions.dblink_disconnect('routine_b');
 select extensions.dblink_disconnect('routine_a');
 select * from finish();
