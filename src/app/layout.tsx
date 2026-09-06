@@ -38,6 +38,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Without cover, iOS reports every safe-area inset as 0 in standalone
+  // mode, and the bottom chrome sits under the home indicator.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f1e8" },
     { media: "(prefers-color-scheme: dark)", color: "#2c2924" },

@@ -65,7 +65,10 @@ export function AssistantComposer({
 
   return (
     <form
-      className="border-t border-border px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4"
+      // The sheet reaches the screen edge on phones, so the inset is added to
+      // the gap rather than used as a floor: the field must clear the home
+      // indicator and still keep its own breathing room.
+      className="border-t border-border px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
       onSubmit={(event) => {
         event.preventDefault();
         submit();
