@@ -111,9 +111,29 @@ export async function readAppleCalendar(
       "network",
       "iCloud could not list the selected calendar. Try again.",
     );
-  return parseMultistatus(response.body).map((resource) => {
+  const calendar = appleCalendarUrl(calendarUrl);
+  return parseMultistatus(response.body).flatMap((resource) => {
     const etag = davText(resource.properties.getetag).trim();
     const ical = davText(resource.properties["calendar-data"]);
+    // iCloud can include the collection itself with calendar-data marked 404.
+    // Only omit that exact collection, never an incomplete child event.
+    if (
+      resource.href &&
+      resource.status === 200 &&
+      !ical &&
+      resource.propertyStatuses.includes(200) &&
+      resource.propertyStatuses.every(
+        (status) => status === 200 || status === 404,
+      )
+    ) {
+      const address = appleCalendarUrl(resource.href, calendar.href);
+      if (
+        address.origin === calendar.origin &&
+        address.pathname.replace(/\/$/, "") ===
+          calendar.pathname.replace(/\/$/, "")
+      )
+        return [];
+    }
     if (resource.status !== 200 || !etag || !ical) {
       // Only fixed labels and numeric statuses: never include URLs or event data.
       const details = [
@@ -128,11 +148,13 @@ export async function readAppleCalendar(
         `iCloud returned an incomplete event listing. No missing events were removed. Diagnostic: ${details}.`,
       );
     }
-    return {
-      href: calendarObjectUrl(resource.href, calendarUrl).href,
-      etag,
-      ical,
-    };
+    return [
+      {
+        href: calendarObjectUrl(resource.href, calendarUrl).href,
+        etag,
+        ical,
+      },
+    ];
   });
 }
 export async function writeAppleEvent(

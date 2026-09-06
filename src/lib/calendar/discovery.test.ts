@@ -1,4 +1,5 @@
 import { expect, it, vi } from "vitest";
+import fc from "fast-check";
 vi.mock("server-only", () => ({}));
 import { discoverAppleCalendars, readAppleCalendar } from "./caldav";
 import { createCaldavTransport } from "./transport";
@@ -169,9 +170,106 @@ it("reports failed property statuses and collection-shaped responses without the
     ),
   });
   await expect(
-    readAppleCalendar(
-      transport,
-      "https://p12-caldav.icloud.com/private-calendar/",
-    ),
+    readAppleCalendar(transport, "https://p12-caldav.icloud.com/home/shared/"),
   ).rejects.toThrow("Diagnostic: S200/P404/Emissing/Dmissing/C1.");
+});
+
+const collectionResponse = (href: string, status = "200 OK") =>
+  `<d:response><d:href>${href}</d:href><d:status>HTTP/1.1 ${status}</d:status><d:propstat><d:prop><d:getetag>collection-etag</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><c:calendar-data/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>`;
+
+it.each(["/home/shared/", "https://p12-caldav.icloud.com/home/shared/"])(
+  "reads events when iCloud includes the selected collection: %s",
+  async (href) => {
+    const transport = vi.fn().mockResolvedValue({
+      status: 207,
+      body: multistatus(
+        collectionResponse(href) +
+          resource(
+            "/home/shared/event.ics",
+            "<d:getetag>event-etag</d:getetag><c:calendar-data>BEGIN:VCALENDAR\nEND:VCALENDAR</c:calendar-data>",
+          ),
+      ),
+    });
+    await expect(
+      readAppleCalendar(
+        transport,
+        "https://p12-caldav.icloud.com/home/shared/",
+      ),
+    ).resolves.toEqual([
+      {
+        href: "https://p12-caldav.icloud.com/home/shared/event.ics",
+        etag: "event-etag",
+        ical: "BEGIN:VCALENDAR\nEND:VCALENDAR",
+      },
+    ]);
+  },
+);
+
+it("accepts an empty calendar represented by its collection alone", async () => {
+  const transport = vi.fn().mockResolvedValue({
+    status: 207,
+    body: multistatus(collectionResponse("/home/shared/")),
+  });
+  await expect(
+    readAppleCalendar(transport, "https://p12-caldav.icloud.com/home/shared/"),
+  ).resolves.toEqual([]);
+});
+
+it.each([
+  ["/home/shared/event.ics", "200 OK"],
+  ["/home/shared/nested/", "200 OK"],
+  ["/home/other/", "200 OK"],
+  ["https://p13-caldav.icloud.com/home/shared/", "200 OK"],
+  ["", "200 OK"],
+  ["/home/shared/", "403 Forbidden"],
+])(
+  "does not ignore an incomplete or failed resource %s (%s)",
+  async (href, status) => {
+    const transport = vi.fn().mockResolvedValue({
+      status: 207,
+      body: multistatus(collectionResponse(href, status)),
+    });
+    await expect(
+      readAppleCalendar(
+        transport,
+        "https://p12-caldav.icloud.com/home/shared/",
+      ),
+    ).rejects.toThrow();
+  },
+);
+
+it("never drops incomplete child resources when omitting the collection", async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.uuid(), fc.boolean(), async (id, directory) => {
+      const transport = vi.fn().mockResolvedValue({
+        status: 207,
+        body: multistatus(
+          collectionResponse("/home/shared/") +
+            collectionResponse(`/home/shared/${id}${directory ? "/" : ".ics"}`),
+        ),
+      });
+      await expect(
+        readAppleCalendar(
+          transport,
+          "https://p12-caldav.icloud.com/home/shared/",
+        ),
+      ).rejects.toThrow("incomplete event listing");
+    }),
+    { numRuns: 50 },
+  );
+});
+
+it("does not ignore a collection-level property permission failure", async () => {
+  const transport = vi.fn().mockResolvedValue({
+    status: 207,
+    body: multistatus(
+      collectionResponse("/home/shared/").replace(
+        "404 Not Found",
+        "403 Forbidden",
+      ),
+    ),
+  });
+  await expect(
+    readAppleCalendar(transport, "https://p12-caldav.icloud.com/home/shared/"),
+  ).rejects.toThrow("incomplete event listing");
 });
