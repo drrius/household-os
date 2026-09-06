@@ -3,6 +3,12 @@ import { CalendarError } from "./errors";
 import type { CaldavTransport } from "./transport";
 import { array, davText, parseMultistatus, record } from "./xml";
 
+function textShape(value: unknown): string {
+  if (value === undefined) return "missing";
+  if (davText(value).trim()) return "text";
+  return typeof value === "string" ? "empty" : "structured";
+}
+
 const prefix = '<?xml version="1.0" encoding="utf-8"?>';
 export type AppleCalendar = { url: string; name: string; readOnly: boolean };
 export type RemoteCalendarObject = { href: string; etag: string; ical: string };
@@ -108,11 +114,20 @@ export async function readAppleCalendar(
   return parseMultistatus(response.body).map((resource) => {
     const etag = davText(resource.properties.getetag).trim();
     const ical = davText(resource.properties["calendar-data"]);
-    if (resource.status !== 200 || !etag || !ical)
+    if (resource.status !== 200 || !etag || !ical) {
+      // Only fixed labels and numeric statuses: never include URLs or event data.
+      const details = [
+        `S${resource.status}`,
+        `P${[...new Set(resource.propertyStatuses)].sort().join("-") || "none"}`,
+        `E${textShape(resource.properties.getetag)}`,
+        `D${textShape(resource.properties["calendar-data"])}`,
+        `C${resource.href.endsWith("/") ? 1 : 0}`,
+      ].join("/");
       throw new CalendarError(
         "invalid",
-        "iCloud returned an incomplete event listing. No missing events were removed.",
+        `iCloud returned an incomplete event listing. No missing events were removed. Diagnostic: ${details}.`,
       );
+    }
     return {
       href: calendarObjectUrl(resource.href, calendarUrl).href,
       etag,

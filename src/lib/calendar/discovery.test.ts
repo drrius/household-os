@@ -130,3 +130,48 @@ it("bounds the response body and the total sync deadline", async () => {
   ).rejects.toThrow("time limit");
   expect(fetcher).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["<d:getetag>private-etag</d:getetag>", "S200/P200/Etext/Dmissing/C0"],
+  [
+    "<c:calendar-data>private-event</c:calendar-data>",
+    "S200/P200/Emissing/Dtext/C0",
+  ],
+  ["<d:getetag/>", "S200/P200/Eempty/Dmissing/C0"],
+  [
+    '<c:calendar-data content-type="text/calendar"/>',
+    "S200/P200/Emissing/Dstructured/C0",
+  ],
+])(
+  "explains incomplete listings without exposing calendar content: %s",
+  async (properties, diagnostic) => {
+    const transport = vi.fn().mockResolvedValue({
+      status: 207,
+      url: "https://p12-caldav.icloud.com/home/shared/",
+      body: multistatus(resource("/home/shared/private-id.ics", properties)),
+    });
+    await expect(
+      readAppleCalendar(
+        transport,
+        "https://p12-caldav.icloud.com/home/shared/",
+      ),
+    ).rejects.toThrow(
+      `iCloud returned an incomplete event listing. No missing events were removed. Diagnostic: ${diagnostic}.`,
+    );
+  },
+);
+
+it("reports failed property statuses and collection-shaped responses without their URLs", async () => {
+  const transport = vi.fn().mockResolvedValue({
+    status: 207,
+    body: multistatus(
+      "<d:response><d:href>/private-calendar/</d:href><d:propstat><d:prop><d:getetag/><c:calendar-data/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>",
+    ),
+  });
+  await expect(
+    readAppleCalendar(
+      transport,
+      "https://p12-caldav.icloud.com/private-calendar/",
+    ),
+  ).rejects.toThrow("Diagnostic: S200/P404/Emissing/Dmissing/C1.");
+});
