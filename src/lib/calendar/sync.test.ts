@@ -81,3 +81,22 @@ it("releases successful sync without a failure and reports further batches", asy
   pending(21);
   await expect(syncAppleCalendar()).rejects.toThrow("More changes are waiting");
 });
+
+it("does not reconcile or push when listing validation fails and retains the diagnostic", async () => {
+  const failure = new CalendarError(
+    "invalid",
+    "Incomplete listing. Diagnostic: S200/P404/Emissing/Dmissing/C1.",
+  );
+  mock.read.mockRejectedValue(failure);
+  await expect(syncAppleCalendar()).rejects.toBe(failure);
+  expect(mock.rpc.mock.calls.map(([name]) => name)).toEqual([
+    "claim_calendar_sync",
+    "release_calendar_sync",
+  ]);
+  expect(mock.push).not.toHaveBeenCalled();
+  expect(mock.rpc).toHaveBeenLastCalledWith("release_calendar_sync", {
+    p_connection_id: "connection",
+    p_token: "lease",
+    p_error: failure.message,
+  });
+});

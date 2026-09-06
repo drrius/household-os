@@ -44,6 +44,7 @@ export function array(value: unknown): unknown[] {
 export type DavResource = {
   href: string;
   status: number;
+  propertyStatuses: number[];
   properties: Record<string, unknown>;
 };
 export function parseMultistatus(xml: string): DavResource[] {
@@ -80,8 +81,11 @@ export function parseMultistatus(xml: string): DavResource[] {
   return resources.map((resource) => {
     const row = record(resource);
     const properties: Record<string, unknown> = {};
+    const propertyStatuses: number[] = [];
     for (const propstat of array(row.propstat)) {
       const group = record(propstat);
+      const status = /\s(\d{3})\s/.exec(String(group.status));
+      propertyStatuses.push(Number(status?.[1] ?? 0));
       if (/\s200\s/.test(String(group.status)))
         Object.assign(properties, record(group.prop));
     }
@@ -89,6 +93,7 @@ export function parseMultistatus(xml: string): DavResource[] {
     return {
       href: xmlText(row.href).trim(),
       status: Number(match?.[1] ?? 0),
+      propertyStatuses,
       properties,
     };
   });
