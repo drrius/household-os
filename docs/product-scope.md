@@ -9,7 +9,7 @@ It replaces fragmented informal coordination and the need to open Splitwise for 
 ## Primary destinations
 
 - **Today**: overdue work, today's routines, meal and preparation work, shopping state, and money requiring confirmation.
-- **Plan**: Monday-to-Sunday meal board, meal ideas, reusable meals, leftovers, recipe links, and linked prep.
+- **Plan**: Monday-to-Sunday household week with shared plans, routines and meals per day (ADR 0029), plus meal ideas, reusable meals, leftovers, recipe links, linked prep, and links to the shared calendar, trips, and projects.
 - **Groceries**: categorized shared list, duplicate suggestions, concurrent shopping sessions, purchased history, and shopping-to-expense handoff.
 - **Money**: immediate manual expenses, generated drafts, recurring drafts, refunds, corrections, opening balance, event explanations, and full or partial settlements.
 - **Home**: routine definitions, pet profiles, areas, activity, members, notification settings, passkeys, and household settings.

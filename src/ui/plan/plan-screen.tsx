@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CalendarDays, FolderCheck, Plane } from "lucide-react";
+
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { PlanViewModel } from "@/lib/read-models/plan";
@@ -11,6 +13,7 @@ import { PageHeader } from "@/ui/layout/page-header";
 import { MealBoard } from "@/ui/plan/meal-board";
 import { PlanThisWeekJump } from "@/ui/plan/plan-this-week-jump.client";
 import { PlanWeekArrow } from "@/ui/plan/plan-week-arrow.client";
+import { PlanWeekUnavailable } from "@/ui/plan/plan-week-unavailable.client";
 
 type PlanScreenProps = {
   plan: PlanViewModel;
@@ -59,21 +62,50 @@ export function PlanScreen({ plan, selectedDay }: PlanScreenProps) {
           </div>
         }
       />
-      <Link
-        href="/plan/calendar"
-        className="flex min-h-16 items-center justify-between gap-4 rounded-2xl border bg-card p-4 no-underline hover:bg-accent focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <span>
-          <strong className="block">Our calendar</strong>
-          <span className="text-sm text-muted-foreground">
-            Shared plans, appointments and iCloud sync
-          </span>
-        </span>
-        <span aria-hidden>→</span>
-      </Link>
+      <PlanDestinations />
+      <PlanWeekStatus week={plan.week} />
       <MealBoard days={plan.days} selectedDay={selectedDay} />
       <PlanCollections plan={plan} planningDate={planningDate} />
     </AppPage>
+  );
+}
+
+const destinations = [
+  { href: "/plan/calendar", label: "Our calendar", Icon: CalendarDays },
+  { href: "/plan/trips", label: "Trips", Icon: Plane },
+  { href: "/plan/projects", label: "Projects", Icon: FolderCheck },
+] as const;
+
+function PlanDestinations() {
+  return (
+    <nav aria-label="Plan sections" className="flex flex-wrap gap-2">
+      {destinations.map(({ href, label, Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          className={cn(
+            buttonVariants({ variant: "secondary" }),
+            "h-11 gap-2 px-4 no-underline shadow-sm ring-1 ring-foreground/5",
+          )}
+        >
+          <Icon aria-hidden="true" className="size-4" />
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function PlanWeekStatus({ week }: { week: PlanViewModel["week"] }) {
+  if (week.status === "unavailable") return <PlanWeekUnavailable />;
+  if (week.warnings.length === 0 && week.syncAttention === 0) return null;
+  return (
+    <p role="status" className="text-sm text-muted-foreground">
+      {week.warnings.length > 0
+        ? "Some calendar events could not be displayed. "
+        : "Some calendar changes need sync or attention. "}
+      <Link href="/plan/calendar">Review calendar</Link>
+    </p>
   );
 }
 

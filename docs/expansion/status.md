@@ -157,3 +157,11 @@ The current merge sequence has completed #52, #70, #68, #58, #51, and #71. Main 
 The combined booking/contextual-expense database fixture now archives its booking before the parent trip. Hosted database CI passes at booking head `92d11dc`; the production lifecycle guard is unchanged. Main E2E runs are still live, so this checkpoint does not establish final browser acceptance. Vercel preview deployments are currently rate limited; no paid service or limit bypass was requested.
 
 AI parity remains unimplemented and is the explicitly authorized next PR after expansion merges. Live Apple-account connection/sync, device push, and passkey checks remain distinct from fixture verification. The configured encryption key enables credential storage, but does not itself connect the shared Apple calendar; connection and calendar selection happen in the app.
+
+## Unified household week on Plan — September 6, 2026
+
+ADR 0029 replaces the meals-only Plan board with one household week. Each day column shows shared plans (calendar occurrences, linked bookings, trip spans, task due dates, project target dates and commitment deadlines), routine occurrences and completions, then the existing meal slots. Overdue work moves into today's column when today is in the viewed week; future occurrences are read-only until they are due. Meal preparation stays on the meal card. Plan links to Our calendar, Trips and Projects, which were previously unreachable from Plan. If the plans and routines sources fail, meals still render with a retry.
+
+The placement rules live in `src/domain/plan`, sharing label helpers with the Today agenda. Today's agenda and the Plan week read the same paged planning sources. Realtime invalidation now refreshes Plan after routine completions and commitment changes, and completing a routine revalidates `/plan`.
+
+Verification: 32 domain, read-model and surface tests pass, including a property over occurrence placement and Zurich midnight/all-day boundaries; targeted lint, formatting and both TypeScript projects pass. The new `plan-week` fixture passes three Chromium browser cases at phone and desktop widths, including no horizontal overflow. Local WebKit is unavailable in this environment, so mobile Safari coverage and the full suite depend on hosted E2E CI. No live household data or iCloud behavior is claimed.

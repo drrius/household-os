@@ -26,6 +26,7 @@ const planFixture: PlanViewModel = {
   rangeLabel: "10 – 16 Aug",
   timeZoneLabel: "Europe/Zurich",
   today: "2026-08-12",
+  week: { status: "ready", warnings: [], syncAttention: 0 },
   days: (
     [
       ["2026-08-10", "Mon 10", "Tomato pasta"],
@@ -40,6 +41,32 @@ const planFixture: PlanViewModel = {
     date,
     weekdayLabel,
     isToday: date === "2026-08-12",
+    plans:
+      index === 2
+        ? [
+            {
+              id: "calendar:dentist",
+              kind: "calendar",
+              title: "Dentist",
+              time: "09:30",
+              detail: "Leah",
+              href: "/plan/calendar/dentist",
+              continues: false,
+            },
+          ]
+        : [],
+    routines:
+      index === 2
+        ? [
+            {
+              occurrenceId: "occurrence-fixture",
+              title: "Water the balcony",
+              meta: "yours",
+              tone: "open",
+              canComplete: true,
+            },
+          ]
+        : [],
     slots: (["breakfast", "lunch", "dinner"] as const).map((slot) => ({
       slot,
       entry:

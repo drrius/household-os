@@ -1,23 +1,18 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { occursOnDay } from "@/domain/calendar/interval";
-import { noticeDeadline } from "@/domain/home-records/dates";
+import {
+  attendanceDetail,
+  bookingDetail,
+  commitmentDeadline,
+  responsibleLabel,
+  zurichDay as localDay,
+  zurichTime as localTime,
+} from "./agenda-labels";
 import type {
   AgendaProject,
   HouseholdAgendaEntry,
   HouseholdAgendaInput,
 } from "./agenda-types";
-
-const zone = "Europe/Zurich";
-const localDay = (instant: string) =>
-  Temporal.Instant.from(instant)
-    .toZonedDateTimeISO(zone)
-    .toPlainDate()
-    .toString();
-const localTime = (instant: string) =>
-  Temporal.Instant.from(instant)
-    .toZonedDateTimeISO(zone)
-    .toPlainTime()
-    .toString({ smallestUnit: "minute" });
 
 type ActiveProjects = ReadonlyMap<string, AgendaProject>;
 
@@ -55,8 +50,7 @@ function deadlineEntries(
 ): HouseholdAgendaEntry[] {
   const { today, members } = input;
   const entries: HouseholdAgendaEntry[] = [];
-  const responsible = (id: string | null) =>
-    id ? (members[id] ?? "Assigned member") : "Together";
+  const responsible = (id: string | null) => responsibleLabel(members, id);
   for (const task of input.tasks) {
     const project = projects.get(task.project_id);
     if (
@@ -94,26 +88,16 @@ function deadlineEntries(
     });
   }
   for (const commitment of input.commitments) {
-    if (
-      commitment.archived_at ||
-      commitment.status === "ended" ||
-      !commitment.renewal_on
-    )
-      continue;
-    const needsNotice =
-      commitment.status === "active" && commitment.notice_days > 0;
-    const day = needsNotice
-      ? noticeDeadline(commitment.renewal_on, commitment.notice_days)
-      : commitment.renewal_on;
-    if (day > horizon) continue;
+    const deadline = commitmentDeadline(commitment, members);
+    if (!deadline || deadline.day > horizon) continue;
     entries.push({
       id: `commitment:${commitment.id}`,
       kind: "commitment",
       title: commitment.title,
-      day,
+      day: deadline.day,
       time: null,
       ongoing: false,
-      detail: `${needsNotice ? "Cancellation notice due" : commitment.status === "cancel_requested" ? "Check cancellation before renewal" : "Renewal due"} · ${responsible(commitment.responsible_member_id)}`,
+      detail: deadline.detail,
       href: `/home/commitments/${commitment.id}`,
     });
   }
@@ -168,7 +152,10 @@ function calendarEntries(
           id: `booking:${booking.id}:${event.recurrenceId}`,
           kind: "booking",
           title: booking.title,
-          detail: `${projects.get(booking.project_id)!.title} · ${booking.status === "idea" ? "Tentative booking" : "Booked"}`,
+          detail: bookingDetail(
+            projects.get(booking.project_id)!.title,
+            booking.status,
+          ),
           href: `/plan/projects/${booking.project_id}/bookings/${booking.id}`,
           related: { href, label: "Calendar event" },
         });
@@ -178,12 +165,7 @@ function calendarEntries(
         id: `calendar:${event.id}:${event.recurrenceId}`,
         kind: "calendar",
         href,
-        detail:
-          event.attendance === "both"
-            ? "Together"
-            : event.attendance === "one"
-              ? (event.attendeeName ?? "One of us")
-              : "For awareness",
+        detail: attendanceDetail(event),
       });
   }
   return { entries, representedBookings };
@@ -226,7 +208,7 @@ function bookingEntries(
       day: ongoing ? today : day,
       time: ongoing ? null : localTime(booking.starts_at),
       ongoing,
-      detail: `${project.title} · ${booking.status === "idea" ? "Tentative booking" : "Booked"}`,
+      detail: bookingDetail(project.title, booking.status),
       href: `/plan/projects/${project.id}/bookings/${booking.id}`,
     });
   }

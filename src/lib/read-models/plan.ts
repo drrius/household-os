@@ -1,5 +1,10 @@
 import "server-only";
 
+import type {
+  HouseholdWeekDay,
+  WeekPlanEntry,
+  WeekRoutine,
+} from "@/domain/plan/week-types";
 import { requireMemberContext } from "@/lib/auth/member-context";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -8,6 +13,7 @@ import {
   zurichCivilDate,
   ZURICH_TIME_ZONE,
 } from "@/lib/ui/zurich-date";
+import { loadHouseholdWeekOrNull, type HouseholdWeekModel } from "./plan-week";
 
 export type MealSlot = "breakfast" | "lunch" | "dinner";
 
@@ -17,10 +23,18 @@ export type PlanViewModel = {
   rangeLabel: string;
   timeZoneLabel: "Europe/Zurich";
   today: string;
+  /** Shared plans and routines for the week, or why they are missing. */
+  week: {
+    status: "ready" | "unavailable";
+    warnings: Array<{ id: string; title: string }>;
+    syncAttention: number;
+  };
   days: Array<{
     date: string;
     weekdayLabel: string;
     isToday: boolean;
+    plans: WeekPlanEntry[];
+    routines: WeekRoutine[];
     slots: Array<{
       slot: MealSlot;
       entry: null | {
@@ -62,6 +76,8 @@ type BuildPlanViewModelInput = {
   entries: readonly MealPlanEntryRow[];
   library: readonly MealDefinitionRow[];
   prep: readonly MealPrepRow[];
+  /** Omit for meals only; null when the week's plans failed to load. */
+  week?: HouseholdWeekModel | null;
 };
 
 const MEAL_SLOTS: readonly MealSlot[] = ["breakfast", "lunch", "dinner"];
@@ -192,16 +208,22 @@ export function buildPlanViewModel({
   entries,
   library,
   prep,
+  week,
 }: BuildPlanViewModelInput): PlanViewModel {
   const weekStart = resolveWeekStart(weekStartParam, today);
   const weekEnd = addCivilDays(weekStart, 6);
   const entriesBySlot = indexEntries(entries, cookLabelsByEntry(prep));
+  const weekDays = new Map<string, HouseholdWeekDay>(
+    (week?.days ?? []).map((day) => [day.date, day]),
+  );
   const days = Array.from({ length: 7 }, (_, offset) => {
     const date = addCivilDays(weekStart, offset);
     return {
       date,
       weekdayLabel: weekdayFormatter.format(civilDateAtNoon(date)),
       isToday: date === today,
+      plans: weekDays.get(date)?.plans ?? [],
+      routines: weekDays.get(date)?.routines ?? [],
       slots: MEAL_SLOTS.map((slot) => ({
         slot,
         entry: entriesBySlot.get(entryKey(date, slot)) ?? null,
@@ -215,6 +237,11 @@ export function buildPlanViewModel({
     rangeLabel: formatRangeLabel(weekStart, weekEnd),
     timeZoneLabel: ZURICH_TIME_ZONE,
     today,
+    week: {
+      status: week === null ? "unavailable" : "ready",
+      warnings: week?.warnings ?? [],
+      syncAttention: week?.syncAttention ?? 0,
+    },
     days,
     ideas: entries
       .filter((entry) => entry.slot === null && entry.date === weekStart)
@@ -252,9 +279,10 @@ export async function loadPlanViewModel(
     .is("archived_at", null)
     .order("name")
     .overrideTypes<MealDefinitionRow[], { merge: false }>();
-  const [entriesResult, libraryResult] = await Promise.all([
+  const [entriesResult, libraryResult, week] = await Promise.all([
     entriesQuery,
     libraryQuery,
+    loadHouseholdWeekOrNull(weekStart, today),
   ]);
 
   if (entriesResult.error) {
@@ -290,5 +318,6 @@ export async function loadPlanViewModel(
     entries: entriesResult.data,
     library: libraryResult.data,
     prep: prepResult.data ?? [],
+    week,
   });
 }
