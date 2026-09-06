@@ -37,6 +37,7 @@ export async function completeRoutineOccurrence(
     completedOn: zurichCivilDate(),
   });
   revalidatePath("/");
+  revalidatePath("/plan");
 }
 
 export async function confirmTodayExpenseDraft(draftId: string): Promise<void> {

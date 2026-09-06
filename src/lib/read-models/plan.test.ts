@@ -144,3 +144,79 @@ describe("weekly meal ideas", () => {
     ).toBe(true);
   });
 });
+
+describe("household week", () => {
+  const entry = {
+    id: "trip:japan",
+    kind: "trip" as const,
+    title: "Japan together",
+    time: null,
+    detail: "Tokyo",
+    href: "/plan/projects/japan",
+    continues: false,
+  };
+  const routine = {
+    occurrenceId: "occ",
+    title: "Water plants",
+    meta: "anyone",
+    tone: "open" as const,
+    canComplete: true,
+  };
+
+  it("places the week's plans and routines beside each day's meals", () => {
+    const plan = buildPlanViewModel({
+      weekStartParam: "2026-09-07",
+      today: "2026-09-09",
+      entries: [],
+      library: [],
+      prep: [],
+      week: {
+        days: [
+          { date: "2026-09-08", plans: [entry], routines: [] },
+          { date: "2026-09-09", plans: [], routines: [routine] },
+        ],
+        warnings: [{ id: "broken", title: "Dentist" }],
+        syncAttention: 2,
+      },
+    });
+    expect(plan.week).toEqual({
+      status: "ready",
+      warnings: [{ id: "broken", title: "Dentist" }],
+      syncAttention: 2,
+    });
+    expect(plan.days[1]).toMatchObject({ date: "2026-09-08", plans: [entry] });
+    expect(plan.days[2]).toMatchObject({
+      date: "2026-09-09",
+      routines: [routine],
+    });
+    expect(plan.days[0]).toMatchObject({ plans: [], routines: [] });
+    expect(plan.days[0]?.slots).toHaveLength(3);
+  });
+
+  it("keeps meals when the week's plans are unavailable", () => {
+    const plan = buildPlanViewModel({
+      weekStartParam: "2026-09-07",
+      today: "2026-09-09",
+      entries: [
+        {
+          id: "dinner",
+          date: "2026-09-09",
+          slot: "dinner",
+          title_snapshot: "Rösti",
+          notes: null,
+          leftover_of_entry_id: null,
+        },
+      ],
+      library: [],
+      prep: [],
+      week: null,
+    });
+    expect(plan.week).toEqual({
+      status: "unavailable",
+      warnings: [],
+      syncAttention: 0,
+    });
+    expect(plan.days[2]?.slots[2]?.entry?.title).toBe("Rösti");
+    expect(plan.days.every((day) => day.plans.length === 0)).toBe(true);
+  });
+});

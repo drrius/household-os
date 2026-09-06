@@ -6,6 +6,7 @@ import { formatZurichDayLabel } from "@/lib/ui/zurich-date";
 import type { PlanViewModel } from "@/lib/read-models/plan";
 import { cn } from "@/lib/utils";
 import { PlanWeekPager } from "@/ui/plan/plan-week-pager.client";
+import { DayPlans, DayRoutines } from "@/ui/plan/week-day-rows";
 
 type PlanDay = PlanViewModel["days"][number];
 type PlanSlot = PlanDay["slots"][number];
@@ -83,7 +84,7 @@ function DayColumn({ day }: { day: PlanDay }) {
       aria-labelledby={`plan-day-${day.date}`}
       id={dayColumnId(day.date)}
       className={cn(
-        "relative grid min-w-0 snap-start grid-rows-[auto_1fr] border-r border-border p-3 last:border-r-0 lg:snap-none lg:p-2",
+        "relative grid min-w-0 snap-start grid-rows-[auto_auto_auto_1fr] gap-2 border-r border-border p-3 last:border-r-0 lg:snap-none lg:p-2",
         day.isToday &&
           "before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-0.5 before:rounded-full before:bg-primary lg:before:inset-x-2",
       )}
@@ -110,10 +111,12 @@ function DayColumn({ day }: { day: PlanDay }) {
           </p>
         ) : null}
       </header>
-      {/* Shorter rows below lg keep one whole day plus the pager inside 844px. */}
+      <DayPlans date={day.date} dateLabel={dateLabel} plans={day.plans} />
+      <DayRoutines dateLabel={dateLabel} routines={day.routines} />
       <ul
+        aria-label={`Meals on ${dateLabel}`}
         role="list"
-        className="grid list-none grid-rows-[repeat(3,minmax(7.5rem,1fr))] gap-2 max-lg:grid-rows-[repeat(3,minmax(6rem,1fr))]"
+        className="grid list-none grid-rows-[repeat(3,minmax(5rem,auto))] gap-2 self-start"
       >
         {day.slots.map((mealSlot) => (
           <li className="min-w-0" key={mealSlot.slot}>
@@ -137,9 +140,9 @@ export function MealBoard({
   selectedDay?: string;
 }) {
   return (
-    <section aria-labelledby="meal-board-title">
-      <h2 id="meal-board-title" className="sr-only">
-        Monday to Sunday meal board
+    <section aria-labelledby="week-board-title">
+      <h2 id="week-board-title" className="sr-only">
+        Monday to Sunday household week
       </h2>
       <Card className="gap-0 py-0">
         <CardContent className="px-0">
