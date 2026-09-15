@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "3.1.1",
     "@supabase/supabase-js": "2.112.2",
+    "effect": "4.0.0-rc.115",
     "expo": "57.0.23",
     "expo-apple-authentication": "57.0.2",
     "expo-auth-session": "57.0.12",
@@ -27,9 +28,12 @@
     "react-native-screens": "4.28.0"
   },
   "devDependencies": {
+    "@effect/eslint-plugin": "0.3.2",
+    "@effect/language-service": "0.87.2",
     "@types/react": "19.2.18",
     "babel-preset-expo": "57.0.12",
     "eslint": "9.39.5",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0"
   }
 }

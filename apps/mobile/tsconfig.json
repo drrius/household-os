@@ -5,7 +5,7 @@
     "lib": ["ES2022"],
     "moduleResolution": "Bundler",
     "noEmit": true,
-    "plugins": [],
+    "plugins": [{ "name": "@effect/language-service" }],
     "types": ["react-native"]
   },
   "include": ["app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"],

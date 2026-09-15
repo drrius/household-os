@@ -51,6 +51,6 @@ export function useHouseholdRealtime(
       if (timer) clearTimeout(timer);
       void supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // onChange is read via ref so subscriptions don't churn per render.
   }, [session]);
 }

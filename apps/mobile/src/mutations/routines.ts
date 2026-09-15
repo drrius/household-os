@@ -1,33 +1,59 @@
-import { supabase } from "../lib/supabase";
+import * as Effect from "effect/Effect";
+import {
+  NotSignedInError,
+  mutationMessage,
+  type MutationError,
+} from "../effect/errors";
+import { rpc, runMutation } from "../effect/supabase";
 import type { SessionState } from "../session/SessionProvider";
 import { newIdempotencyKey } from "./idempotency";
 
-export async function completeOccurrence(
+function completeProgram(
+  session: SessionState,
+  occurrenceId: string,
+  completedOn: string
+) {
+  return Effect.gen(function* () {
+    if (session.status === "mock") return;
+    if (session.status !== "ready") return yield* new NotSignedInError();
+    yield* rpc("complete_occurrence", {
+      p_occurrence_id: occurrenceId,
+      p_idempotency_key: newIdempotencyKey(),
+      p_completed_on: completedOn,
+      p_note: null,
+      p_photo_path: null,
+    });
+  });
+}
+
+function skipProgram(session: SessionState, occurrenceId: string) {
+  return Effect.gen(function* () {
+    if (session.status === "mock") return;
+    if (session.status !== "ready") return yield* new NotSignedInError();
+    yield* rpc("skip_occurrence", {
+      p_occurrence_id: occurrenceId,
+      p_idempotency_key: newIdempotencyKey(),
+    });
+  });
+}
+
+function run<A>(effect: Effect.Effect<A, MutationError>): Promise<A> {
+  return runMutation(effect).catch((error: MutationError) => {
+    throw new Error(mutationMessage(error));
+  });
+}
+
+export function completeOccurrence(
   session: SessionState,
   occurrenceId: string,
   completedOn: string
 ): Promise<void> {
-  if (session.status === "mock") return;
-  if (session.status !== "ready") throw new Error("Not signed in.");
-  const { error } = await supabase.rpc("complete_occurrence", {
-    p_occurrence_id: occurrenceId,
-    p_idempotency_key: newIdempotencyKey(),
-    p_completed_on: completedOn,
-    p_note: null,
-    p_photo_path: null,
-  });
-  if (error) throw new Error(error.message);
+  return run(completeProgram(session, occurrenceId, completedOn));
 }
 
-export async function skipOccurrence(
+export function skipOccurrence(
   session: SessionState,
   occurrenceId: string
 ): Promise<void> {
-  if (session.status === "mock") return;
-  if (session.status !== "ready") throw new Error("Not signed in.");
-  const { error } = await supabase.rpc("skip_occurrence", {
-    p_occurrence_id: occurrenceId,
-    p_idempotency_key: newIdempotencyKey(),
-  });
-  if (error) throw new Error(error.message);
+  return run(skipProgram(session, occurrenceId));
 }
