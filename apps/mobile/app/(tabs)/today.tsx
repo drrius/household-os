@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Button, ScrollView, Text, View } from "react-native";
+import { completeOccurrence, skipOccurrence } from "../../src/mutations/routines";
 import { useSession } from "../../src/session/SessionProvider";
 import { tokens } from "../../src/theme/tokens";
-import { useToday } from "../../src/today/useToday";
+import type { RoutineRow } from "../../src/today/types";
+import { useToday, zurichCivilDate } from "../../src/today/useToday";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -21,9 +24,59 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function RoutineLine({
+  row,
+  day,
+  onDone,
+}: {
+  row: RoutineRow;
+  day: string;
+  onDone: () => void;
+}) {
+  const session = useSession();
+  const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const run = async (fn: () => Promise<void>) => {
+    setPending(true);
+    setFailure(null);
+    try {
+      await fn();
+      onDone();
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "Failed");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <View style={{ marginBottom: tokens.space.xs }} testID={`routine-${row.occurrenceId}`}>
+      <Text>
+        • {row.title} ({row.meta})
+      </Text>
+      {row.canComplete ? (
+        <View style={{ flexDirection: "row", gap: tokens.space.sm }}>
+          <Button
+            title={pending ? "…" : "Done"}
+            disabled={pending}
+            onPress={() => void run(() => completeOccurrence(session, row.occurrenceId, day))}
+          />
+          <Button
+            title="Skip"
+            disabled={pending}
+            onPress={() => void run(() => skipOccurrence(session, row.occurrenceId))}
+          />
+        </View>
+      ) : null}
+      {failure ? <Text style={{ color: tokens.color.danger }}>{failure}</Text> : null}
+    </View>
+  );
+}
+
 export default function TodayScreen() {
   const session = useSession();
-  const state = useToday(session);
+  const { state, refresh } = useToday(session);
 
   if (state.status === "loading") {
     return (
@@ -58,6 +111,7 @@ export default function TodayScreen() {
   }
 
   const m = state.model;
+  const today = zurichCivilDate(0);
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: tokens.color.background }}
@@ -82,7 +136,9 @@ export default function TodayScreen() {
         {m.overdue.length === 0 ? (
           <Text>Nothing overdue.</Text>
         ) : (
-          m.overdue.map((r) => <Text key={r.occurrenceId}>• {r.title} ({r.meta})</Text>)
+          m.overdue.map((r) => (
+            <RoutineLine key={r.occurrenceId} row={r} day={today} onDone={refresh} />
+          ))
         )}
       </Section>
 
@@ -90,7 +146,9 @@ export default function TodayScreen() {
         {m.routinesToday.length === 0 ? (
           <Text>Nothing due today.</Text>
         ) : (
-          m.routinesToday.map((r) => <Text key={r.occurrenceId}>• {r.title}</Text>)
+          m.routinesToday.map((r) => (
+            <RoutineLine key={r.occurrenceId} row={r} day={today} onDone={refresh} />
+          ))
         )}
       </Section>
 

@@ -25,8 +25,12 @@ export function formatCentimes(cents: number): string {
   return `CHF ${(cents / 100).toFixed(2)}`;
 }
 
-export function useToday(session: SessionState): TodayState {
+export function useToday(session: SessionState): {
+  state: TodayState;
+  refresh: () => void;
+} {
   const [attempt, setAttempt] = useState(0);
+  const [tick, setTick] = useState(0);
   const [state, setState] = useState<TodayState>({ status: "loading" });
 
   useEffect(() => {
@@ -66,9 +70,9 @@ export function useToday(session: SessionState): TodayState {
     return () => {
       cancelled = true;
     };
-  }, [session, attempt]);
+  }, [session, attempt, tick]);
 
-  return state;
+  return { state, refresh: () => setTick((n) => n + 1) };
 }
 
 async function loadToday(
