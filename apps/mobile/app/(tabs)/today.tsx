@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, ScrollView, Text, View } from "react-native";
 import { completeOccurrence, skipOccurrence } from "../../src/mutations/routines";
+import { useHouseholdRealtime } from "../../src/realtime/useHouseholdRealtime";
 import { useSession } from "../../src/session/SessionProvider";
 import { tokens } from "../../src/theme/tokens";
 import type { RoutineRow } from "../../src/today/types";
@@ -77,6 +78,7 @@ function RoutineLine({
 export default function TodayScreen() {
   const session = useSession();
   const { state, refresh } = useToday(session);
+  useHouseholdRealtime(session, refresh);
 
   if (state.status === "loading") {
     return (

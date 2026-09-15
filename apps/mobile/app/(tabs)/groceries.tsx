@@ -7,12 +7,14 @@ import {
   startShoppingSession,
 } from "../../src/mutations/groceries";
 import { useGroceries } from "../../src/groceries/useGroceries";
+import { useHouseholdRealtime } from "../../src/realtime/useHouseholdRealtime";
 import { useSession } from "../../src/session/SessionProvider";
 import { tokens } from "../../src/theme/tokens";
 
 export default function GroceriesScreen() {
   const session = useSession();
   const { state, refresh } = useGroceries(session);
+  useHouseholdRealtime(session, refresh);
   const [name, setName] = useState("");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);

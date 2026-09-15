@@ -5,6 +5,7 @@ import {
   removeMealEntry,
 } from "../../src/mutations/plan-home";
 import { usePlan } from "../../src/plan/usePlan";
+import { useHouseholdRealtime } from "../../src/realtime/useHouseholdRealtime";
 import { useSession } from "../../src/session/SessionProvider";
 import { tokens } from "../../src/theme/tokens";
 import { zurichCivilDate } from "../../src/today/useToday";
@@ -12,6 +13,7 @@ import { zurichCivilDate } from "../../src/today/useToday";
 export default function PlanScreen() {
   const session = useSession();
   const { state, refresh } = usePlan(session);
+  useHouseholdRealtime(session, refresh);
   const [title, setTitle] = useState("");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
