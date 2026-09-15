@@ -11,8 +11,12 @@ export type MoneyState =
   | { status: "signed-out" }
   | { status: "ready"; model: MoneyViewModel };
 
-export function useMoney(session: SessionState): MoneyState {
+export function useMoney(session: SessionState): {
+  state: MoneyState;
+  refresh: () => void;
+} {
   const [attempt, setAttempt] = useState(0);
+  const [tick, setTick] = useState(0);
   const [state, setState] = useState<MoneyState>({ status: "loading" });
 
   useEffect(() => {
@@ -55,9 +59,9 @@ export function useMoney(session: SessionState): MoneyState {
     return () => {
       cancelled = true;
     };
-  }, [session, attempt]);
+  }, [session, attempt, tick]);
 
-  return state;
+  return { state, refresh: () => setTick((n) => n + 1) };
 }
 
 function signedLabel(cents: number): string {
@@ -141,6 +145,7 @@ async function loadMoney(
               balanceCents > 0 ? "partner_owes_you" : "you_owe_partner",
             partnerName: partner.display_name,
             amountLabel: formatCentimes(Math.abs(balanceCents)),
+            amountCents: Math.abs(balanceCents),
           },
     drafts: ((draftsRes.data ?? []) as {
       id: string;

@@ -4,6 +4,7 @@ export type MoneyHero =
       kind: "partner_owes_you" | "you_owe_partner";
       partnerName: string;
       amountLabel: string;
+      amountCents: number;
     };
 
 export type MoneyDraftView = {

@@ -6,6 +6,7 @@ export const mockMoney: MoneyViewModel = {
     kind: "partner_owes_you",
     partnerName: "Sam",
     amountLabel: "CHF 12.40",
+    amountCents: 1240,
   },
   drafts: [
     {
