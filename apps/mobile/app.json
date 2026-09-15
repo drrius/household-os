@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Household OS",
+    "slug": "household-os",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "household-os",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "ch.household.os",
+      "supportsTablet": false,
+      "usesAppleSignIn": true
+    },
+    "plugins": ["expo-router", "expo-secure-store", "expo-notifications"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

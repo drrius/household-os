@@ -4,6 +4,8 @@ node_modules/
 # Build output
 .next/
 .next-verify/
+.expo/
+dist/
 out/
 coverage/
 playwright-report/
