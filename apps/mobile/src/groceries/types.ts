@@ -18,6 +18,7 @@ export type GroceriesViewModel = {
   activeItemCount: number;
   categories: GroceryCategoryView[];
   liveSession: {
+    id: string;
     memberName: string;
     claimedCount: number;
     totalCount: number;

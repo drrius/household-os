@@ -44,6 +44,7 @@ export const mockGroceries: GroceriesViewModel = {
     },
   ],
   liveSession: {
+    id: "session-1",
     memberName: "Sam",
     claimedCount: 1,
     totalCount: 6,

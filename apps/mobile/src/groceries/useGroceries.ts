@@ -10,8 +10,12 @@ export type GroceriesState =
   | { status: "signed-out" }
   | { status: "ready"; model: GroceriesViewModel };
 
-export function useGroceries(session: SessionState): GroceriesState {
+export function useGroceries(session: SessionState): {
+  state: GroceriesState;
+  refresh: () => void;
+} {
   const [attempt, setAttempt] = useState(0);
+  const [tick, setTick] = useState(0);
   const [state, setState] = useState<GroceriesState>({ status: "loading" });
 
   useEffect(() => {
@@ -54,9 +58,9 @@ export function useGroceries(session: SessionState): GroceriesState {
     return () => {
       cancelled = true;
     };
-  }, [session, attempt]);
+  }, [session, attempt, tick]);
 
-  return state;
+  return { state, refresh: () => setTick((n) => n + 1) };
 }
 
 async function loadGroceries(
@@ -158,6 +162,7 @@ async function loadGroceries(
     categories,
     liveSession: firstSession
       ? {
+          id: firstSession.id,
           memberName: nameOf(firstSession.member_id),
           claimedCount: items.filter(
             (i) => i.claimed_by_session_id === firstSession.id
