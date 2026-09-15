@@ -1,11 +1,12 @@
 import { Button, ScrollView, Text, View } from "react-native";
+import { markInboxRead } from "../../src/mutations/plan-home";
 import { useHome } from "../../src/home/useHome";
 import { useSession } from "../../src/session/SessionProvider";
 import { tokens } from "../../src/theme/tokens";
 
 export default function HomeScreen() {
   const session = useSession();
-  const state = useHome(session);
+  const { state, refresh } = useHome(session);
 
   if (state.status === "loading") {
     return (
@@ -61,6 +62,17 @@ export default function HomeScreen() {
       )}
 
       <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>Inbox</Text>
+      {inbox.unreadCount > 0 ? (
+        <Button
+          title={`Mark ${inbox.unreadCount} read`}
+          onPress={() =>
+            void markInboxRead(
+              session,
+              inbox.items.filter((n) => !n.read).map((n) => n.id)
+            ).then(refresh)
+          }
+        />
+      ) : null}
       {inbox.items.length === 0 ? (
         <Text>Inbox is clear.</Text>
       ) : (

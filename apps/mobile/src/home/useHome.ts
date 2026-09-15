@@ -10,8 +10,12 @@ export type HomeState =
   | { status: "signed-out" }
   | { status: "ready"; model: HomeViewModel; inbox: InboxViewModel };
 
-export function useHome(session: SessionState): HomeState {
+export function useHome(session: SessionState): {
+  state: HomeState;
+  refresh: () => void;
+} {
   const [attempt, setAttempt] = useState(0);
+  const [tick, setTick] = useState(0);
   const [state, setState] = useState<HomeState>({ status: "loading" });
 
   useEffect(() => {
@@ -54,9 +58,9 @@ export function useHome(session: SessionState): HomeState {
     return () => {
       cancelled = true;
     };
-  }, [session, attempt]);
+  }, [session, attempt, tick]);
 
-  return state;
+  return { state, refresh: () => setTick((n) => n + 1) };
 }
 
 async function loadHome(

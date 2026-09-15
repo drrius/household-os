@@ -25,8 +25,12 @@ function addDays(date: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function usePlan(session: SessionState): PlanState {
+export function usePlan(session: SessionState): {
+  state: PlanState;
+  refresh: () => void;
+} {
   const [attempt, setAttempt] = useState(0);
+  const [tick, setTick] = useState(0);
   const [state, setState] = useState<PlanState>({ status: "loading" });
 
   useEffect(() => {
@@ -68,9 +72,9 @@ export function usePlan(session: SessionState): PlanState {
     return () => {
       cancelled = true;
     };
-  }, [session, attempt]);
+  }, [session, attempt, tick]);
 
-  return state;
+  return { state, refresh: () => setTick((n) => n + 1) };
 }
 
 async function loadPlan(
