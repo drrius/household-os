@@ -202,9 +202,22 @@ for (const status of [413, 503]) {
     page,
   }) => {
     let attempts = 0;
+    const discardedPaths: (string | null)[] = [];
+    const previousPath =
+      "10000000-0000-4000-8000-000000000001/receipts/30000000-0000-4000-8000-000000000001.jpg";
     const newPath =
       "10000000-0000-4000-8000-000000000001/receipts/30000000-0000-4000-8000-000000000002.pdf";
-    await page.route("**/api/attachments", async (route) => {
+    await page.route("**/api/attachments**", async (route) => {
+      // Replacing the existing receipt also cleans up its old path. Keep that
+      // request inside this fixture instead of waiting on the real auth route.
+      if (route.request().method() === "DELETE") {
+        discardedPaths.push(
+          new URL(route.request().url()).searchParams.get("path"),
+        );
+        await route.fulfill({ status: 204 });
+        return;
+      }
+      expect(route.request().method()).toBe("POST");
       attempts++;
       await route.fulfill(
         attempts === 1
@@ -244,5 +257,6 @@ for (const status of [413, 503]) {
     );
     await expect(input).toHaveAttribute("aria-invalid", "false");
     expect(attempts).toBe(2);
+    await expect.poll(() => discardedPaths).toEqual([previousPath]);
   });
 }
