@@ -1,7 +1,7 @@
 import type { GroceriesViewModel } from "./types";
 
 export const mockGroceries: GroceriesViewModel = {
-  activeItemCount: 6,
+  activeItemCount: 3,
   categories: [
     {
       id: "cat-produce",
@@ -47,7 +47,7 @@ export const mockGroceries: GroceriesViewModel = {
     id: "session-1",
     memberName: "Sam",
     claimedCount: 1,
-    totalCount: 6,
+    totalCount: 3,
     isMine: false,
   },
   duplicateCount: 0,

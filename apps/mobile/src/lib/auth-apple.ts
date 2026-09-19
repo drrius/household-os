@@ -6,6 +6,6 @@ export async function signInWithApple(): Promise<void> {
     throw new Error("Sign in with Apple is not available on this device.");
   }
   throw new Error(
-    "Sign in with Apple is not wired to Supabase yet. Needs Apple Team ID + bundle ID ch.household.os, then supabase.auth.signInWithIdToken."
+    "Sign in with Apple is not wired to Supabase yet. Needs Apple Team ID + bundle ID ch.household.os, then supabase.auth.signInWithIdToken.",
   );
 }

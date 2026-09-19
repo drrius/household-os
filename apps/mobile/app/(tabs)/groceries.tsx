@@ -6,6 +6,7 @@ import {
   finishShoppingSession,
   startShoppingSession,
 } from "../../src/mutations/groceries";
+import { useIdempotencyKey } from "../../src/mutations/useIdempotencyKey";
 import { useGroceries } from "../../src/groceries/useGroceries";
 import { useHouseholdRealtime } from "../../src/realtime/useHouseholdRealtime";
 import { useSession } from "../../src/session/SessionProvider";
@@ -18,12 +19,14 @@ export default function GroceriesScreen() {
   const [name, setName] = useState("");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const finishKey = useIdempotencyKey();
 
-  const run = async (fn: () => Promise<void>) => {
+  const run = async (fn: () => Promise<void>, rotate?: () => void) => {
     setPending(true);
     setFailure(null);
     try {
       await fn();
+      rotate?.();
       refresh();
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "Failed");
@@ -34,7 +37,10 @@ export default function GroceriesScreen() {
 
   if (state.status === "loading") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="groceries-loading">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="groceries-loading"
+      >
         <Text>Loading groceries…</Text>
       </View>
     );
@@ -48,7 +54,10 @@ export default function GroceriesScreen() {
   }
   if (state.status === "error") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="groceries-error">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="groceries-error"
+      >
         <Text>Couldn&apos;t load groceries: {state.message}</Text>
         <Button title="Retry" onPress={state.retry} />
       </View>
@@ -82,12 +91,26 @@ export default function GroceriesScreen() {
           title="Finish shopping"
           disabled={pending}
           onPress={() =>
-            void run(() => finishShoppingSession(session, m.liveSession?.id ?? ""))
+            void run(
+              () =>
+                finishShoppingSession(
+                  session,
+                  m.liveSession?.id ?? "",
+                  finishKey.current(),
+                ),
+              finishKey.rotate,
+            )
           }
         />
       ) : null}
 
-      <View style={{ flexDirection: "row", gap: tokens.space.sm, marginTop: tokens.space.md }}>
+      <View
+        style={{
+          flexDirection: "row",
+          gap: tokens.space.sm,
+          marginTop: tokens.space.md,
+        }}
+      >
         <TextInput
           value={name}
           onChangeText={setName}
@@ -112,7 +135,9 @@ export default function GroceriesScreen() {
           }
         />
       </View>
-      {failure ? <Text style={{ color: tokens.color.danger }}>{failure}</Text> : null}
+      {failure ? (
+        <Text style={{ color: tokens.color.danger }}>{failure}</Text>
+      ) : null}
 
       {m.categories.map((c) => (
         <View key={c.id} style={{ marginTop: tokens.space.md }}>
@@ -121,7 +146,9 @@ export default function GroceriesScreen() {
             <View key={i.id}>
               <Text>
                 • {i.name}
-                {i.quantity ? ` — ${i.quantity}${i.unit ? ` ${i.unit}` : ""}` : ""}
+                {i.quantity
+                  ? ` — ${i.quantity}${i.unit ? ` ${i.unit}` : ""}`
+                  : ""}
                 {i.claimedByName ? ` (claimed by ${i.claimedByName})` : ""}
               </Text>
               {!i.claimedByName && m.liveSession ? (
@@ -130,7 +157,7 @@ export default function GroceriesScreen() {
                   disabled={pending}
                   onPress={() =>
                     void run(() =>
-                      claimGroceryItem(session, m.liveSession?.id ?? "", i.id)
+                      claimGroceryItem(session, m.liveSession?.id ?? "", i.id),
                     )
                   }
                 />

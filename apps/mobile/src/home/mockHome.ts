@@ -13,7 +13,12 @@ export const mockHome: HomeViewModel = {
   ],
   routines: [
     { id: "r-1", title: "Feed Milo", areaName: "Kitchen", paused: false },
-    { id: "r-2", title: "Vacuum living room", areaName: "Living room", paused: false },
+    {
+      id: "r-2",
+      title: "Vacuum living room",
+      areaName: "Living room",
+      paused: false,
+    },
   ],
   activity: [{ id: "a-1", title: "Sam completed Feed Milo" }],
 };

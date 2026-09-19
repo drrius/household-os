@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button, ScrollView, Text, View } from "react-native";
 import { markInboxRead } from "../../src/mutations/plan-home";
 import { useHome } from "../../src/home/useHome";
@@ -9,10 +10,14 @@ export default function HomeScreen() {
   const session = useSession();
   const { state, refresh } = useHome(session);
   useHouseholdRealtime(session, refresh);
+  const [inboxFailure, setInboxFailure] = useState<string | null>(null);
 
   if (state.status === "loading") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="home-loading">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="home-loading"
+      >
         <Text>Loading home…</Text>
       </View>
     );
@@ -26,7 +31,10 @@ export default function HomeScreen() {
   }
   if (state.status === "error") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="home-error">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="home-error"
+      >
         <Text>Couldn&apos;t load home: {state.message}</Text>
         <Button title="Retry" onPress={state.retry} />
       </View>
@@ -48,32 +56,50 @@ export default function HomeScreen() {
         {inbox.unreadCount}
       </Text>
 
-      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>Routines</Text>
-      {m.routines.map((r) => (
-        <Text key={r.id}>
-          • {r.title} ({r.areaName}
-          {r.paused ? ", paused" : ""})
-        </Text>
-      ))}
+      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>
+        Routines
+      </Text>
+      {m.routines.length === 0 ? (
+        <Text>No routines.</Text>
+      ) : (
+        m.routines.map((r) => (
+          <Text key={r.id}>
+            • {r.title} ({r.areaName}
+            {r.paused ? ", paused" : ""})
+          </Text>
+        ))
+      )}
 
-      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>Pets</Text>
+      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>
+        Pets
+      </Text>
       {m.pets.length === 0 ? (
         <Text>No pets.</Text>
       ) : (
         m.pets.map((p) => <Text key={p.id}>• {p.name}</Text>)
       )}
 
-      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>Inbox</Text>
+      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>
+        Inbox
+      </Text>
       {inbox.unreadCount > 0 ? (
         <Button
           title={`Mark ${inbox.unreadCount} read`}
-          onPress={() =>
+          onPress={() => {
+            setInboxFailure(null);
             void markInboxRead(
               session,
-              inbox.items.filter((n) => !n.read).map((n) => n.id)
-            ).then(refresh)
-          }
+              inbox.items.filter((n) => !n.read).map((n) => n.id),
+            ).then(refresh, (error: unknown) => {
+              setInboxFailure(
+                error instanceof Error ? error.message : "Could not mark read",
+              );
+            });
+          }}
         />
+      ) : null}
+      {inboxFailure ? (
+        <Text style={{ color: tokens.color.danger }}>{inboxFailure}</Text>
       ) : null}
       {inbox.items.length === 0 ? (
         <Text>Inbox is clear.</Text>
@@ -86,7 +112,9 @@ export default function HomeScreen() {
         ))
       )}
 
-      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>Activity</Text>
+      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>
+        Activity
+      </Text>
       {m.activity.length === 0 ? (
         <Text>No recent activity.</Text>
       ) : (

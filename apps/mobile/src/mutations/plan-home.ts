@@ -27,7 +27,8 @@ export function placeFreeformMeal(
   session: SessionState,
   date: string,
   slot: "breakfast" | "lunch" | "dinner",
-  title: string
+  title: string,
+  idempotencyKey = newIdempotencyKey(),
 ): Promise<void> {
   return run(
     Effect.gen(function* () {
@@ -41,20 +42,21 @@ export function placeFreeformMeal(
         p_date: date,
         p_slot: slot,
         p_source_kind: "freeform",
-        p_idempotency_key: newIdempotencyKey(),
+        p_idempotency_key: idempotencyKey,
         p_meal_definition_id: null,
         p_leftover_of_entry_id: null,
         p_title: title.trim(),
         p_recipe_url: null,
         p_notes: null,
       });
-    })
+    }),
   );
 }
 
 export function removeMealEntry(
   session: SessionState,
-  entryId: string
+  entryId: string,
+  idempotencyKey = newIdempotencyKey(),
 ): Promise<void> {
   return run(
     Effect.gen(function* () {
@@ -62,15 +64,15 @@ export function removeMealEntry(
       if (ready === null) return;
       yield* rpc("remove_meal_plan_entry", {
         p_entry_id: entryId,
-        p_idempotency_key: newIdempotencyKey(),
+        p_idempotency_key: idempotencyKey,
       });
-    })
+    }),
   );
 }
 
 export function markInboxRead(
   session: SessionState,
-  notificationIds: string[]
+  notificationIds: string[],
 ): Promise<void> {
   return run(
     Effect.gen(function* () {
@@ -80,6 +82,6 @@ export function markInboxRead(
       yield* rpc("mark_inbox_notifications_read", {
         p_notification_ids: notificationIds,
       });
-    })
+    }),
   );
 }

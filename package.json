@@ -16,7 +16,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "start": "next start",
-    "test": "vitest run src scripts",
+    "mobile:check": "pnpm --filter @household-os/mobile typecheck && pnpm --filter @household-os/mobile lint",
+    "test": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "next typegen && tsc --noEmit && tsc --project tsconfig.domain.json",
     "db:start": "supabase start",
@@ -25,7 +26,7 @@
     "db:fresh": "supabase db reset && pnpm admin:local",
     "db:test": "supabase test db",
     "drain:push": "node --experimental-strip-types scripts/drain-push.mts",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm check:webauthn && pnpm build"
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm check:webauthn && pnpm mobile:check && pnpm build"
   },
   "dependencies": {
     "@ai-sdk/openai": "4.0.52",

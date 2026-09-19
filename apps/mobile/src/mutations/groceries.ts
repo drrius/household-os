@@ -1,5 +1,6 @@
 import * as Effect from "effect/Effect";
 import { supabase } from "../lib/supabase";
+import { zurichCivilDate } from "../lib/dates";
 import {
   NotSignedInError,
   ValidationError,
@@ -8,7 +9,6 @@ import {
 } from "../effect/errors";
 import { query, rpc, runMutation } from "../effect/supabase";
 import type { SessionState } from "../session/SessionProvider";
-import { zurichCivilDate } from "../today/useToday";
 import { newIdempotencyKey } from "./idempotency";
 
 function householdProgram(session: SessionState) {
@@ -25,13 +25,18 @@ function run<A>(effect: Effect.Effect<A, MutationError>): Promise<A> {
   });
 }
 
-export function addGroceryItem(session: SessionState, name: string): Promise<void> {
+export function addGroceryItem(
+  session: SessionState,
+  name: string,
+): Promise<void> {
   return run(
     Effect.gen(function* () {
       const householdId = yield* householdProgram(session);
       if (session.status === "mock") return;
       const trimmed = name.trim();
-      if (!trimmed) return yield* new ValidationError({ message: "Name is required." });
+      if (!trimmed) {
+        return yield* new ValidationError({ message: "Name is required." });
+      }
       yield* query("add_grocery_item", async () => {
         const { error } = await supabase.from("grocery_items").insert({
           household_id: householdId,
@@ -40,7 +45,7 @@ export function addGroceryItem(session: SessionState, name: string): Promise<voi
         });
         if (error) throw error;
       });
-    })
+    }),
   );
 }
 
@@ -50,14 +55,14 @@ export function startShoppingSession(session: SessionState): Promise<void> {
       const householdId = yield* householdProgram(session);
       if (session.status === "mock") return;
       yield* rpc("start_shopping_session", { p_household_id: householdId });
-    })
+    }),
   );
 }
 
 export function claimGroceryItem(
   session: SessionState,
   shoppingSessionId: string,
-  groceryItemId: string
+  groceryItemId: string,
 ): Promise<void> {
   return run(
     Effect.gen(function* () {
@@ -67,13 +72,14 @@ export function claimGroceryItem(
         p_shopping_session_id: shoppingSessionId,
         p_grocery_item_id: groceryItemId,
       });
-    })
+    }),
   );
 }
 
 export function finishShoppingSession(
   session: SessionState,
-  shoppingSessionId: string
+  shoppingSessionId: string,
+  idempotencyKey = newIdempotencyKey(),
 ): Promise<void> {
   return run(
     Effect.gen(function* () {
@@ -81,7 +87,7 @@ export function finishShoppingSession(
       if (session.status === "mock") return;
       yield* rpc("finish_shopping_session", {
         p_shopping_session_id: shoppingSessionId,
-        p_idempotency_key: newIdempotencyKey(),
+        p_idempotency_key: idempotencyKey,
         p_occurred_on: zurichCivilDate(0),
         p_receipt_total_cents: null,
         p_receipt_path: null,
@@ -91,7 +97,6 @@ export function finishShoppingSession(
         p_payer_member_id: null,
         p_proposed_allocations: [],
       });
-    })
+    }),
   );
 }
-

@@ -4,6 +4,7 @@ import {
   placeFreeformMeal,
   removeMealEntry,
 } from "../../src/mutations/plan-home";
+import { useIdempotencyKey } from "../../src/mutations/useIdempotencyKey";
 import { usePlan } from "../../src/plan/usePlan";
 import { useHouseholdRealtime } from "../../src/realtime/useHouseholdRealtime";
 import { useSession } from "../../src/session/SessionProvider";
@@ -17,12 +18,14 @@ export default function PlanScreen() {
   const [title, setTitle] = useState("");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const dinnerKey = useIdempotencyKey();
 
-  const run = async (fn: () => Promise<void>) => {
+  const run = async (fn: () => Promise<void>, rotate?: () => void) => {
     setPending(true);
     setFailure(null);
     try {
       await fn();
+      rotate?.();
       refresh();
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "Failed");
@@ -33,7 +36,10 @@ export default function PlanScreen() {
 
   if (state.status === "loading") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="plan-loading">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="plan-loading"
+      >
         <Text>Loading plan…</Text>
       </View>
     );
@@ -47,7 +53,10 @@ export default function PlanScreen() {
   }
   if (state.status === "error") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="plan-error">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="plan-error"
+      >
         <Text>Couldn&apos;t load plan: {state.message}</Text>
         <Button title="Retry" onPress={state.retry} />
       </View>
@@ -66,7 +75,13 @@ export default function PlanScreen() {
         Plan · {m.rangeLabel}
       </Text>
 
-      <View style={{ flexDirection: "row", gap: tokens.space.sm, marginTop: tokens.space.md }}>
+      <View
+        style={{
+          flexDirection: "row",
+          gap: tokens.space.sm,
+          marginTop: tokens.space.md,
+        }}
+      >
         <TextInput
           value={title}
           onChangeText={setTitle}
@@ -85,13 +100,22 @@ export default function PlanScreen() {
           disabled={pending || !title.trim()}
           onPress={() =>
             void run(async () => {
-              await placeFreeformMeal(session, today, "dinner", title);
+              await placeFreeformMeal(
+                session,
+                today,
+                "dinner",
+                title,
+                dinnerKey.current(),
+              );
+              dinnerKey.rotate();
               setTitle("");
             })
           }
         />
       </View>
-      {failure ? <Text style={{ color: tokens.color.danger }}>{failure}</Text> : null}
+      {failure ? (
+        <Text style={{ color: tokens.color.danger }}>{failure}</Text>
+      ) : null}
 
       {m.days.map((day) => (
         <View key={day.date} style={{ marginTop: tokens.space.md }}>
@@ -111,7 +135,9 @@ export default function PlanScreen() {
                 <Button
                   title="Remove"
                   disabled={pending}
-                  onPress={() => void run(() => removeMealEntry(session, s.entry?.id ?? ""))}
+                  onPress={() =>
+                    void run(() => removeMealEntry(session, s.entry?.id ?? ""))
+                  }
                 />
               ) : null}
             </View>

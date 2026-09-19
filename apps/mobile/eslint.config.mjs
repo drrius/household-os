@@ -14,5 +14,5 @@ export default tseslint.config(
     rules: {
       "@effect/no-import-from-barrel-package": "error",
     },
-  }
+  },
 );

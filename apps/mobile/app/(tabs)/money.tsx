@@ -6,6 +6,7 @@ import {
   postManualExpense5050,
   recordFullSettlement,
 } from "../../src/mutations/money";
+import { useIdempotencyKey } from "../../src/mutations/useIdempotencyKey";
 import { useMoney } from "../../src/money/useMoney";
 import { useHouseholdRealtime } from "../../src/realtime/useHouseholdRealtime";
 import { useSession } from "../../src/session/SessionProvider";
@@ -19,12 +20,15 @@ export default function MoneyScreen() {
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const expenseKey = useIdempotencyKey();
+  const settleKey = useIdempotencyKey();
 
-  const run = async (fn: () => Promise<void>) => {
+  const run = async (fn: () => Promise<void>, rotate?: () => void) => {
     setPending(true);
     setFailure(null);
     try {
       await fn();
+      rotate?.();
       refresh();
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "Failed");
@@ -35,7 +39,10 @@ export default function MoneyScreen() {
 
   if (state.status === "loading") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="money-loading">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="money-loading"
+      >
         <Text>Loading money…</Text>
       </View>
     );
@@ -49,7 +56,10 @@ export default function MoneyScreen() {
   }
   if (state.status === "error") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} testID="money-error">
+      <View
+        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        testID="money-error"
+      >
         <Text>Couldn&apos;t load money: {state.message}</Text>
         <Button title="Retry" onPress={state.retry} />
       </View>
@@ -57,27 +67,39 @@ export default function MoneyScreen() {
   }
 
   const m = state.model;
+  const unpaidHero = m.hero.kind === "settled" ? null : m.hero;
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: tokens.color.background }}
       contentContainerStyle={{ padding: tokens.space.md }}
       testID="money-screen"
     >
-      <Text style={{ fontSize: tokens.type.title, fontWeight: "700" }}>Money</Text>
-      {m.hero.kind === "settled" ? (
+      <Text style={{ fontSize: tokens.type.title, fontWeight: "700" }}>
+        Money
+      </Text>
+      {unpaidHero === null ? (
         <Text>Settled up.</Text>
       ) : (
         <View>
           <Text testID="money-hero">
-            {m.hero.kind === "partner_owes_you" ? `${m.hero.partnerName} owes you ` : `You owe ${m.hero.partnerName} `}
-            {m.hero.amountLabel}
+            {unpaidHero.kind === "partner_owes_you"
+              ? `${unpaidHero.partnerName} owes you `
+              : `You owe ${unpaidHero.partnerName} `}
+            {unpaidHero.amountLabel}
           </Text>
           <Button
             title="Settle up"
             disabled={pending}
             onPress={() =>
-              void run(() =>
-                recordFullSettlement(session, m.hero.kind === "settled" ? 0 : m.hero.amountCents, m.hero.kind === "settled" ? "you_owe_partner" : m.hero.kind)
+              void run(
+                () =>
+                  recordFullSettlement(
+                    session,
+                    unpaidHero.amountCents,
+                    unpaidHero.kind,
+                    settleKey.current(),
+                  ),
+                settleKey.rotate,
               )
             }
           />
@@ -122,15 +144,25 @@ export default function MoneyScreen() {
           void run(async () => {
             const cents = parseChfToCentimes(amount);
             if (cents == null) throw new Error("Enter an amount like 12.40.");
-            await postManualExpense5050(session, description, cents);
+            await postManualExpense5050(
+              session,
+              description,
+              cents,
+              expenseKey.current(),
+            );
+            expenseKey.rotate();
             setDescription("");
             setAmount("");
           })
         }
       />
-      {failure ? <Text style={{ color: tokens.color.danger }}>{failure}</Text> : null}
+      {failure ? (
+        <Text style={{ color: tokens.color.danger }}>{failure}</Text>
+      ) : null}
 
-      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>Drafts</Text>
+      <Text style={{ fontWeight: "600", marginTop: tokens.space.md }}>
+        Drafts
+      </Text>
       {m.drafts.length === 0 ? (
         <Text>No pending drafts.</Text>
       ) : (

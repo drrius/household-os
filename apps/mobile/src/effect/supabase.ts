@@ -17,7 +17,7 @@ function toSupabaseError(error: unknown, fallback: string): SupabaseError {
 
 export function rpc<A>(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Effect.Effect<A, SupabaseError> {
   return Effect.tryPromise({
     try: async () => {
@@ -31,7 +31,7 @@ export function rpc<A>(
 
 export function query<A>(
   name: string,
-  run: () => Promise<A>
+  run: () => Promise<A>,
 ): Effect.Effect<A, SupabaseError> {
   return Effect.tryPromise({
     try: run,

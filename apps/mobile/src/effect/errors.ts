@@ -20,5 +20,9 @@ export function mutationMessage(error: MutationError): string {
     case "SupabaseError":
     case "ValidationError":
       return error.message;
+    default: {
+      const _exhaustive: never = error;
+      return _exhaustive;
+    }
   }
 }
