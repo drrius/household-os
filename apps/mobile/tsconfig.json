@@ -24,6 +24,7 @@
     "app/**/*.tsx",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "../../src/domain/identity.ts",
     "../../src/domain/money/**/*.ts",
     "../../src/lib/ui/zurich-date.ts"
   ],

@@ -12,7 +12,10 @@ pnpm --filter @household-os/mobile start
 
 `EXPO_PUBLIC_USE_MOCK=true` (the example default) shows a fake household so
 you can walk the five tabs without Sign in with Apple. Preview and production
-EAS profiles set the flag to `false`.
+EAS profiles set the flag to `false`. The signed-out screen calls
+`supabase.auth.signInWithIdToken({ provider: "apple", token })` with the
+publishable key only. A user who is not already in `household_members` is
+signed out immediately.
 
 Open with Expo Go or an iOS Simulator dev build
 (`eas build --profile development --platform ios --local` on a Mac).
@@ -26,9 +29,10 @@ client never used it for the session.
 
 ## Needs Apple Developer account (owner, not an agent)
 
-- Team ID, bundle ID `ch.household.os`, ASC App ID → fill `eas.json`
-- Sign in with Apple capability → wire `src/lib/auth-apple.ts` to
-  `supabase.auth.signInWithIdToken`
+- Team ID, bundle ID `ch.household.os`, ASC App ID → already in `eas.json`
+- Sign in with Apple → `src/lib/auth-apple.ts` calls
+  `supabase.auth.signInWithIdToken`. Link Apple to the two existing members
+  before the first TestFlight tap (see `pnpm admin attach-apple`).
 - APNs Auth Key → Expo push via `expo-notifications`
 
 ## Boundaries

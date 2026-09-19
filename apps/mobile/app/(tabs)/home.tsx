@@ -3,11 +3,12 @@ import { Button, ScrollView, Text, View } from "react-native";
 import { markInboxRead } from "../../src/mutations/plan-home";
 import { useHome } from "../../src/home/useHome";
 import { useHouseholdRealtime } from "../../src/realtime/useHouseholdRealtime";
-import { useSession } from "../../src/session/SessionProvider";
+import { useSession, useSignOut } from "../../src/session/SessionProvider";
 import { tokens } from "../../src/theme/tokens";
 
 export default function HomeScreen() {
   const session = useSession();
+  const signOut = useSignOut();
   const { state, refresh } = useHome(session);
   useHouseholdRealtime(session, refresh);
   const [inboxFailure, setInboxFailure] = useState<string | null>(null);
@@ -120,6 +121,12 @@ export default function HomeScreen() {
       ) : (
         m.activity.map((a) => <Text key={a.id}>• {a.title}</Text>)
       )}
+
+      {session.status === "ready" ? (
+        <View style={{ marginTop: tokens.space.lg }}>
+          <Button title="Sign out" onPress={() => void signOut()} />
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
