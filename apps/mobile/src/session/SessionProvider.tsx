@@ -77,17 +77,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setState(resolved);
       }
     };
-    void load().catch((error: unknown) => {
-      if (!cancelled) {
-        setState({
-          status: "error",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    });
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      void load();
-    });
+    const loadSafely = () => {
+      void load().catch((error: unknown) => {
+        if (!cancelled) {
+          setState({
+            status: "error",
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      });
+    };
+    loadSafely();
+    const { data } = supabase.auth.onAuthStateChange(loadSafely);
     return () => {
       cancelled = true;
       data.subscription.unsubscribe();
