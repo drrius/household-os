@@ -143,6 +143,7 @@ export default defineConfig([
     },
   },
   globalIgnores([
+    ".agents/**",
     "**/.next/**",
     "**/.next-verify/**",
     "**/.expo/**",
