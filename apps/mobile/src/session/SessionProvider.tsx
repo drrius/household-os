@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { loadHouseholdMembership } from "../lib/household-membership";
 import { supabase } from "../lib/supabase";
 import { shouldUseMockSession } from "./mock-flag";
-import { resolveAuthenticatedSession } from "./resolve-session";
+import { createSessionLoader } from "./session-loader";
 
 export type SessionState =
   | { status: "loading" }
@@ -60,9 +60,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setState(MOCK_SESSION);
       return;
     }
-    let cancelled = false;
-    const load = async () => {
-      const resolved = await resolveAuthenticatedSession({
+    const loader = createSessionLoader(
+      {
         async getUserId() {
           const { data, error } = await supabase.auth.getSession();
           if (error) {
@@ -72,25 +71,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         },
         loadMembership: loadHouseholdMembership,
         signOut: () => supabase.auth.signOut(),
-      });
-      if (!cancelled) {
-        setState(resolved);
-      }
-    };
+      },
+      setState,
+    );
     const loadSafely = () => {
-      void load().catch((error: unknown) => {
-        if (!cancelled) {
-          setState({
-            status: "error",
-            message: error instanceof Error ? error.message : "Unknown error",
-          });
-        }
-      });
+      void loader.load();
     };
     loadSafely();
     const { data } = supabase.auth.onAuthStateChange(loadSafely);
     return () => {
-      cancelled = true;
+      loader.dispose();
       data.subscription.unsubscribe();
     };
   }, [generation]);
