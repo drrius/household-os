@@ -4,6 +4,9 @@ next-env.d.ts
 # Local agent audit trails.
 .audit/
 
+# Vendored Expo/Codex/Claude agent skills; keep the upstream snapshot as shipped.
+.agents/
+
 # User-owned visual design source; frontend design is outside foundation formatting.
 Household OS Designs.html
 pnpm-lock.yaml
