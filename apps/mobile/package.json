@@ -1,0 +1,39 @@
+{
+  "name": "@household-os/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "3.1.1",
+    "@supabase/supabase-js": "2.112.2",
+    "effect": "4.0.0-rc.115",
+    "expo": "57.0.23",
+    "expo-apple-authentication": "57.0.2",
+    "expo-auth-session": "57.0.12",
+    "expo-constants": "57.0.18",
+    "expo-linking": "57.0.10",
+    "expo-notifications": "57.0.19",
+    "expo-router": "57.0.21",
+    "expo-secure-store": "57.0.4",
+    "expo-status-bar": "57.0.1",
+    "react": "19.3.0",
+    "react-native": "0.87.1",
+    "react-native-safe-area-context": "5.9.1",
+    "react-native-screens": "4.28.0"
+  },
+  "devDependencies": {
+    "@effect/eslint-plugin": "0.3.2",
+    "@effect/language-service": "0.87.2",
+    "@types/react": "19.2.18",
+    "babel-preset-expo": "57.0.12",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0"
+  }
+}

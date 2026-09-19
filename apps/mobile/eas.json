@@ -1,0 +1,41 @@
+{
+  "cli": {
+    "version": ">= 24.6.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_USE_MOCK": "true"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_USE_MOCK": "false"
+      },
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_USE_MOCK": "false"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "dsibarium@gmail.com",
+        "ascAppId": "6813815649",
+        "appleTeamId": "5ZKB6XKYFX"
+      }
+    }
+  }
+}
