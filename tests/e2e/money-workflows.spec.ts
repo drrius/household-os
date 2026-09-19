@@ -257,6 +257,6 @@ for (const status of [413, 503]) {
     );
     await expect(input).toHaveAttribute("aria-invalid", "false");
     expect(attempts).toBe(2);
-    expect(discardedPaths).toEqual([previousPath]);
+    await expect.poll(() => discardedPaths).toEqual([previousPath]);
   });
 }
