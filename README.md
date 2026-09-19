@@ -79,6 +79,20 @@ The command prints one enrollment URL per member. Transfer each URL privately
 to the matching member. Link previews are safe because the one-time token is
 not exchanged until the member presses Continue on the confirmation screen.
 
+If a first Sign in with Apple tap created a third Auth user, attach that
+Apple identity to an existing member with `attach-apple`. It never bootstraps
+a household. If the identity is still only on the leftover user, it prints
+SQL for the project SQL editor. After the identity sits on the member, the
+same command deletes the leftover Auth user.
+
+```bash
+op read "op://Private/Household OS/Supabase secret key" | pnpm admin attach-apple \
+  --project-url https://project-ref.supabase.co \
+  --member-email alice@example.com \
+  --from-user-id 00000000-0000-4000-8000-000000000003 \
+  --secret-stdin
+```
+
 Generate another one-time link for an existing member with `enroll-link` or
 `recover-link`:
 

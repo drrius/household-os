@@ -18,6 +18,7 @@ function sessionIdentity(session: SessionState): string {
       return `${session.status}:${session.householdId}:${session.userId}`;
     case "loading":
     case "signed-out":
+    case "not-a-member":
     case "error":
       return session.status;
     default: {
@@ -51,7 +52,7 @@ export function useSessionBoundLoad<T extends object>(
       setState({ status: "loading" });
       return;
     }
-    if (session.status === "signed-out") {
+    if (session.status === "signed-out" || session.status === "not-a-member") {
       loadedIdentity.current = null;
       setState({ status: "signed-out" });
       return;

@@ -4,6 +4,8 @@ import {
   executeIdentityAdminCommand,
   parseIdentityAdminArguments,
   runIdentityAdmin,
+  type AuthIdentityRecord,
+  type AuthUserDetail,
   type HouseholdRecord,
   type IdentityAdminGateway,
   type MembershipRecord,
@@ -14,9 +16,11 @@ class FakeIdentityAdminGateway implements IdentityAdminGateway {
   readonly households: HouseholdRecord[] = [];
   readonly users: UserRecord[] = [];
   readonly memberships: MembershipRecord[] = [];
+  readonly identities: AuthIdentityRecord[] = [];
   readonly generatedLinks: string[] = [];
   readonly createdUsers: string[] = [];
   readonly confirmedUsers: string[] = [];
+  readonly deletedUsers: string[] = [];
 
   async listHouseholds() {
     return structuredClone(this.households);
@@ -30,6 +34,46 @@ class FakeIdentityAdminGateway implements IdentityAdminGateway {
 
   async listUsers() {
     return structuredClone(this.users);
+  }
+
+  private authUserDetail(user: UserRecord): AuthUserDetail {
+    return {
+      id: user.id,
+      email: user.email,
+      identities: this.identities.filter(
+        (identity) => identity.userId === user.id,
+      ),
+    };
+  }
+
+  async listAuthUsers() {
+    return this.users.map((user) => this.authUserDetail(user));
+  }
+
+  async getAuthUser(userId: string) {
+    const user = this.users.find(({ id }) => id === userId);
+
+    if (user === undefined) {
+      throw new Error(`Unknown fake user: ${userId}`);
+    }
+
+    return this.authUserDetail(user);
+  }
+
+  async deleteAuthUser(userId: string) {
+    const index = this.users.findIndex(({ id }) => id === userId);
+
+    if (index === -1) {
+      throw new Error(`Unknown fake user: ${userId}`);
+    }
+
+    this.users.splice(index, 1);
+    this.identities.splice(
+      0,
+      this.identities.length,
+      ...this.identities.filter((identity) => identity.userId !== userId),
+    );
+    this.deletedUsers.push(userId);
   }
 
   async createConfirmedUser(email: string) {
@@ -265,6 +309,119 @@ describe("member links", () => {
         gateway,
       ),
     ).rejects.toThrow(/is not a household member/);
+  });
+});
+
+describe("attach-apple", () => {
+  const attachArguments = [
+    "attach-apple",
+    "--project-url",
+    "https://project.supabase.co",
+    "--member-email",
+    "one@example.com",
+    "--from-user-id",
+    "orphan-1",
+    "--secret-stdin",
+  ];
+
+  function seededHousehold(): FakeIdentityAdminGateway {
+    const gateway = new FakeIdentityAdminGateway();
+    gateway.households.push({ id: "household-1", name: "Home" });
+    gateway.users.push(
+      { id: "user-1", email: "one@example.com", confirmed: true },
+      { id: "user-2", email: "two@example.com", confirmed: true },
+      {
+        id: "orphan-1",
+        email: "relay@privaterelay.appleid.com",
+        confirmed: true,
+      },
+    );
+    gateway.memberships.push(
+      {
+        householdId: "household-1",
+        userId: "user-1",
+        displayName: "One",
+      },
+      {
+        householdId: "household-1",
+        userId: "user-2",
+        displayName: "Two",
+      },
+    );
+    gateway.identities.push({
+      identityId: "ident-apple",
+      userId: "orphan-1",
+      provider: "apple",
+      providerId: "apple-sub.001",
+    });
+    return gateway;
+  }
+
+  it("prints transfer SQL and does not delete the orphan before the identity moves", async () => {
+    const gateway = seededHousehold();
+    const lines = await executeIdentityAdminCommand(
+      parseIdentityAdminArguments(attachArguments),
+      gateway,
+    );
+
+    expect(lines[0]).toContain("update auth.identities");
+    expect(lines[0]).toContain("apple-sub.001");
+    expect(gateway.deletedUsers).toEqual([]);
+    expect(gateway.users).toHaveLength(3);
+    expect(gateway.memberships).toHaveLength(2);
+  });
+
+  it("deletes only the leftover orphan after the member already holds Apple", async () => {
+    const gateway = seededHousehold();
+    gateway.identities.push({
+      identityId: "ident-member-apple",
+      userId: "user-1",
+      provider: "apple",
+      providerId: "apple-sub.001",
+    });
+
+    const lines = await executeIdentityAdminCommand(
+      parseIdentityAdminArguments(attachArguments),
+      gateway,
+    );
+
+    expect(lines).toEqual([
+      "Deleted leftover Apple auth user orphan-1. Household members unchanged.",
+    ]);
+    expect(gateway.deletedUsers).toEqual(["orphan-1"]);
+    expect(gateway.users.map(({ id }) => id)).toEqual(["user-1", "user-2"]);
+    expect(gateway.memberships).toHaveLength(2);
+  });
+
+  it("refuses to treat a household member as the orphan", async () => {
+    const gateway = seededHousehold();
+
+    await expect(
+      executeIdentityAdminCommand(
+        parseIdentityAdminArguments([
+          "attach-apple",
+          "--project-url",
+          "https://project.supabase.co",
+          "--member-email",
+          "one@example.com",
+          "--from-user-id",
+          "user-2",
+          "--secret-stdin",
+        ]),
+        gateway,
+      ),
+    ).rejects.toThrow(/household member as the Apple orphan/);
+    expect(gateway.deletedUsers).toEqual([]);
+  });
+
+  it("does not accept bootstrap flags", () => {
+    expect(() =>
+      parseIdentityAdminArguments([
+        ...attachArguments,
+        "--household",
+        "Another",
+      ]),
+    ).toThrow(/does not accept --app-origin, --household, or --member/);
   });
 });
 

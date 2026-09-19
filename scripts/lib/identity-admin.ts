@@ -1,6 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { canAdmitMember } from "../../src/domain/identity.ts";
+import {
+  canAdmitMember,
+  planAppleIdentityAttach,
+} from "../../src/domain/identity.ts";
+import { appleIdentityTransferSql } from "./apple-identity-transfer.ts";
 
 export type HouseholdRecord = {
   id: string;
@@ -19,10 +23,26 @@ export type MembershipRecord = {
   displayName: string;
 };
 
+export type AuthIdentityRecord = {
+  identityId: string;
+  userId: string;
+  provider: string;
+  providerId: string;
+};
+
+export type AuthUserDetail = {
+  id: string;
+  email: string | null;
+  identities: AuthIdentityRecord[];
+};
+
 export type IdentityAdminGateway = {
   listHouseholds(): Promise<HouseholdRecord[]>;
   createHousehold(name: string): Promise<HouseholdRecord>;
   listUsers(): Promise<UserRecord[]>;
+  listAuthUsers(): Promise<AuthUserDetail[]>;
+  getAuthUser(userId: string): Promise<AuthUserDetail>;
+  deleteAuthUser(userId: string): Promise<void>;
   createConfirmedUser(email: string): Promise<UserRecord>;
   confirmUser(userId: string): Promise<UserRecord>;
   listMemberships(): Promise<MembershipRecord[]>;
@@ -53,7 +73,17 @@ type MemberLinkCommand = {
   secretFromStdin: true;
 };
 
-export type IdentityAdminCommand = BootstrapCommand | MemberLinkCommand;
+type AttachAppleCommand = {
+  kind: "attach-apple";
+  projectUrl: string;
+  memberEmail: string;
+  fromUserId?: string;
+  fromEmail?: string;
+  secretFromStdin: true;
+};
+
+export type IdentityAdminCommand =
+  BootstrapCommand | MemberLinkCommand | AttachAppleCommand;
 
 export type IdentityAdminRuntime = {
   createGateway: (projectUrl: string, secret: string) => IdentityAdminGateway;
@@ -132,10 +162,11 @@ export function parseIdentityAdminArguments(
   if (
     commandName !== "bootstrap" &&
     commandName !== "enroll-link" &&
-    commandName !== "recover-link"
+    commandName !== "recover-link" &&
+    commandName !== "attach-apple"
   ) {
     throw new Error(
-      "Usage: identity-admin <bootstrap|enroll-link|recover-link> ...",
+      "Usage: identity-admin <bootstrap|enroll-link|recover-link|attach-apple> ...",
     );
   }
 
@@ -143,6 +174,8 @@ export function parseIdentityAdminArguments(
   let appOrigin: string | undefined;
   let householdName: string | undefined;
   let memberEmail: string | undefined;
+  let fromUserId: string | undefined;
+  let fromEmail: string | undefined;
   const members: BootstrapMember[] = [];
   let secretFromStdin = false;
 
@@ -180,6 +213,18 @@ export function parseIdentityAdminArguments(
         index = parsed.nextIndex;
         break;
       }
+      case "--from-user-id": {
+        const parsed = requireFlagValue(argv, index, flag);
+        fromUserId = parsed.value.trim();
+        index = parsed.nextIndex;
+        break;
+      }
+      case "--from-email": {
+        const parsed = requireFlagValue(argv, index, flag);
+        fromEmail = normalizeEmail(parsed.value);
+        index = parsed.nextIndex;
+        break;
+      }
       case "--secret-stdin": {
         if (secretFromStdin) {
           throw new Error("--secret-stdin must be provided exactly once");
@@ -198,7 +243,51 @@ export function parseIdentityAdminArguments(
     throw new Error("--secret-stdin must be provided exactly once");
   }
 
-  if (projectUrl === undefined || appOrigin === undefined) {
+  if (projectUrl === undefined) {
+    throw new Error("--project-url is required");
+  }
+
+  if (commandName === "attach-apple") {
+    if (memberEmail === undefined) {
+      throw new Error("--member-email is required");
+    }
+
+    if (
+      appOrigin !== undefined ||
+      members.length > 0 ||
+      householdName !== undefined
+    ) {
+      throw new Error(
+        "attach-apple does not accept --app-origin, --household, or --member flags",
+      );
+    }
+
+    const hasFromUserId = fromUserId !== undefined && fromUserId.length > 0;
+    const hasFromEmail = fromEmail !== undefined;
+
+    if (hasFromUserId === hasFromEmail) {
+      throw new Error(
+        "attach-apple requires exactly one of --from-user-id or --from-email",
+      );
+    }
+
+    return {
+      kind: "attach-apple",
+      projectUrl,
+      memberEmail,
+      fromUserId: hasFromUserId ? fromUserId : undefined,
+      fromEmail,
+      secretFromStdin: true,
+    };
+  }
+
+  if (fromUserId !== undefined || fromEmail !== undefined) {
+    throw new Error(
+      "--from-user-id and --from-email are only valid for attach-apple",
+    );
+  }
+
+  if (appOrigin === undefined) {
     throw new Error("--project-url and --app-origin are required");
   }
 
@@ -430,6 +519,100 @@ async function executeMemberLink(
   return [buildMagicLinkConsumeUrl(command.appOrigin, tokenHash)];
 }
 
+function appleProviderId(user: AuthUserDetail): string | null {
+  const identity = user.identities.find((item) => item.provider === "apple");
+  return identity?.providerId ?? null;
+}
+
+async function resolveAttachAppleOrphan(
+  command: AttachAppleCommand,
+  gateway: IdentityAdminGateway,
+): Promise<AuthUserDetail> {
+  if (command.fromUserId !== undefined) {
+    return gateway.getAuthUser(command.fromUserId);
+  }
+
+  if (command.fromEmail === undefined) {
+    throw new Error("attach-apple requires --from-user-id or --from-email");
+  }
+
+  const users = await gateway.listAuthUsers();
+  const matches = users.filter((user) => user.email === command.fromEmail);
+
+  if (matches.length !== 1 || matches[0] === undefined) {
+    throw new Error(`No single auth user for ${command.fromEmail}`);
+  }
+
+  return matches[0];
+}
+
+async function executeAttachApple(
+  command: AttachAppleCommand,
+  gateway: IdentityAdminGateway,
+): Promise<string[]> {
+  const memberships = await gateway.listMemberships();
+  const users = await gateway.listUsers();
+  const member = users.find(
+    (candidate) => candidate.email === command.memberEmail,
+  );
+
+  if (member === undefined) {
+    throw new Error(`No confirmed user for ${command.memberEmail}`);
+  }
+
+  if (!member.confirmed) {
+    throw new Error(`${command.memberEmail} is not confirmed`);
+  }
+
+  const orphan = await resolveAttachAppleOrphan(command, gateway);
+  const memberDetail = await gateway.getAuthUser(member.id);
+  const extraNonMemberUserIds = (await gateway.listAuthUsers())
+    .filter(
+      (user) =>
+        !memberships.some((membership) => membership.userId === user.id) &&
+        user.id !== orphan.id,
+    )
+    .map((user) => user.id);
+
+  const decision = planAppleIdentityAttach({
+    memberUserIds: memberships.map((membership) => membership.userId),
+    memberUserId: member.id,
+    orphanUserId: orphan.id,
+    memberAppleProviderId: appleProviderId(memberDetail),
+    orphanAppleProviderId: appleProviderId(orphan),
+    extraNonMemberUserIds,
+  });
+
+  switch (decision.kind) {
+    case "refuse":
+      throw new Error(decision.reason);
+    case "needs-transfer": {
+      const appleId = appleProviderId(orphan);
+      if (appleId === null) {
+        throw new Error("Orphan user has no Apple identity");
+      }
+      return [
+        appleIdentityTransferSql({
+          memberUserId: member.id,
+          orphanUserId: orphan.id,
+          appleProviderId: appleId,
+        }),
+      ];
+    }
+    case "delete-orphan":
+      await gateway.deleteAuthUser(orphan.id);
+      return [
+        `Deleted leftover Apple auth user ${orphan.id}. Household members unchanged.`,
+      ];
+    default: {
+      const exhaustive: never = decision;
+      throw new Error(
+        `Unhandled attach-apple decision: ${JSON.stringify(exhaustive)}`,
+      );
+    }
+  }
+}
+
 export async function executeIdentityAdminCommand(
   command: IdentityAdminCommand,
   gateway: IdentityAdminGateway,
@@ -440,6 +623,8 @@ export async function executeIdentityAdminCommand(
     case "enroll-link":
     case "recover-link":
       return executeMemberLink(command, gateway);
+    case "attach-apple":
+      return executeAttachApple(command, gateway);
     default: {
       const exhaustive: never = command;
       throw new Error(`Unhandled command: ${JSON.stringify(exhaustive)}`);
@@ -464,6 +649,28 @@ export async function runIdentityAdmin(
   for (const link of links) {
     runtime.writeLine(link);
   }
+}
+
+function toAuthUserDetail(user: {
+  id: string;
+  email?: string;
+  identities?: Array<{
+    identity_id: string;
+    user_id: string;
+    provider: string;
+    id: string;
+  }>;
+}): AuthUserDetail {
+  return {
+    id: user.id,
+    email: user.email === undefined ? null : normalizeEmail(user.email),
+    identities: (user.identities ?? []).map((identity) => ({
+      identityId: identity.identity_id,
+      userId: identity.user_id,
+      provider: identity.provider,
+      providerId: identity.id,
+    })),
+  };
 }
 
 type HouseholdRow = {
@@ -546,6 +753,39 @@ export function createSupabaseIdentityAdminGateway(
           },
         ];
       });
+    },
+
+    async listAuthUsers() {
+      const { data, error } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+
+      if (error) {
+        throw new Error(`listAuthUsers failed: ${error.message}`);
+      }
+
+      return (data.users ?? []).map((user) => toAuthUserDetail(user));
+    },
+
+    async getAuthUser(userId) {
+      const { data, error } = await supabase.auth.admin.getUserById(userId);
+
+      if (error || data.user === null) {
+        throw new Error(
+          `getAuthUser failed: ${error?.message ?? "no user returned"}`,
+        );
+      }
+
+      return toAuthUserDetail(data.user);
+    },
+
+    async deleteAuthUser(userId) {
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+
+      if (error) {
+        throw new Error(`deleteAuthUser failed: ${error.message}`);
+      }
     },
 
     async createConfirmedUser(email) {
