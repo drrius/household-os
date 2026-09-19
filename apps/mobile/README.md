@@ -20,6 +20,26 @@ signed out immediately.
 Open with Expo Go or an iOS Simulator dev build
 (`eas build --profile development --platform ios --local` on a Mac).
 
+## Reproduce TestFlight on a simulator
+
+Use the release simulator profile for database and startup debugging:
+
+```sh
+cd apps/mobile
+eas build --profile preview-simulator --platform ios
+eas build:run --platform ios --latest
+```
+
+`preview-simulator` inherits TestFlight's `preview` environment and disables
+mock data. It embeds the JavaScript bundle and needs no Metro server. The
+`development` profile uses a fake household and cannot verify database access.
+Running an iOS simulator requires a Mac, or EAS Simulator access enabled for
+the project's Expo account.
+
+Idempotency keys use `expo-crypto` because Hermes does not supply browser
+Web Crypto. Tab icons use `expo-symbols`. Changes to these native dependencies
+require a new native build; rebuilding JavaScript alone is insufficient.
+
 ## Session storage
 
 The Supabase session lives in **AsyncStorage**. That matches a publishable-key
