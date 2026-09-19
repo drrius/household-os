@@ -13,37 +13,143 @@ set -uo pipefail
 
 APP="${1:?usage: clean-fixture.sh <project-path>}"
 
-# Safety guard: only ever clean inside an expo-skill-eval workspace.
-case "$APP" in
-  *expo-skill-eval-*) : ;;
-  *) echo "clean-fixture: refusing to clean '$APP' (not an expo-skill-eval fixture)" >&2; exit 1 ;;
-esac
-[[ -d "$APP" ]] || { echo "clean-fixture: $APP not found, skipping"; exit 0; }
+resolve_dir() {
+  local raw="$1"
+  [[ -d "$raw" ]] || return 1
+  (cd "$raw" && pwd -P)
+}
 
-# Stop any Metro / Expo dev server that may still be running for this fixture.
-# The snapshot scripts' EXIT trap normally handles this, but cleaning up here
-# catches leftover processes from crashes or interrupted runs.
+canonical_tmp() {
+  local tmp="${TMPDIR:-/tmp}"
+  tmp="${tmp%/}"
+  if [[ -d "$tmp" ]]; then
+    (cd "$tmp" && pwd -P)
+  else
+    printf '%s\n' "$tmp"
+  fi
+}
+
+is_eval_workspace_path() {
+  local resolved="$1"
+  local tmp
+  tmp="$(canonical_tmp)"
+  case "$resolved" in
+    "$tmp"/expo-skill-eval-*|/tmp/expo-skill-eval-*|/private/tmp/expo-skill-eval-*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+eval_workspace_root() {
+  local resolved="$1"
+  local acc=""
+  local part
+  local IFS=/
+  local -a parts
+  read -ra parts <<< "$resolved"
+  for part in "${parts[@]}"; do
+    [[ -z "$part" ]] && continue
+    acc="$acc/$part"
+    if [[ "$part" == expo-skill-eval-* ]]; then
+      printf '%s\n' "$acc"
+      return 0
+    fi
+  done
+  return 1
+}
+
+pid_cwd() {
+  local pid="$1"
+  if [[ -d "/proc/$pid" ]]; then
+    readlink -f "/proc/$pid/cwd" 2>/dev/null || true
+  else
+    lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | awk '/^n/ { print substr($0, 2); exit }'
+  fi
+}
+
+pid_command() {
+  local pid="$1"
+  if [[ -r "/proc/$pid/cmdline" ]]; then
+    tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true
+  else
+    ps -o command= -p "$pid" 2>/dev/null || true
+  fi
+}
+
+belongs_to_eval_workspace() {
+  local pid="$1"
+  local workspace="$2"
+  local cwd cmd
+  cwd="$(pid_cwd "$pid")"
+  if [[ -n "$cwd" && ( "$cwd" == "$workspace" || "$cwd" == "$workspace"/* ) ]]; then
+    return 0
+  fi
+  cmd="$(pid_command "$pid")"
+  if [[ -n "$cmd" && "$cmd" == *"$workspace"* ]]; then
+    return 0
+  fi
+  return 1
+}
+
+listening_pids() {
+  local port="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    # `-sTCP:LISTEN` is REQUIRED: without it, `lsof -ti tcp:8082` also matches
+    # the established adb reverse tunnel and SIGKILLing adb crashes the emulator.
+    lsof -ti "tcp:$port" -sTCP:LISTEN 2>/dev/null || true
+    return
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    ss -lptn "sport = :$port" 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p'
+    return
+  fi
+  if command -v fuser >/dev/null 2>&1; then
+    fuser "${port}/tcp" 2>/dev/null | tr -cs '0-9' '\n' | grep -E '^[0-9]+$' || true
+  fi
+}
+
+kill_fixture_listeners() {
+  local port="$1"
+  local workspace="$2"
+  local pid
+  for pid in $(listening_pids "$port"); do
+    if belongs_to_eval_workspace "$pid" "$workspace"; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+  done
+}
+
+APP_RESOLVED="$(resolve_dir "$APP")" || {
+  echo "clean-fixture: $APP not found, skipping"
+  exit 0
+}
+
+if ! is_eval_workspace_path "$APP_RESOLVED"; then
+  echo "clean-fixture: refusing to clean '$APP' (resolved $APP_RESOLVED; not under a tmp expo-skill-eval workspace)" >&2
+  exit 1
+fi
+
+WORKSPACE="$(eval_workspace_root "$APP_RESOLVED")" || {
+  echo "clean-fixture: refusing to clean '$APP_RESOLVED' (no expo-skill-eval-* path component)" >&2
+  exit 1
+}
+
+# Stop Metro / Expo listeners that belong to this eval workspace only.
 # Ports 8081 (iOS) and 8082 (Android) are the two ports the eval harness
-# reserves — freeing them here is safe because clean-fixture.sh only runs after
-# all screenshots for this fixture have been captured.
-#
-# `-sTCP:LISTEN` is REQUIRED, not a refinement: without it, `lsof -ti tcp:8082`
-# also matches the *established* connection the adb daemon holds from the
-# `adb reverse tcp:8082` tunnel, and SIGKILLing the adb daemon crashes the
-# emulator with a gfxstream gRPC SIGABRT (std::bad_function_call). Keep the flag
-# so only the Metro listener is killed.
-lsof -ti tcp:8081 -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null || true
-lsof -ti tcp:8082 -sTCP:LISTEN 2>/dev/null | xargs kill -9 2>/dev/null || true
+# reserves. Do not SIGKILL unrelated listeners on those ports.
+kill_fixture_listeners 8081 "$WORKSPACE"
+kill_fixture_listeners 8082 "$WORKSPACE"
 
 # Per-fixture heavy dirs — all gitignored / regenerable (node_modules, the
 # prebuilt native projects incl. iOS Pods and Android Gradle output, caches).
 rm -rf \
-  "$APP/node_modules" \
-  "$APP/ios" \
-  "$APP/android" \
-  "$APP/.expo" \
-  "$APP/dist" \
-  "$APP/web-build" 2>/dev/null || true
+  "$APP_RESOLVED/node_modules" \
+  "$APP_RESOLVED/ios" \
+  "$APP_RESOLVED/android" \
+  "$APP_RESOLVED/.expo" \
+  "$APP_RESOLVED/dist" \
+  "$APP_RESOLVED/web-build" 2>/dev/null || true
 
 # iOS DerivedData for fixture builds. create-expo-app names the project
 # "fixture", so its build output lives under DerivedData/fixture-<hash>. This is
@@ -53,4 +159,4 @@ if [[ "${EXPO_SKILL_EVAL_KEEP_DERIVEDDATA:-0}" != "1" ]]; then
   [[ -d "$DD" ]] && rm -rf "$DD"/fixture-* 2>/dev/null || true
 fi
 
-echo "cleaned fixture: $APP"
+echo "cleaned fixture: $APP_RESOLVED"

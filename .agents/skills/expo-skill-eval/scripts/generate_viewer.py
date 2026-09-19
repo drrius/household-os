@@ -18,10 +18,17 @@ rather than regenerated each run.
 """
 
 import base64
+import html
 import json
 import sys
 import webbrowser
 from pathlib import Path
+
+
+def esc(value):
+    if value is None:
+        return ""
+    return html.escape(str(value), quote=True)
 
 
 def b64_img(path):
@@ -67,8 +74,8 @@ def render_expectations(expectations):
     for exp in expectations:
         if isinstance(exp, dict):
             passed = exp.get("passed", None)
-            text = exp.get("text", str(exp))
-            evidence = exp.get("evidence", "")
+            text = esc(exp.get("text", str(exp)))
+            evidence = esc(exp.get("evidence", ""))
             if passed is True:
                 badge = '<span class="badge pass">PASS</span>'
             elif passed is False:
@@ -78,7 +85,7 @@ def render_expectations(expectations):
             ev_html = f'<div class="evidence">{evidence}</div>' if evidence else ""
             html += f'<li>{badge} {text}{ev_html}</li>'
         else:
-            html += f'<li><span class="badge unknown">?</span> {exp}</li>'
+            html += f'<li><span class="badge unknown">?</span> {esc(exp)}</li>'
     html += "</ul>"
     return html
 
@@ -91,21 +98,21 @@ def render_quality(quality):
     max_total = quality.get("max", 0)
     summary = quality.get("summary", "")
     html = '<div class="quality-block">'
-    html += f'<div class="quality-header">Design Quality: <b>{subtotal}/{max_total}</b></div>'
+    html += f'<div class="quality-header">Design Quality: <b>{esc(subtotal)}/{esc(max_total)}</b></div>'
     for d in dims:
-        name = d.get("name", "")
+        name = esc(d.get("name", ""))
         score = d.get("score", 0)
         mx = d.get("max", 3)
-        evidence = d.get("evidence", "")
+        evidence = esc(d.get("evidence", ""))
         pct = (score / mx * 100) if mx else 0
         color = score_color(score, mx)
         html += f'''<div class="quality-dim">
-  <div class="dim-label">{name} <span style="color:{color}">{score}/{mx}</span></div>
+  <div class="dim-label">{name} <span style="color:{color}">{esc(score)}/{esc(mx)}</span></div>
   <div class="dim-bar-wrap"><div class="dim-bar" style="width:{pct:.0f}%;background:{color}"></div></div>
   {f'<div class="dim-evidence">{evidence}</div>' if evidence else ""}
 </div>'''
     if summary:
-        html += f'<div class="quality-summary">{summary}</div>'
+        html += f'<div class="quality-summary">{esc(summary)}</div>'
     html += "</div>"
     return html
 
@@ -132,11 +139,11 @@ def render_config_card(iter_dir, eval_id, config, eval_case, grading, static_res
 
     for plat, img_b64 in screenshots:
         if img_b64:
-            html += f'<div class="screenshot-wrap"><div class="plat-label">{plat}</div>'
+            html += f'<div class="screenshot-wrap"><div class="plat-label">{esc(plat)}</div>'
             html += f'<img src="{img_b64}" class="screenshot" onclick="this.classList.toggle(\'zoomed\')" />'
             html += '</div>'
         else:
-            html += f'<div class="screenshot-wrap"><div class="plat-label">{plat}</div><div class="no-screenshot">No screenshot</div></div>'
+            html += f'<div class="screenshot-wrap"><div class="plat-label">{esc(plat)}</div><div class="no-screenshot">No screenshot</div></div>'
 
     if grading:
         html += render_expectations(grading.get("expectations", []))
@@ -148,14 +155,14 @@ def render_config_card(iter_dir, eval_id, config, eval_case, grading, static_res
             rm_color = score_color(rm_score, rm_max)
             html += f'<div class="ref-match"><b>Reference Match:</b> <span style="color:{rm_color}">{rm_score}/{rm_max}</span>'
             if ref_match.get("evidence"):
-                html += f'<div class="evidence">{ref_match["evidence"]}</div>'
+                html += f'<div class="evidence">{esc(ref_match["evidence"])}</div>'
             html += '</div>'
 
         html += render_quality(grading.get("quality"))
 
         notes = grading.get("user_notes_summary", {})
         if notes and notes.get("notes"):
-            html += f'<div class="reviewer-notes"><b>Notes:</b> {notes["notes"]}</div>'
+            html += f'<div class="reviewer-notes"><b>Notes:</b> {esc(notes["notes"])}</div>'
 
     html += '</div>'
     return html
@@ -164,7 +171,7 @@ def render_config_card(iter_dir, eval_id, config, eval_case, grading, static_res
 def render_iteration(iter_dir):
     evals = load_json(iter_dir / "evals.json")
     if not evals:
-        return f"<p>No evals.json found in {iter_dir}</p>"
+        return f"<p>No evals.json found in {esc(iter_dir)}</p>"
 
     html = ""
     total_with = total_without = 0
@@ -195,8 +202,8 @@ def render_iteration(iter_dir):
             qual_without += without_grading["quality"].get("subtotal", 0)
 
         html += '<div class="eval-case">'
-        html += f'<div class="eval-header">Eval #{eid}</div>'
-        html += f'<div class="eval-prompt">{ev.get("prompt", "")[:200]}</div>'
+        html += f'<div class="eval-header">Eval #{esc(eid)}</div>'
+        html += f'<div class="eval-prompt">{esc(ev.get("prompt", "")[:200])}</div>'
 
         if ref_img_b64:
             html += '<div class="ref-image-wrap"><div class="ref-label">Target Reference</div>'
@@ -252,7 +259,7 @@ def render_trigger_table(results_path):
         should = "Yes" if should_trigger else "No"
         triggered_str = "Yes" if triggered else "No"
         elapsed = r.get("elapsed_s", r.get("duration", "?"))
-        html += f'<tr><td>{rid}</td><td class="prompt-cell">{prompt[:80]}</td><td>{should}</td><td>{triggered_str}</td><td>{result_badge}</td><td>{elapsed}s</td></tr>'
+        html += f'<tr><td>{esc(rid)}</td><td class="prompt-cell">{esc(prompt[:80])}</td><td>{should}</td><td>{triggered_str}</td><td>{result_badge}</td><td>{esc(elapsed)}s</td></tr>'
     html += '</table></div>'
     return html
 
@@ -389,27 +396,27 @@ function showTab(i) {
 def build_page(ws, title, artifact=False):
     iterations = sorted(p for p in ws.glob("iteration-*") if p.is_dir())
     if not iterations:
-        return f"<p>No iteration directories found under {ws}.</p>"
+        return f"<p>No iteration directories found under {esc(ws)}.</p>"
 
     tabs_html = ""
     panels_html = ""
     for i, it in enumerate(iterations):
         active = "active" if i == 0 else ""
-        tabs_html += f'<button class="tab {active}" onclick="showTab({i})" id="tab-{i}">{it.name}</button>'
+        tabs_html += f'<button class="tab {active}" onclick="showTab({i})" id="tab-{i}">{esc(it.name)}</button>'
         content = render_iteration(it)
         panels_html += f'<div class="panel" id="panel-{i}" style="display:{"block" if i == 0 else "none"}">{content}</div>'
 
     trigger_html = render_trigger_table(ws / "trigger-evals" / "trigger_results.json")
-    body_content = f'<h1>{title}</h1>\n<div class="tabs">{tabs_html}</div>\n{panels_html}\n{trigger_html}'
+    body_content = f'<h1>{esc(title)}</h1>\n<div class="tabs">{tabs_html}</div>\n{panels_html}\n{trigger_html}'
 
     if artifact:
-        return f'<title>{title}</title>\n<style>\n{CSS}</style>\n{body_content}\n<script>\n{JS}</script>'
+        return f'<title>{esc(title)}</title>\n<style>\n{CSS}</style>\n{body_content}\n<script>\n{JS}</script>'
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>{title}</title>
+<title>{esc(title)}</title>
 <style>
 {CSS}
 </style>
