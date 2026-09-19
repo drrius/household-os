@@ -9,7 +9,10 @@
     "ios": {
       "bundleIdentifier": "ch.household.os",
       "supportsTablet": false,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "expo-router",

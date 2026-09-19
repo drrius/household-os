@@ -14,12 +14,15 @@
       }
     },
     "preview": {
-      "distribution": "internal",
+      "distribution": "store",
+      "environment": "preview",
+      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_USE_MOCK": "false"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "image": "latest"
       }
     },
     "production": {
@@ -30,6 +33,13 @@
     }
   },
   "submit": {
+    "preview": {
+      "ios": {
+        "appleId": "dsibarium@gmail.com",
+        "ascAppId": "6813815649",
+        "appleTeamId": "5ZKB6XKYFX"
+      }
+    },
     "production": {
       "ios": {
         "appleId": "dsibarium@gmail.com",
