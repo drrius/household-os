@@ -35,6 +35,13 @@ client never used it for the session.
   before the first TestFlight tap (see `pnpm admin attach-apple`).
 - APNs Auth Key → Expo push via `expo-notifications`
 
+## Runtime versions
+
+Pin `react` and `react-native` to the exact versions in
+`expo/bundledNativeModules.json` (SDK 57: React 19.2.3, RN 0.86.3). RN 0.87
+removes `react-native/rn-get-polyfills`, which Expo 57 Metro still loads during
+`expo export` / the EAS “Bundle JavaScript” phase. `pnpm test` covers this pin.
+
 ## Boundaries
 
 - Pure money and date rules stay in `src/domain` and `src/lib/ui/zurich-date`.
